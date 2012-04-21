@@ -292,7 +292,6 @@ void CrowdToolState::handleRender()
 			dtVcopy(prev, v);
 		}
 		dd.end();
-		
 	}
 	
 	// Corners & co

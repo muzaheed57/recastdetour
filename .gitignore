@@ -1,0 +1,9 @@
+#Bin directories
+*/Bin
+
+#Build directory
+Build
+
+#Potentials dll copied in the run directory.
+DetourCrowdDemo/Run/*.dll
+RecastDemo/Run/*.dll
