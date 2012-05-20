@@ -19,6 +19,9 @@
 #ifndef RECAST_DUMP_H
 #define RECAST_DUMP_H
 
+#include <cmath>
+#include <cstddef>
+
 struct duFileIO
 {
 	virtual ~duFileIO() = 0;

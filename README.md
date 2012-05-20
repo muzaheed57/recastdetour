@@ -1,33 +1,33 @@
+# About #
 
-Recast & Detour Version 1.4
+This repository is a fork of [recastnavigation](http://code.google.com/p/recastnavigation/) whose original author is [Mikko Mononen](memon@inside.org).
 
-
-Recast
+## Recast ##
 
 Recast is state of the art navigation mesh construction toolset for games.
 
-    * It is automatic, which means that you can throw any level geometry
-      at it and you will get robust mesh out
-    * It is fast which means swift turnaround times for level designers
-    * It is open source so it comes with full source and you can
-      customize it to your hearts content. 
+* It is automatic, which means that you can throw any level geometry
+at it and you will get robust mesh out
+* It is fast which means swift turnaround times for level designers
+* It is open source so it comes with full source and you can
+customize it to your hearts content. 
 
 The Recast process starts with constructing a voxel mold from a level geometry 
 and then casting a navigation mesh over it. The process consists of three steps, 
 building the voxel mold, partitioning the mold into simple regions, peeling off 
 the regions as simple polygons.
 
-   1. The voxel mold is build from the input triangle mesh by rasterizing 
-      the triangles into a multi-layer heightfield. Some simple filters are 
-      then applied to the mold to prune out locations where the character 
-      would not be able to move.
-   2. The walkable areas described by the mold are divided into simple 
-      overlayed 2D regions. The resulting regions have only one non-overlapping 
-      contour, which simplifies the final step of the process tremendously.
-   3. The navigation polygons are peeled off from the regions by first tracing 
-      the boundaries and then simplifying them. The resulting polygons are 
-      finally converted to convex polygons which makes them perfect for 
-      pathfinding and spatial reasoning about the level. 
+1. The voxel mold is build from the input triangle mesh by rasterizing 
+the triangles into a multi-layer heightfield. Some simple filters are 
+then applied to the mold to prune out locations where the character 
+would not be able to move.
+2. The walkable areas described by the mold are divided into simple 
+overlayed 2D regions. The resulting regions have only one non-overlapping 
+contour, which simplifies the final step of the process tremendously.
+3. The navigation polygons are peeled off from the regions by first tracing 
+the boundaries and then simplifying them. The resulting polygons are 
+finally converted to convex polygons which makes them perfect for 
+pathfinding and spatial reasoning about the level. 
 
 The toolset code is located in the Recast folder and demo application using the Recast
 toolset is located in the RecastDemo folder.
@@ -35,20 +35,44 @@ toolset is located in the RecastDemo folder.
 The project files with this distribution can be compiled with Microsoft Visual C++ 2008
 (you can download it for free) and XCode 3.1.
 
-
-Detour
+## Detour ##
 
 Recast is accompanied with Detour, path-finding and spatial reasoning toolkit. You can use any navigation mesh with Detour, but of course the data generated with Recast fits perfectly.
 
 Detour offers simple static navigation mesh which is suitable for many simple cases, as well as tiled navigation mesh which allows you to plug in and out pieces of the mesh. The tiled mesh allows to create systems where you stream new navigation data in and out as the player progresses the level, or you may regenerate tiles as the world changes. 
 
+## Detour Crowd ##
 
-Latest code available at http://code.google.com/p/recastnavigation/
+Detour Crowd is a simple navigation engine relying on Detour features.
 
+# Build instructions #
 
---
+## Windows/Visual Studio ##
 
-Release Notes
+### Prerequisites ###
+- [Cmake](http://www.cmake.org/);
+- [SDL](http://www.libsdl.org) development libraries;
+- Virtually any recent version of visual studio; we test it with,
+    - Visual Studio 2010 x86.
+
+### Build ###
+1. Generate the Visual Studio files with CMake.
+    - Set the source code directory to the root of the repository (e.g. `E:\recastdetour`);
+    - Set the Cmake build directory to where you desire the `.sln`, `.vcproj` and co. to be (e.g. `E:\recastdetour\Build`);
+    - Set the `SDL_INCLUDE_DIR` to the path of `include` directory part of the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/include`);
+    - Set the `SDL_LIBRARY_TEMP to the path of `SDL.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDL.lib`);
+    - Set the `SDLMAIN_LIBRARY` to the path of `SDLMain.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDLmain.lib`);
+    - Click *Configure* then *Generate*.
+2. Build the libs and executable with Visual Studio.
+    - Open `RecastDetour.sln` that has been generated in the chosen directory (e.g. `E:\recastdetour\Build\RecastDetour.sln`);
+    - Build the project `ALL_BUILD`, it will build all libraries and executables.
+3. Execute `Recast_Demo`.
+    - Make sure you execute the application from its Run directory (e.g. `E:\projects\recastdetour\RecastDemo\Run`);
+    - Make sure `SDL.dll` is present in the path;
+    - Run, and enjoy!
+ 
+
+# Release Notes #
 
 ----------------
 * Recast 1.4
@@ -113,8 +137,3 @@ particularly robust either.
 Another non-robust case is when portal contours (contours shared between two regions) are always
 assumed to be straight. That can lead to overlapping contours specially when the level has
 large open areas.
-
-
-
-Mikko Mononen
-memon@inside.org
