@@ -1,9 +1,22 @@
-#Bin directories
-*/Bin
+#Cmake generation results
+build/vc*/
+build/linux/
+build/.ant-targets-build.xml
 
-#Build directory
-Build
+#Poney generated stuffs
+build/poney/
 
-#Potentials dll copied in the run directory.
-DetourCrowdDemo/Run/*.dll
-RecastDemo/Run/*.dll
+#Retrieved externals
+build/externals/
+
+#Installation output
+Out
+dist
+
+# Bin content
+*/Bin/
+!/Bin/*.ttf
+!/Bin/Meshes/
+!/Bin/Samples/
+!/Bin/Tests/
+

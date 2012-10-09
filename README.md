@@ -52,8 +52,8 @@ Detour Crowd is a simple navigation engine relying on Detour features.
 ### Prerequisites ###
 - [Cmake](http://www.cmake.org/);
 - [SDL](http://www.libsdl.org) development libraries;
-- Virtually any recent version of visual studio; we test it with,
-    - Visual Studio 2010 x86.
+- Virtually any recent version of visual studio, tested with;
+    - Visual Studio 2010 x86;
 
 ### Build ###
 1. Generate the Visual Studio files with CMake.
@@ -64,7 +64,7 @@ Detour Crowd is a simple navigation engine relying on Detour features.
     - Set the `SDLMAIN_LIBRARY` to the path of `SDLMain.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDLmain.lib`);
     - Click *Configure* then *Generate*.
 2. Build the libs and executable with Visual Studio.
-    - Open `RecastDetour.sln` that has been generated in the chosen directory (e.g. `E:\recastdetour\Build\RecastDetour.sln`);
+    - Open `RecastNavigation.sln` that has been generated in the chosen directory (e.g. `E:\recastdetour\Build\RecastNavigation.sln`);
     - Build the project `ALL_BUILD`, it will build all libraries and executables.
 3. Execute `Recast_Demo`.
     - Make sure you execute the application from its Run directory (e.g. `E:\projects\recastdetour\RecastDemo\Run`);

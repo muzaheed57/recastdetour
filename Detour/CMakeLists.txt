@@ -17,8 +17,19 @@ SET(detour_HDRS
 	Include/DetourNavMeshBuilder.h
 	Include/DetourNavMeshQuery.h
 	Include/DetourNode.h
+    Include/DetourStatus.h
 )
 
 INCLUDE_DIRECTORIES(Include)
 
 ADD_LIBRARY(Detour ${detour_SRCS} ${detour_HDRS})
+
+INSTALL(FILES ${detour_HDRS}
+    DESTINATION include/detour
+)
+
+INSTALL(TARGETS Detour EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+    RUNTIME DESTINATION bin/${PLATFORM_STR}
+    LIBRARY DESTINATION lib/${PLATFORM_STR}
+    ARCHIVE DESTINATION lib/${PLATFORM_STR}
+)

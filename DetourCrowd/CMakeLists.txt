@@ -25,3 +25,13 @@ INCLUDE_DIRECTORIES(Include
 )
 
 ADD_LIBRARY(DetourCrowd ${detourcrowd_SRCS} ${detourcrowd_HDRS})
+
+INSTALL(FILES ${detourcrowd_HDRS}
+    DESTINATION include/detourCrowd
+)
+
+INSTALL(TARGETS DetourCrowd EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+    RUNTIME DESTINATION bin/${PLATFORM_STR}
+    LIBRARY DESTINATION lib/${PLATFORM_STR}
+    ARCHIVE DESTINATION lib/${PLATFORM_STR}
+)
