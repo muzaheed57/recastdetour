@@ -51,6 +51,8 @@ INSTALL(
     CONFIGURATIONS Release
 )
 
+ENABLE_TESTING()
+
 ADD_SUBDIRECTORY(RecastDetourDebugUtils)
 ADD_SUBDIRECTORY(Detour)
 ADD_SUBDIRECTORY(DetourCrowd)
@@ -58,6 +60,7 @@ ADD_SUBDIRECTORY(DetourTileCache)
 ADD_SUBDIRECTORY(Recast)
 ADD_SUBDIRECTORY(RecastDemo)
 ADD_SUBDIRECTORY(DetourCrowdDemo)
+ADD_SUBDIRECTORY(DetourCrowdTest)
 
 # install the platform string computation module
 INSTALL(FILES PlatformStr.cmake DESTINATION build/cmake)
@@ -67,7 +70,7 @@ CONFIGURE_FILE(RecastNavigationConfig.cmake.in "${PROJECT_BINARY_DIR}/RecastNavi
 INSTALL(FILES "${PROJECT_BINARY_DIR}/RecastNavigationConfig.cmake" DESTINATION build/cmake)
 INSTALL(EXPORT "RecastNavigationTargets-${PLATFORM_STR}" DESTINATION build/cmake)
 
-#~ CPack configuration, builds a zip package using the target 'package' in 
+# CPack configuration, builds a zip package using the target 'package' in 
 SET(CPACK_GENERATOR "ZIP")
 SET(CPACK_ZIP_COMPONENT_INSTALL OFF)
 SET(CPACK_PACKAGE_VERSION_MAJOR ${RECASTDETOUR_VERSION_MAJOR})

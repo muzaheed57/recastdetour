@@ -1,4 +1,4 @@
-Copyright (c) 2009-2012 
+Copyright (c) 2009-2013 
     Mikko Mononen memon@inside.org
     MASA Group recastdetour@masagroup.net
 

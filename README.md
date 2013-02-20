@@ -32,9 +32,6 @@ pathfinding and spatial reasoning about the level.
 The toolset code is located in the Recast folder and demo application using the Recast
 toolset is located in the RecastDemo folder.
 
-The project files with this distribution can be compiled with Microsoft Visual C++ 2008
-(you can download it for free) and XCode 3.1.
-
 ## Detour ##
 
 Recast is accompanied with Detour, path-finding and spatial reasoning toolkit. You can use any navigation mesh with Detour, but of course the data generated with Recast fits perfectly.
@@ -52,8 +49,9 @@ Detour Crowd is a simple navigation engine relying on Detour features.
 ### Prerequisites ###
 - [Cmake](http://www.cmake.org/);
 - [SDL](http://www.libsdl.org) development libraries;
+- [Catch](https://github.com/philsquared/Catch) unit test library is used as a [submodule](http://git-scm.com/book/en/Git-Tools-Submodules) in [DetourCrowdTest/Contrib/catch](DetourCrowdTest/Contrib/catch);
 - Virtually any recent version of visual studio, tested with;
-    - Visual Studio 2010 x86;
+    - Visual Studio 2010 x86.
 
 ### Build ###
 1. Generate the Visual Studio files with CMake.
@@ -63,10 +61,11 @@ Detour Crowd is a simple navigation engine relying on Detour features.
     - Set the `SDL_LIBRARY_TEMP to the path of `SDL.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDL.lib`);
     - Set the `SDLMAIN_LIBRARY` to the path of `SDLMain.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDLmain.lib`);
     - Click *Configure* then *Generate*.
-2. Build the libs and executable with Visual Studio.
+2. Build with Visual Studio.
     - Open `RecastNavigation.sln` that has been generated in the chosen directory (e.g. `E:\recastdetour\Build\RecastNavigation.sln`);
     - Build the project `ALL_BUILD`, it will build all libraries and executables.
-3. Execute `Recast_Demo`.
+    - Build the project `RUN_TESTS`, it will launch the unit tests and check they passed successfully.
+3. Execute `Recast_Demo` and `DetourCrowd_Demo.
     - Make sure you execute the application from its Run directory (e.g. `E:\projects\recastdetour\RecastDemo\Run`);
     - Make sure `SDL.dll` is present in the path;
     - Run, and enjoy!
