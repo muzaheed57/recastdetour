@@ -16,16 +16,45 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#include "PerfTimer.h"
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+#if defined(WIN32)
 
-int main(int /*argc*/, char** /*argv*/)
+// Win32
+#include <windows.h>
+
+TimeVal getPerfTime()
 {
-    Application app;
-    
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
-    
-    return app.run();
+	__int64 count;
+	QueryPerformanceCounter((LARGE_INTEGER*)&count);
+	return count;
 }
+
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end)
+{
+	static __int64 freq = 0;
+	if (freq == 0)
+		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+	__int64 elapsed = end - start;
+	return (int)(elapsed*1000000 / freq);
+}
+
+#else
+
+// Linux, BSD, OSX
+
+#include <sys/time.h>
+
+TimeVal getPerfTime()
+{
+	timeval now;
+	gettimeofday(&now, 0);
+	return (TimeVal)now.tv_sec*1000000L + (TimeVal)now.tv_usec;
+}
+
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end)
+{
+	return (int)(end - start);
+}
+
+#endif

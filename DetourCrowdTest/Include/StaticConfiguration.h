@@ -16,16 +16,13 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef STATICCONFIGURATION_H
+#define STATICCONFIGURATION_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+#include <cstring>
 
-int main(int /*argc*/, char** /*argv*/)
-{
-    Application app;
-    
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
-    
-    return app.run();
-}
+const size_t maxAgentCount = 100;
+const size_t maxPathLen = 260;
+const size_t maxAgentTrailLen = 64;
+
+#endif

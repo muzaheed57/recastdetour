@@ -20,24 +20,45 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 SET(
   detourcrowdtest_SRCS
+  Source/Application.cpp
   Source/DetourCrowdTest.cpp
+  Source/CrowdSample.cpp
+  Source/NavMeshCreator.cpp
+  Source/ChunkyTriMesh.cpp
+  Source/FileList.cpp
+  Source/InputGeom.cpp
+  Source/MeshLoaderObj.cpp
+  Source/PerfTimer.cpp
   )
   
 SET(catch_INC Contrib/catch/include)
+
+SET(simplejson_DIR Contrib/SimpleJSON)
+SET(simplejson_SRCS 
+    ${simplejson_DIR}/JSON.cpp
+    ${simplejson_DIR}/JSONValue.cpp
+)
+SET(simplejson_HDRS
+    ${simplejson_DIR}/JSON.h
+    ${simplejson_DIR}/JSONValue.h
+	)
   
 INCLUDE_DIRECTORIES(
 	Include
+	Contrib/
     ../Detour/Include
+    ../Recast/Include
     ../DetourCrowd/Include
     ../DetourTileCache/Include
 	${catch_INC}
+	${simplejson_DIR}
 	)
 	
 SOURCE_GROUP(sources FILES ${detourcrowdtest_SRCS})
-SOURCE_GROUP(externals\\catch FILES ${catch_INC})
+SOURCE_GROUP(externals\\catch FILES ${catch_INC} ${simplejson_SRCS} ${simplejson_HDRS})
 SOURCE_GROUP(cmake FILES CMakeLists.txt)
 
-ADD_EXECUTABLE(DetourCrowdTest ${detourcrowdtest_SRCS})
+ADD_EXECUTABLE(DetourCrowdTest ${detourcrowdtest_SRCS} ${simplejson_SRCS} ${simplejson_HDRS})
 
 SET_PROPERTY(TARGET DetourCrowdTest PROPERTY DEBUG_POSTFIX -gd)
 SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${RecastNavigation_SOURCE_DIR}/DetourCrowdTest/Bin)
@@ -47,6 +68,7 @@ TARGET_LINK_LIBRARIES(
   DetourCrowdTest
   DetourCrowd
   Detour
+  Recast
   )
 
 ADD_TEST(

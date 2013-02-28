@@ -131,12 +131,11 @@ bool Visualization::initialize()
     m_mousePosition[0] = m_mousePosition[1] = 1;
     m_crowdAvailableDt = 0.f;
     m_stopRequested = false;
-    m_rotating = false;
-    
+	m_rotating = false;
     
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
-		printf("Could not initialise SDL.\n");
+		printf("Could not initialize SDL.\n");
 		m_initialized = false;
 	}
     else
@@ -230,7 +229,7 @@ bool Visualization::initialize()
     {
         SDL_Quit();
     }
-    
+
     return m_initialized;
 }
 
@@ -363,13 +362,16 @@ bool Visualization::update()
     
     //Update the crowd
     if (m_crowd)
-    {
+	{
+		m_crowd->removeAgent(3);
+		int list[4] = {0, 1, 2, 3};
         if (singleSimulationStep)
         {
             m_paused = true;
-            
             m_debugInfo->startUpdate();
-            m_crowd->update(m_crowdDt,&m_debugInfo->m_debuggedAgentInfo);
+
+			m_crowd->update(m_crowdDt,&m_debugInfo->m_debuggedAgentInfo);
+
             m_debugInfo->endUpdate(m_crowdDt);
             m_crowdAvailableDt = 0.f;
         }
@@ -378,10 +380,11 @@ bool Visualization::update()
             m_crowdAvailableDt += dt;
             while(m_crowdAvailableDt > m_crowdDt)
             {
-                m_debugInfo->startUpdate();
-                m_crowd->update(m_crowdDt,&m_debugInfo->m_debuggedAgentInfo);
+				m_debugInfo->startUpdate();
+
+				m_crowd->update(m_crowdDt, &m_debugInfo->m_debuggedAgentInfo);
+
                 m_debugInfo->endUpdate(m_crowdDt);
-                
                 m_crowdAvailableDt -= m_crowdDt;
             }
         }
@@ -474,7 +477,7 @@ bool Visualization::pick(float* position, int* agentIdx)
                 {
                     const dtCrowdAgent* ag = m_crowd->getAgent(i);
                     if (ag->active)
-                    {            
+					{  
                         bmin[0] = ag->npos[0] - ag->params.radius;
                         bmin[1] = ag->npos[1];
                         bmin[2] = ag->npos[2] - ag->params.radius;
@@ -484,11 +487,11 @@ bool Visualization::pick(float* position, int* agentIdx)
                         
                         float tmin, tmax;
                         if (isectSegAABB(rays, raye, bmin, bmax, tmin, tmax))
-                        {
+						{
                             if (tmin > 0 && tmin < tsel)
-                            {
-                                *agentIdx = i;
-                                tsel = tmin;
+							{
+								*agentIdx = i;
+								tsel = tmin;
                                 dtVcopy(position, ag->npos);
                             } 
                         }

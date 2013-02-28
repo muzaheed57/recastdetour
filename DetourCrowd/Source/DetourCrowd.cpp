@@ -58,14 +58,14 @@ inline float tween(const float t, const float t0, const float t1)
 
 static void integrate(dtCrowdAgent* ag, const float dt)
 {
-	// Fake dynamic constraint.
-	const float maxDelta = ag->params.maxAcceleration * dt;
-	float dv[3];
-	dtVsub(dv, ag->nvel, ag->vel);
-	float ds = dtVlen(dv);
-	if (ds > maxDelta)
-		dtVscale(dv, dv, maxDelta/ds);
-	dtVadd(ag->vel, ag->vel, dv);
+	//// Fake dynamic constraint.
+	//const float maxDelta = ag->params.maxAcceleration * dt;
+	//float dv[3];
+	//dtVsub(dv, ag->nvel, ag->vel);
+	//float ds = dtVlen(dv);
+	//if (ds > maxDelta)
+	//	dtVscale(dv, dv, maxDelta/ds);
+	//dtVadd(ag->vel, ag->vel, dv);
 	
 	// Integrate
 	if (dtVlen(ag->vel) > 0.0001f)
@@ -200,6 +200,9 @@ static int getNeighbours(const float* pos, const float height, const float range
 	for (int i = 0; i < nids; ++i)
 	{
 		const dtCrowdAgent* ag = agents[ids[i]];
+
+		if (!ag->active)
+			continue;
 		
 		if (ag == skip) continue;
 		
@@ -331,9 +334,11 @@ Notes:
 
 dtCrowd::dtCrowd() :
 	m_maxAgents(0),
+	m_nbActiveAgents(0),
 	m_agents(0),
 	m_activeAgents(0),
 	m_agentAnims(0),
+	m_agentsToUpdate(0),
 	m_obstacleQuery(0),
 	m_grid(0),
 	m_pathResult(0),
@@ -356,6 +361,7 @@ void dtCrowd::purge()
 	dtFree(m_agents);
 	m_agents = 0;
 	m_maxAgents = 0;
+	m_nbActiveAgents = 0;
 	
 	dtFree(m_activeAgents);
 	m_activeAgents = 0;
@@ -374,6 +380,9 @@ void dtCrowd::purge()
 	
 	dtFreeNavMeshQuery(m_navquery);
 	m_navquery = 0;
+
+	dtFree(m_agentsToUpdate);
+	m_agentsToUpdate = 0;
 }
 
 /// @par
@@ -385,6 +394,15 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	
 	m_maxAgents = maxAgents;
 	m_maxAgentRadius = maxAgentRadius;
+	m_nbActiveAgents = 0;
+
+	m_agentsToUpdate = (int*) dtAlloc(sizeof(int) * maxAgents, DT_ALLOC_PERM);
+
+	if (!m_agentsToUpdate)
+		return false;
+
+	for (int i = 0; i < m_maxAgents; ++i)
+		m_agentsToUpdate[i] = i;
 
 	dtVset(m_ext, m_maxAgentRadius*2.0f,m_maxAgentRadius*1.5f,m_maxAgentRadius*2.0f);
 	
@@ -450,6 +468,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	{
 		m_agentAnims[i].active = 0;
 	}
+	m_nbActiveAgents = 0;
 
 	// The navquery is mostly used for local searches, no need for large node pool.
 	m_navquery = dtAllocNavMeshQuery();
@@ -484,6 +503,9 @@ const int dtCrowd::getAgentCount() const
 /// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
 const dtCrowdAgent* dtCrowd::getAgent(const int idx)
 {
+	if (idx < 0 || idx > m_maxAgents)
+		return 0;
+
 	return &m_agents[idx];
 }
 
@@ -527,6 +549,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->topologyOptTime = 0;
 	ag->targetReplanTime = 0;
 	ag->nneis = 0;
+	ag->ncorners = 0;
 	
 	dtVset(ag->dvel, 0,0,0);
 	dtVset(ag->nvel, 0,0,0);
@@ -543,6 +566,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->targetState = DT_CROWDAGENT_TARGET_NONE;
 	
 	ag->active = 1;
+	++m_nbActiveAgents;
 
 	return idx;
 }
@@ -555,7 +579,11 @@ void dtCrowd::removeAgent(const int idx)
 {
 	if (idx >= 0 && idx < m_maxAgents)
 	{
-		m_agents[idx].active = 0;
+		if (m_agents[idx].active)
+		{
+			m_agents[idx].active = 0;
+			--m_nbActiveAgents;
+		}
 	}
 }
 
@@ -655,16 +683,31 @@ int dtCrowd::getActiveAgents(dtCrowdAgent** agents, const int maxAgents)
 }
 
 
-void dtCrowd::updateMoveRequest(const float /*dt*/)
+int dtCrowd::getAllAgents(dtCrowdAgent** agents, const int maxAgents)
+{
+	int n = 0;
+	for (int i = 0; i < m_maxAgents; ++i)
+	{
+		if (n < maxAgents)
+			agents[n++] = &m_agents[i];
+	}
+	return n;
+}
+
+void dtCrowd::updateMoveRequest(dtCrowdAgent** agents, int* agentsIdx, const int nagents)
 {
 	const int PATH_MAX_AGENTS = 8;
 	dtCrowdAgent* queue[PATH_MAX_AGENTS];
 	int nqueue = 0;
 	
 	// Fire off new requests.
-	for (int i = 0; i < m_maxAgents; ++i)
+	for (int i = 0; i < nagents; ++i)
 	{
-		dtCrowdAgent* ag = &m_agents[i];
+		if (agentsIdx[i] >= m_maxAgents || agentsIdx[i] < 0)
+			continue;
+
+		dtCrowdAgent* ag = agents[agentsIdx[i]];
+
 		if (!ag->active)
 			continue;
 		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
@@ -879,7 +922,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 }
 
 
-void dtCrowd::updateTopologyOptimization(dtCrowdAgent** agents, const int nagents, const float dt)
+void dtCrowd::updateTopologyOptimization(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt)
 {
 	if (!nagents)
 		return;
@@ -891,7 +934,10 @@ void dtCrowd::updateTopologyOptimization(dtCrowdAgent** agents, const int nagent
 	
 	for (int i = 0; i < nagents; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		if (agentsIdx[i] >= m_maxAgents || agentsIdx[i] < 0)
+			continue;
+
+		dtCrowdAgent* ag = agents[agentsIdx[i]];
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
@@ -909,17 +955,19 @@ void dtCrowd::updateTopologyOptimization(dtCrowdAgent** agents, const int nagent
 		ag->corridor.optimizePathTopology(m_navquery, &m_filter);
 		ag->topologyOptTime = 0;
 	}
-
 }
 
-void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const float dt)
+void dtCrowd::checkPathValidity(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt)
 {
 	static const int CHECK_LOOKAHEAD = 10;
 	static const float TARGET_REPLAN_DELAY = 1.0; // seconds
 	
 	for (int i = 0; i < nagents; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		if (agentsIdx[i] >= m_maxAgents || agentsIdx[i] < 0)
+			continue;
+
+		dtCrowdAgent* ag = agents[agentsIdx[i]];
 		
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
@@ -1011,80 +1059,58 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		}
 	}
 }
-	
-void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
+
+
+void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx, int nbIdx)
 {
 	m_velocitySampleCount = 0;
-	
+
 	const int debugIdx = debug ? debug->idx : -1;
-	
+
 	dtCrowdAgent** agents = m_activeAgents;
-	int nagents = getActiveAgents(agents, m_maxAgents);
-	
+	getAllAgents(agents, m_maxAgents);
+	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
+
+	// If we want to update every agent
+	if (agentsIdx == 0)
+	{
+		agentsIdx = m_agentsToUpdate;
+		nbIdx = m_maxAgents;
+	}
+
 	// Check that all agents still have valid paths.
-	checkPathValidity(agents, nagents, dt);
-	
+	checkPathValidity(agents, agentsIdx, nbIdx, dt);
+
 	// Update async move request and path finder.
-	updateMoveRequest(dt);
+	updateMoveRequest(agents, agentsIdx, nbIdx);
 
 	// Optimize path topology.
-	updateTopologyOptimization(agents, nagents, dt);
-	
-	// Register agents to proximity grid.
-	m_grid->clear();
-	for (int i = 0; i < nagents; ++i)
+	updateTopologyOptimization(agents, agentsIdx, nbIdx, dt);
+
+	// Find next corner to steer to.
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
-		const float* p = ag->npos;
-		const float r = ag->params.radius;
-		m_grid->addItem((unsigned short)i, p[0]-r, p[2]-r, p[0]+r, p[2]+r);
-	}
-	
-	// Get nearby navmesh segments and agents to collide with.
-	for (int i = 0; i < nagents; ++i)
-	{
-		dtCrowdAgent* ag = agents[i];
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-		// Update the collision boundary after certain distance has been passed or
-		// if it has become invalid.
-		const float updateThr = ag->params.collisionQueryRange*0.25f;
-		if (dtVdist2DSqr(ag->npos, ag->boundary.getCenter()) > dtSqr(updateThr) ||
-			!ag->boundary.isValid(m_navquery, &m_filter))
-		{
-			ag->boundary.update(ag->corridor.getFirstPoly(), ag->npos, ag->params.collisionQueryRange,
-								m_navquery, &m_filter);
-		}
-		// Query neighbour agents
-		ag->nneis = getNeighbours(ag->npos, ag->params.height, ag->params.collisionQueryRange,
-								  ag, ag->neis, DT_CROWDAGENT_MAX_NEIGHBOURS,
-								  agents, nagents, m_grid);
-		for (int j = 0; j < ag->nneis; j++)
-			ag->neis[j].idx = getAgentIndex(agents[ag->neis[j].idx]);
-	}
-	
-	// Find next corner to steer to.
-	for (int i = 0; i < nagents; ++i)
-	{
-		dtCrowdAgent* ag = agents[i];
-		
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
-		
+
 		// Find corners for steering
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
 												DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filter);
-		
+
 		// Check to see if the corner after the next corner is directly visible,
 		// and short cut to there.
 		if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_VIS) && ag->ncorners > 0)
 		{
 			const float* target = &ag->cornerVerts[dtMin(1,ag->ncorners-1)*3];
 			ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navquery, &m_filter);
-			
+
 			// Copy data for debug purposes.
 			if (debugIdx == i)
 			{
@@ -1102,17 +1128,20 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			}
 		}
 	}
-	
+
 	// Trigger off-mesh connections (depends on corners).
-	for (int i = 0; i < nagents; ++i)
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
-		
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
+
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
-		
+
 		// Check 
 		const float triggerRadius = ag->params.radius*2.25f;
 		if (overOffmeshConnection(ag, triggerRadius))
@@ -1120,18 +1149,18 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// Prepare to off-mesh connection.
 			const int idx = ag - m_agents;
 			dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
-			
+
 			// Adjust the path over the off-mesh connection.
 			dtPolyRef refs[2];
 			if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners-1], refs,
-													   anim->startPos, anim->endPos, m_navquery))
+				anim->startPos, anim->endPos, m_navquery))
 			{
 				dtVcopy(anim->initPos, ag->npos);
 				anim->polyRef = refs[1];
 				anim->active = 1;
 				anim->t = 0.0f;
 				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 0.5f;
-				
+
 				ag->state = DT_CROWDAGENT_STATE_OFFMESH;
 				ag->ncorners = 0;
 				ag->nneis = 0;
@@ -1143,17 +1172,20 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			}
 		}
 	}
-		
+	
 	// Calculate steering.
-	for (int i = 0; i < nagents; ++i)
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
 
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE)
 			continue;
-		
+
 		float dvel[3] = {0,0,0};
 
 		if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
@@ -1168,11 +1200,11 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				calcSmoothSteerDirection(ag, dvel);
 			else
 				calcStraightSteerDirection(ag, dvel);
-			
+
 			// Calculate speed scale, which tells the agent to slowdown at the end of the path.
 			const float slowDownRadius = ag->params.radius*2;	// TODO: make less hacky.
 			const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
-				
+
 			ag->desiredSpeed = ag->params.maxSpeed;
 			dtVscale(dvel, dvel, ag->desiredSpeed * speedScale);
 		}
@@ -1183,18 +1215,18 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			const float separationDist = ag->params.collisionQueryRange; 
 			const float invSeparationDist = 1.0f / separationDist; 
 			const float separationWeight = ag->params.separationWeight;
-			
+
 			float w = 0;
 			float disp[3] = {0,0,0};
-			
+
 			for (int j = 0; j < ag->nneis; ++j)
 			{
 				const dtCrowdAgent* nei = &m_agents[ag->neis[j].idx];
-				
+
 				float diff[3];
 				dtVsub(diff, ag->npos, nei->npos);
 				diff[1] = 0;
-				
+
 				const float distSqr = dtVlenSqr(diff);
 				if (distSqr < 0.00001f)
 					continue;
@@ -1202,11 +1234,11 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 					continue;
 				const float dist = sqrtf(distSqr);
 				const float weight = separationWeight * (1.0f - dtSqr(dist*invSeparationDist));
-				
+
 				dtVmad(disp, disp, diff, weight/dist);
 				w += 1.0f;
 			}
-			
+
 			if (w > 0.0001f)
 			{
 				// Adjust desired velocity.
@@ -1218,23 +1250,26 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 					dtVscale(dvel, dvel, desiredSqr/speedSqr);
 			}
 		}
-		
+
 		// Set the desired velocity.
 		dtVcopy(ag->dvel, dvel);
 	}
-	
+
 	// Velocity planning.	
-	for (int i = 0; i < nagents; ++i)
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
-		
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
+
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
-		
+
 		if (ag->params.updateFlags & DT_CROWD_OBSTACLE_AVOIDANCE)
 		{
 			m_obstacleQuery->reset();
-			
+
 			// Add neighbours as obstacles.
 			for (int j = 0; j < ag->nneis; ++j)
 			{
@@ -1254,22 +1289,22 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			dtObstacleAvoidanceDebugData* vod = 0;
 			if (debugIdx == i) 
 				vod = debug->vod;
-			
+
 			// Sample new safe velocity.
 			bool adaptive = true;
 			int ns = 0;
 
 			const dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[ag->params.obstacleAvoidanceType];
-				
+
 			if (adaptive)
 			{
 				ns = m_obstacleQuery->sampleVelocityAdaptive(ag->npos, ag->params.radius, ag->desiredSpeed,
-															 ag->vel, ag->dvel, ag->nvel, params, vod);
+					ag->vel, ag->dvel, ag->nvel, params, vod);
 			}
 			else
 			{
 				ns = m_obstacleQuery->sampleVelocityGrid(ag->npos, ag->params.radius, ag->desiredSpeed,
-														 ag->vel, ag->dvel, ag->nvel, params, vod);
+					ag->vel, ag->dvel, ag->nvel, params, vod);
 			}
 			m_velocitySampleCount += ns;
 		}
@@ -1281,29 +1316,73 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Integrate.
-	for (int i = 0; i < nagents; ++i)
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
+		
+		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+			continue;
+
+		// Fake dynamic constraint.
+		const float maxDelta = ag->params.maxAcceleration * dt;
+		float dv[3];
+		dtVsub(dv, ag->nvel, ag->vel);
+		float ds = dtVlen(dv);
+		if (ds > maxDelta)
+			dtVscale(dv, dv, maxDelta/ds);
+		dtVadd(ag->vel, ag->vel, dv);
+	}
+}
+
+void dtCrowd::updatePosition(const float dt, int* agentsIdx, int nbIdx)
+{
+	dtCrowdAgent** agents = m_activeAgents;
+	getAllAgents(agents, m_maxAgents);
+
+	// If we want to update every agent
+	if (nbIdx == 0)
+	{
+		agentsIdx = m_agentsToUpdate;
+		nbIdx = m_maxAgents;
+	}
+	
+	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
+
+	// Integrate.
+	for (int i = 0; i < nbIdx; ++i)
+	{
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
+
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		integrate(ag, dt);
 	}
-	
+
 	// Handle collisions.
 	static const float COLLISION_RESOLVE_FACTOR = 0.7f;
-	
+
 	for (int iter = 0; iter < 4; ++iter)
 	{
-		for (int i = 0; i < nagents; ++i)
+		for (int i = 0; i < nbIdx; ++i)
 		{
-			dtCrowdAgent* ag = agents[i];
+			dtCrowdAgent* ag = 0;
+
+			if (!getActiveAgent(&ag, agentsIdx[i]))
+				continue;
+
 			const int idx0 = getAgentIndex(ag);
-			
+
 			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
 
 			dtVset(ag->disp, 0,0,0);
-			
+
 			float w = 0;
 
 			for (int j = 0; j < ag->nneis; ++j)
@@ -1314,7 +1393,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				float diff[3];
 				dtVsub(diff, ag->npos, nei->npos);
 				diff[1] = 0;
-				
+
 				float dist = dtVlenSqr(diff);
 				if (dist > dtSqr(ag->params.radius + nei->params.radius))
 					continue;
@@ -1333,12 +1412,12 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				{
 					pen = (1.0f/dist) * (pen*0.5f) * COLLISION_RESOLVE_FACTOR;
 				}
-				
+
 				dtVmad(ag->disp, ag->disp, diff, pen);			
-				
+
 				w += 1.0f;
 			}
-			
+
 			if (w > 0.0001f)
 			{
 				const float iw = 1.0f / w;
@@ -1346,22 +1425,30 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			}
 		}
 		
-		for (int i = 0; i < nagents; ++i)
+		for (int i = 0; i < nbIdx; ++i)
 		{
-			dtCrowdAgent* ag = agents[i];
+			dtCrowdAgent* ag = 0;
+
+			if (!getActiveAgent(&ag, agentsIdx[i]))
+				continue;
+
 			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
-			
+
 			dtVadd(ag->npos, ag->npos, ag->disp);
 		}
 	}
 	
-	for (int i = 0; i < nagents; ++i)
+	for (int i = 0; i < nbIdx; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag = 0;
+
+		if (!getActiveAgent(&ag, agentsIdx[i]))
+			continue;
+
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
-		
+
 		// Move along navmesh.
 		ag->corridor.movePosition(ag->npos, m_navquery, &m_filter);
 		// Get valid constrained position back.
@@ -1374,14 +1461,14 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 
 	}
-	
+
 	// Update agents using off-mesh connection.
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgentAnimation* anim = &m_agentAnims[i];
 		if (!anim->active)
 			continue;
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag = &m_agents[i];
 
 		anim->t += dt;
 		if (anim->t > anim->tmax)
@@ -1392,7 +1479,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			ag->state = DT_CROWDAGENT_STATE_WALKING;
 			continue;
 		}
-		
+
 		// Update position
 		const float ta = anim->tmax*0.15f;
 		const float tb = anim->tmax;
@@ -1406,12 +1493,86 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			const float u = tween(anim->t, ta, tb);
 			dtVlerp(ag->npos, anim->startPos, anim->endPos, u);
 		}
-			
+
 		// Update velocity.
 		dtVset(ag->vel, 0,0,0);
 		dtVset(ag->dvel, 0,0,0);
 	}
-	
 }
 
+void dtCrowd::updateEnvironment(int* agentsIdx, int nbIdx)
+{
+	dtCrowdAgent** agents = m_activeAgents;
+	getAllAgents(agents, m_maxAgents);
 
+	// If we want to update every agent
+	if (agentsIdx == 0)
+	{
+		agentsIdx = m_agentsToUpdate;
+		nbIdx = m_maxAgents;
+	}
+
+	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
+	
+	m_grid->clear();
+	for (int i = 0; i < m_maxAgents; ++i)
+	{
+		dtCrowdAgent& ag = m_agents[i];
+
+		if (!ag.active)
+			continue;
+
+		const float* p = ag.npos;
+		const float r = ag.params.radius;
+		m_grid->addItem((unsigned short)i, p[0]-r, p[2]-r, p[0]+r, p[2]+r);
+	}
+
+	// Get nearby navmesh segments and agents to collide with.
+	for (int i = 0; i < m_maxAgents; ++i)
+	{
+		dtCrowdAgent& ag = m_agents[i];
+
+		if (!ag.active)
+			continue;
+
+		if (ag.state != DT_CROWDAGENT_STATE_WALKING)
+			continue;
+
+		// Update the collision boundary after certain distance has been passed or
+		// if it has become invalid.
+		const float updateThr = ag.params.collisionQueryRange*0.25f;
+		if (dtVdist2DSqr(ag.npos, ag.boundary.getCenter()) > dtSqr(updateThr) ||
+			!ag.boundary.isValid(m_navquery, &m_filter))
+		{
+			ag.boundary.update(ag.corridor.getFirstPoly(), ag.npos, ag.params.collisionQueryRange,
+				m_navquery, &m_filter);
+		}
+		// Query neighbour agents
+		ag.nneis = getNeighbours(ag.npos, ag.params.height, ag.params.collisionQueryRange,
+			&ag, ag.neis, DT_CROWDAGENT_MAX_NEIGHBOURS,
+			agents, m_nbActiveAgents, m_grid);
+		for (int j = 0; j < ag.nneis; j++)
+			ag.neis[j].idx = getAgentIndex(agents[ag.neis[j].idx]);
+	}
+}
+	
+void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug, int* indexList, int nbIndex)
+{
+	updateEnvironment(indexList, nbIndex);
+	updateVelocity(dt, debug, indexList, nbIndex);
+	updatePosition(dt, indexList, nbIndex);
+}
+
+bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
+{
+	if (id >= 0 && id < m_maxAgents)
+	{
+		if (m_agents[id].active)
+		{
+			*ag = &m_agents[id];
+			return true;
+		}
+	}
+
+	return false;
+}

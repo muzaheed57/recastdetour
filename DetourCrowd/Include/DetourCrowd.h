@@ -191,9 +191,11 @@ struct dtCrowdAgentDebugInfo
 class dtCrowd
 {
 	int m_maxAgents;
+	int m_nbActiveAgents;
 	dtCrowdAgent* m_agents;
 	dtCrowdAgent** m_activeAgents;
 	dtCrowdAgentAnimation* m_agentAnims;
+	int* m_agentsToUpdate;
 	
 	dtPathQueue m_pathq;
 
@@ -214,11 +216,12 @@ class dtCrowd
 
 	dtNavMeshQuery* m_navquery;
 
-	void updateTopologyOptimization(dtCrowdAgent** agents, const int nagents, const float dt);
-	void updateMoveRequest(const float dt);
-	void checkPathValidity(dtCrowdAgent** agents, const int nagents, const float dt);
+	void updateTopologyOptimization(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
+	void updateMoveRequest(dtCrowdAgent** agents, int* agentsIdx, const int nagents);
+	void checkPathValidity(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
 
 	inline int getAgentIndex(const dtCrowdAgent* agent) const  { return agent - m_agents; }
+	bool getActiveAgent(dtCrowdAgent** ag, int id);
 
 	bool requestMoveTargetReplan(const int idx, dtPolyRef ref, const float* pos);
 
@@ -288,16 +291,46 @@ public:
 	/// @return True if the request was successfully reseted.
 	bool resetMoveTarget(const int idx);
 
-	/// Gets the active agents int the agent pool.
+	/// Gets the active agents into the agent pool.
 	///  @param[out]	agents		An array of agent pointers. [(#dtCrowdAgent *) * maxAgents]
 	///  @param[in]		maxAgents	The size of the crowd agent array.
 	/// @return The number of agents returned in @p agents.
 	int getActiveAgents(dtCrowdAgent** agents, const int maxAgents);
+	
+	/// Gets the agents into the agent pool.
+	///  @param[out]	agents		An array of agent pointers. [(#dtCrowdAgent *) * maxAgents]
+	///  @param[in]		maxAgents	The size of the crowd agent array.
+	/// @return The number of agents returned in @p agents.
+	int getAllAgents(dtCrowdAgent** agents, const int maxAgents);
 
-	/// Updates the steering and positions of all agents.
-	///  @param[in]		dt		The time, in seconds, to update the simulation. [Limit: > 0]
-	///  @param[out]	debug	A debug object to load with debug information. [Opt]
-	void update(const float dt, dtCrowdAgentDebugInfo* debug);
+	/// Updates the steering and positions of the agents whose indexes may be given by the user.
+	/// If no indices are given, then the method updates every agent.
+	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
+	///  @param[out]	debug		A debug object to load with debug information. [Opt]
+	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	void update(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIdx = 0);
+
+	/// Updates the velocity of the agents whose indexes may be given by the user (but not their position).
+	/// If no indices are given, then the method updates every agent.
+	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
+	///  @param[out]	debug		A debug object to load with debug information. [Opt]
+	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	void updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIndex = 0);
+
+	/// Updates the positions of the agents whose indexes may be given by the user (but not their velocity).
+	/// If no indices are given, then the method updates every agent.
+	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
+	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	void updatePosition(const float dt, int* agentsIdx = 0, int nbIndex = 0);
+
+	/// Updates the proximity grid and registers every given agent as obstacles.
+	/// If no indices are given, then the method updates every active agent.
+	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	void updateEnvironment(int* agentsIdx = 0, int nbIdx = 0);
 	
 	/// Gets the filter used by the crowd.
 	/// @return The filter used by the crowd.

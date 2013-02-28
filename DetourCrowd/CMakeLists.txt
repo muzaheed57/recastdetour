@@ -35,3 +35,9 @@ INSTALL(TARGETS DetourCrowd EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}
 )
+
+if(WIN32)
+    set(CMAKE_CXX_FLAGS "/EHsc /GR- /W4")
+else(WIN32)
+    set(CMAKE_CXX_FLAGS "-Wall -ansi -O3")
+endif(WIN32)

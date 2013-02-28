@@ -34,7 +34,7 @@ CrowdSample::CrowdSample()
 , m_context(0)
 , m_maxRadius(0.f)
 {
-    strcpy(m_sceneFileName,"");
+    strcpy(m_sceneFileName, "");
 }
 
 CrowdSample::~CrowdSample()
@@ -58,14 +58,14 @@ bool CrowdSample::loadFromBuffer( const char* data )
             JSONValue* file = scene->Child(L"file");
             if (file && file->IsString())
             {
-                wcstombs(m_sceneFileName,file->AsString().c_str(), maxPathLen);
+                wcstombs(m_sceneFileName,file->AsString().c_str(), 260);
             }
         }
 
         JSONValue* agents = root->Child(L"agents");
         if (agents && agents->IsArray())
         {
-            m_agentCount = rcMin<int>(agents->CountChildren(),maxAgentCount);
+            m_agentCount = rcMin<int>(agents->CountChildren(),100);
             for (std::size_t iAgent(0) ; iAgent < (size_t)m_agentCount ; ++iAgent)
             {
                 memset(&m_agentCfgs[iAgent],0,sizeof(m_agentCfgs[iAgent]));
@@ -121,17 +121,11 @@ bool CrowdSample::loadFromBuffer( const char* data )
                             m_agentCfgs[iAgent].parameters.collisionQueryRange = (float)collisionQueryRange->AsNumber();
                         }
 
-						JSONValue* pathOptimizationRange = parameters->Child(L"pathOptimizationRange");
-						if (pathOptimizationRange && pathOptimizationRange->IsNumber())
-						{
-							m_agentCfgs[iAgent].parameters.pathOptimizationRange = (float)pathOptimizationRange->AsNumber();
-						}
-
-						JSONValue* separationWeight = parameters->Child(L"separationWeight");
-						if (separationWeight && separationWeight->IsNumber())
-						{
-							m_agentCfgs[iAgent].parameters.separationWeight = (float)separationWeight->AsNumber();
-						}
+                        JSONValue* pathOptimizationRange = parameters->Child(L"pathOptimizationRange");
+                        if (pathOptimizationRange && pathOptimizationRange->IsNumber())
+                        {
+                            m_agentCfgs[iAgent].parameters.pathOptimizationRange = (float)pathOptimizationRange->AsNumber();
+                        }
 
                         JSONValue* updateFlags = parameters->Child(L"updateFlags");
                         if (updateFlags && updateFlags->IsArray())
@@ -227,11 +221,16 @@ void CrowdSample::computeMaximumRadius()
     }
 }
 
+bool CrowdSample::initializeScene(InputGeom* scene, float* vert, unsigned vertCount, int* tris, unsigned triCount)
+{
+	return scene->loadMesh(0, vert, vertCount, tris, triCount);
+}
+
 bool CrowdSample::initializeScene(InputGeom* scene)
 {
     if (strlen(m_sceneFileName) > 0)
     {
-        return scene->loadMesh(0, m_sceneFileName);
+		return scene->loadMesh(0, m_sceneFileName);
     }
     else
     {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013 MASA Group recastdetour@masagroup.net
+// Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
 // This software is provided 'as-is', without any express or implied
 // warranty.  In no event will the authors be held liable for any damages
@@ -16,16 +16,20 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef FILELIST_H
+#define FILELIST_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
-
-int main(int /*argc*/, char** /*argv*/)
+struct FileList
 {
-    Application app;
-    
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
-    
-    return app.run();
-}
+	static const int MAX_FILES = 256;
+	
+	FileList();
+	~FileList();
+	
+	char* files[MAX_FILES];
+	int size;
+};
+
+void scanDirectory(const char* path, const char* ext, FileList& list);
+
+#endif // FILELIST_H

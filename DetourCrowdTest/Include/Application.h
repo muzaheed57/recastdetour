@@ -16,16 +16,31 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef APPLICATION_H
+#define APPLICATION_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+#include "CrowdSample.h"
+#include "InputGeom.h"
+#include "NavMeshCreator.h"
 
-int main(int /*argc*/, char** /*argv*/)
+#include <DetourCrowd.h>
+
+#include <DetourNavMeshQuery.h>
+
+class Application
 {
-    Application app;
+public:
+    Application();
+    ~Application();
     
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
+    bool run();
     
-    return app.run();
-}
+    CrowdSample m_currentSample;
+    
+private:
+    
+    //BuildContext m_context;
+    
+};
+
+#endif

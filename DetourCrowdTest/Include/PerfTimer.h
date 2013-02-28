@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013 MASA Group recastdetour@masagroup.net
+// Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
 // This software is provided 'as-is', without any express or implied
 // warranty.  In no event will the authors be held liable for any damages
@@ -16,16 +16,17 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef PERFTIMER_H
+#define PERFTIMER_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+#ifdef __GNUC__
+#include <stdint.h>
+typedef int64_t TimeVal;
+#else
+typedef __int64 TimeVal;
+#endif
 
-int main(int /*argc*/, char** /*argv*/)
-{
-    Application app;
-    
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
-    
-    return app.run();
-}
+TimeVal getPerfTime();
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end);
+
+#endif // PERFTIMER_H

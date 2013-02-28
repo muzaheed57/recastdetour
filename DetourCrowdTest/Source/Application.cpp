@@ -20,9 +20,9 @@
 
 Application::Application()
 : m_currentSample()
-, m_context()
+//, m_context()
 {
-    m_currentSample.m_context = &m_context;
+    //m_currentSample.m_context = &m_context;
 }
 
 Application::~Application()
@@ -42,35 +42,36 @@ bool Application::run()
     }
     
     //Create the debug info
-    DebugInfo debugInfo;
-    debugInfo.m_crowd = &crowd;
-    
-    //Create the visualization
-    Visualization visu;
-    
-    visu.m_scene = &scene;
-    visu.m_crowd = &crowd;
-    visu.m_navmesh = &navMesh;
-    visu.m_debugInfo = &debugInfo;
-    
-    //Run the simulation
-    if (!visu.initialize())
-    {
-        return false;
-    }
-
-    while (!visu.m_stopRequested)
-    {
-        if (!visu.update())
-        {
-            return false;
-        }
-    }
-    
-    if (!visu.terminate())
-    {
-        return false;
-    }
-    
-    return false;
+    //DebugInfo debugInfo;
+    //debugInfo.m_crowd = &crowd;
+    //
+    ////Create the visualization
+    //Visualization visu;
+    //
+    //visu.m_scene = &scene;
+    //visu.m_crowd = &crowd;
+    //visu.m_navmesh = &navMesh;
+    //visu.m_debugInfo = &debugInfo;
+    //
+    ////Run the simulation
+    //if (!visu.initialize())
+    //{
+    //    return false;
+    //}
+    //
+    //while (!visu.m_stopRequested)
+    //{
+    //    if (!visu.update())
+    //    {
+    //        return false;
+    //    }
+    //}
+    //
+    //if (!visu.terminate())
+    //{
+    //    return false;
+    //}
+    //
+    //return false;
+	return true;
 }
