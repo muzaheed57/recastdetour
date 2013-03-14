@@ -20,7 +20,7 @@
 #define DETOURCROWD_H
 
 #include "DetourNavMeshQuery.h"
-#include "DetourObstacleAvoidance.h"
+#include "DetourCollisionAvoidance.h"
 #include "DetourLocalBoundary.h"
 #include "DetourPathCorridor.h"
 #include "DetourProximityGrid.h"
@@ -186,6 +186,9 @@ struct dtCrowdAgentDebugInfo
 	dtObstacleAvoidanceDebugData* vod;
 };
 
+class dtPathFollowing;
+class dtCollisionAvoidance;
+
 /// Provides local steering behaviors for a group of agents. 
 /// @ingroup crowd
 class dtCrowd
@@ -196,34 +199,17 @@ class dtCrowd
 	dtCrowdAgent** m_activeAgents;
 	dtCrowdAgentAnimation* m_agentAnims;
 	int* m_agentsToUpdate;
-	
-	dtPathQueue m_pathq;
 
-	dtObstacleAvoidanceParams m_obstacleQueryParams[DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS];
-	dtObstacleAvoidanceQuery* m_obstacleQuery;
+	dtPathFollowing* m_pathFollow;
+	dtCollisionAvoidance m_collisionHandler[DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS];
 	
 	dtProximityGrid* m_grid;
 	
-	dtPolyRef* m_pathResult;
 	int m_maxPathResult;
-	
-	float m_ext[3];
-	dtQueryFilter m_filter;
-	
 	float m_maxAgentRadius;
-
-	int m_velocitySampleCount;
-
-	dtNavMeshQuery* m_navquery;
-
-	void updateTopologyOptimization(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
-	void updateMoveRequest(dtCrowdAgent** agents, int* agentsIdx, const int nagents);
-	void checkPathValidity(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
 
 	inline int getAgentIndex(const dtCrowdAgent* agent) const  { return agent - m_agents; }
 	bool getActiveAgent(dtCrowdAgent** ag, int id);
-
-	bool requestMoveTargetReplan(const int idx, dtPolyRef ref, const float* pos);
 
 	void purge();
 	
@@ -299,37 +285,36 @@ public:
 	
 	/// Gets the agents into the agent pool.
 	///  @param[out]	agents		An array of agent pointers. [(#dtCrowdAgent *) * maxAgents]
-	///  @param[in]		maxAgents	The size of the crowd agent array.
-	/// @return The number of agents returned in @p agents.
-	int getAllAgents(dtCrowdAgent** agents, const int maxAgents);
+	void getAllAgents(dtCrowdAgent** agents);
 
-	/// Updates the steering and positions of the agents whose indexes may be given by the user.
+	/// Updates the steering and positions of the agents whose indices may be given by the user.
 	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	///  @param[out]	debug		A debug object to load with debug information. [Opt]
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
-	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
 	void update(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIdx = 0);
 
-	/// Updates the velocity of the agents whose indexes may be given by the user (but not their position).
+	/// Updates the velocity of the agents whose indices may be given by the user (but not their position).
 	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	///  @param[out]	debug		A debug object to load with debug information. [Opt]
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
-	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
-	void updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIndex = 0);
+	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
+	void updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIdx = 0);
 
-	/// Updates the positions of the agents whose indexes may be given by the user (but not their velocity).
+	/// Updates the positions of the agents whose indices may be given by the user (but not their velocity).
 	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
-	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
-	void updatePosition(const float dt, int* agentsIdx = 0, int nbIndex = 0);
+	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
+	void updatePosition(const float dt, int* agentsIdx = 0, int nbIdx = 0);
 
-	/// Updates the proximity grid and registers every given agent as obstacles.
-	/// If no indices are given, then the method updates every active agent.
+	/// Updates the environment of the given agents. 
+    /// Updates the proximity grid and registers every agent's neighbor.
+	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
-	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
+	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
 	void updateEnvironment(int* agentsIdx = 0, int nbIdx = 0);
 
 	/// Moves the agent to the given position if possible.
@@ -341,19 +326,19 @@ public:
 	
 	/// Gets the filter used by the crowd.
 	/// @return The filter used by the crowd.
-	const dtQueryFilter* getFilter() const { return &m_filter; }
+	const dtQueryFilter* getFilter() const;
 
 	/// Gets the filter used by the crowd.
 	/// @return The filter used by the crowd.
-	dtQueryFilter* getEditableFilter() { return &m_filter; }
+	dtQueryFilter* getEditableFilter();
 
 	/// Gets the search extents [(x, y, z)] used by the crowd for query operations. 
 	/// @return The search extents used by the crowd. [(x, y, z)]
-	const float* getQueryExtents() const { return m_ext; }
+	const float* getQueryExtents() const;
 	
 	/// Gets the velocity sample count.
 	/// @return The velocity sample count.
-	inline int getVelocitySampleCount() const { return m_velocitySampleCount; }
+	int getVelocitySampleCount() const;
 	
 	/// Gets the crowd's proximity grid.
 	/// @return The crowd's proximity grid.
@@ -361,10 +346,12 @@ public:
 
 	/// Gets the crowd's path request queue.
 	/// @return The crowd's path request queue.
-	const dtPathQueue* getPathQueue() const { return &m_pathq; }
+	const dtPathQueue* getPathQueue() const;
+	dtPathQueue* getPathQueue();
 
 	/// Gets the query object used by the crowd.
-	const dtNavMeshQuery* getNavMeshQuery() const { return m_navquery; }
+	const dtNavMeshQuery* getNavMeshQuery() const;
+	dtNavMeshQuery* getNavMeshQuery();
 };
 
 /// Allocates a crowd object using the Detour allocator.

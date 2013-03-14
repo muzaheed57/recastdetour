@@ -29,7 +29,6 @@
 #include "Sample.h"
 #include "DetourCrowd.h"
 #include "DetourDebugDraw.h"
-#include "DetourObstacleAvoidance.h"
 #include "DetourCommon.h"
 #include "DetourNode.h"
 #include "SampleInterfaces.h"

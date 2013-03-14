@@ -368,8 +368,6 @@ bool Visualization::update()
     //Update the crowd
     if (m_crowd)
 	{
-		m_crowd->removeAgent(3);
-		int list[4] = {0, 1, 2, 3};
         if (singleSimulationStep)
         {
             m_paused = true;

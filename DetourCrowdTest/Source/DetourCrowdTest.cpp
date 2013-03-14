@@ -131,19 +131,19 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	REQUIRE(crowd.init(4, 0.5, &navMesh));
 
 	// Creation of the agents
-	dtCrowdAgentParams p1, p2;
-	memset(&p1, 0, sizeof(dtCrowdAgentParams));
-	p1.radius = 0.2;
-	p1.height = 1.7;
-	p1.maxSpeed = 2.0;
-	p1.maxAcceleration = 10.0;
-	p1.collisionQueryRange = 4.0;
-	p1.pathOptimizationRange = 6.0;
-	p1.separationWeight = 1;
-	p1.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
-	p1.obstacleAvoidanceType = 0;
+	dtCrowdAgentParams param1, param2;
+	memset(&param1, 0, sizeof(dtCrowdAgentParams));
+	param1.radius = 0.2;
+	param1.height = 1.7;
+	param1.maxSpeed = 2.0;
+	param1.maxAcceleration = 10.0;
+	param1.collisionQueryRange = 4.0;
+	param1.pathOptimizationRange = 6.0;
+	param1.separationWeight = 1;
+	param1.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
+	param1.obstacleAvoidanceType = 0;
 
-	memcpy(&p2, &p1, sizeof(dtCrowdAgentParams));
+	memcpy(&param2, &param1, sizeof(dtCrowdAgentParams));
 
 	float a1ReferencePosition[3] = {-18, 0, -18};
 	float a2ReferencePosition[3] = {18, 0, 18};
@@ -155,8 +155,8 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	float a4Destination[3] = {0, 0, 0};
 
 	// Adding the agents to the crowd
-	int a1Idx = crowd.addAgent(a1ReferencePosition, &p1);
-	int a2Idx = crowd.addAgent(a2ReferencePosition, &p2);
+	int a1Idx = crowd.addAgent(a1ReferencePosition, &param1);
+	int a2Idx = crowd.addAgent(a2ReferencePosition, &param2);
     int indices[2] = {a1Idx, a2Idx};
 
 	// Set the destination
@@ -208,6 +208,7 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		
 		// a1Idx has moved.
         CHECK(!dtVequal(crowd.getAgent(a1Idx)->npos, a1ReferencePosition));
+		indices[0] = a1Idx;
 
         // a2Idx too
 		CHECK(!dtVequal(crowd.getAgent(a2Idx)->npos, a2ReferencePosition));
@@ -244,8 +245,8 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		}
 
 		// Adding the agents to the crowd
-		int a3Idx = crowd.addAgent(a3ReferencePosition, &p1);
-		int a4Idx = crowd.addAgent(a4ReferencePosition, &p2);
+		int a3Idx = crowd.addAgent(a3ReferencePosition, &param1);
+		int a4Idx = crowd.addAgent(a4ReferencePosition, &param2);
 
 		// Set the destinations
 		dtPolyRef a3TargetRef;
@@ -277,14 +278,41 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	SECTION("Separate velocity and position", "We want to be able to update the velocity and the position of the agents separatly")
 	{
 		// Update only the environment
-        dtVcopy(a1ReferencePosition,crowd.getAgent(a1Idx)->npos);
-        dtVcopy(a2ReferencePosition,crowd.getAgent(a2Idx)->npos);
+		// The velocity and the position must not be changed.
 
-        float a1ReferenceVelocity[3], a2ReferenceVelocity[3];
+		float agt1NewPos[3], agt2NewPos[3], agt1NewVel[3], agt2NewVel[3];
+		float a1ReferenceVelocity[3], a2ReferenceVelocity[3];
+		dtVcopy(a1ReferencePosition,crowd.getAgent(a1Idx)->npos);
+		dtVcopy(a2ReferencePosition,crowd.getAgent(a2Idx)->npos);
+		dtVcopy(a1ReferenceVelocity, crowd.getAgent(a1Idx)->vel);
+		dtVcopy(a2ReferenceVelocity, crowd.getAgent(a2Idx)->vel);
+
+		crowd.updateEnvironment();
+
+		dtVcopy(agt1NewPos, crowd.getAgent(a1Idx)->npos);
+		dtVcopy(agt2NewPos, crowd.getAgent(a2Idx)->npos);
+		dtVcopy(agt1NewVel, crowd.getAgent(a1Idx)->vel);
+		dtVcopy(agt2NewVel, crowd.getAgent(a2Idx)->vel);
+
+		REQUIRE((dtVequal(a1ReferencePosition, agt1NewPos) && dtVequal(a2ReferencePosition, agt2NewPos) && 
+			     dtVequal(a1ReferenceVelocity, agt1NewVel) && dtVequal(a2ReferenceVelocity, agt2NewVel)));
+
+		// Checking if the neighbourhood of an agent is correctly updated
+		// For that we create another agent next to an already existing agent.
+		dtCrowdAgent ag3;
+		dtCrowdAgentParams param3;
+		float posAgt3[3] = {crowd.getAgent(a1Idx)->npos[0] + 1, 
+							0, 
+							crowd.getAgent(a1Idx)->npos[2] + 1};
+		float destAgt3[3] = {posAgt3[0], posAgt3[1], posAgt3[2]};
+
+		memcpy(&param3, &param1, sizeof(dtCrowdAgentParams));
+		int indexAgent3 = crowd.addAgent(posAgt3, &param3);
+
         dtVcopy(a1ReferenceVelocity,crowd.getAgent(a1Idx)->vel);
         dtVcopy(a2ReferenceVelocity,crowd.getAgent(a2Idx)->vel);
 
-		crowd.updateEnvironment(indices, 2);
+		crowd.updateEnvironment();
 
         // positions and velocities should be the same.
         CHECK(dtVequal(crowd.getAgent(a1Idx)->npos, a1ReferencePosition));

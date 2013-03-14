@@ -21,7 +21,7 @@
 
 #include "Sample.h"
 #include "DetourNavMesh.h"
-#include "DetourObstacleAvoidance.h"
+#include "DetourCollisionAvoidance.h"
 #include "ValueHistory.h"
 #include "DetourCrowd.h"
 

@@ -3,19 +3,21 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 SET(detourcrowd_SRCS
 	Source/DetourPathCorridor.cpp
 	Source/DetourLocalBoundary.cpp
-	Source/DetourObstacleAvoidance.cpp
 	Source/DetourPathQueue.cpp
 	Source/DetourCrowd.cpp
 	Source/DetourProximityGrid.cpp
+	Source/DetourCollisionAvoidance.cpp
+	Source/DetourPathFollowing.cpp
 )
 
 SET(detourcrowd_HDRS
 	Include/DetourPathCorridor.h
 	Include/DetourCrowd.h
-	Include/DetourObstacleAvoidance.h
 	Include/DetourLocalBoundary.h
 	Include/DetourProximityGrid.h
 	Include/DetourPathQueue.h
+	Include/DetourCollisionAvoidance.h
+	Include/DetourPathFollowing.h
 )
 
 INCLUDE_DIRECTORIES(Include 
