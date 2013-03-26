@@ -550,19 +550,19 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->targetReplanTime = 0;
 	ag->nneis = 0;
 	ag->ncorners = 0;
-	
+
 	dtVset(ag->dvel, 0,0,0);
 	dtVset(ag->nvel, 0,0,0);
 	dtVset(ag->vel, 0,0,0);
 	dtVcopy(ag->npos, nearest);
-	
+
 	ag->desiredSpeed = 0;
 
 	if (ref)
 		ag->state = DT_CROWDAGENT_STATE_WALKING;
 	else
 		ag->state = DT_CROWDAGENT_STATE_INVALID;
-	
+
 	ag->targetState = DT_CROWDAGENT_TARGET_NONE;
 	
 	ag->active = 1;
@@ -1572,6 +1572,43 @@ bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
 			*ag = &m_agents[id];
 			return true;
 		}
+	}
+
+	return false;
+}
+
+bool dtCrowd::updateAgentPosition(int index, float* position)
+{
+	if (index >= 0 && index < m_maxAgents)
+	{
+		dtCrowdAgent* ag = &m_agents[index];
+		dtPolyRef ref;
+		float nearestPosition[3] = {0, 0, 0};
+
+		if (dtStatusFailed(getNavMeshQuery()->findNearestPoly(position, getQueryExtents(), getFilter(), &ref, nearestPosition)))
+			return false;
+
+		if (ref == 0)
+			return false;
+
+		ag->corridor.reset(ref, nearestPosition);
+
+		ag->topologyOptTime = 0;
+		ag->nneis = 0;
+		ag->ncorners = 0;
+		ag->desiredSpeed = 0;
+
+		dtVset(ag->dvel, 0, 0, 0);
+		dtVset(ag->nvel, 0, 0, 0);
+		dtVset(ag->vel, 0, 0, 0);
+		dtVcopy(ag->npos, nearestPosition);
+
+		ag->state = DT_CROWDAGENT_STATE_WALKING;
+		ag->targetState = DT_CROWDAGENT_TARGET_REQUESTING;
+		ag->targetPathqRef = DT_PATHQ_INVALID;
+		ag->targetReplan = false;
+		
+		return true;
 	}
 
 	return false;

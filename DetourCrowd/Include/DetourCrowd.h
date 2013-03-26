@@ -331,6 +331,13 @@ public:
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
 	///  @param[in]		nbIdx		Size of the list of indexes. [Opt]
 	void updateEnvironment(int* agentsIdx = 0, int nbIdx = 0);
+
+	/// Moves the agent to the given position if possible.
+	/// 
+	/// @param[in]	index		The index of the agent (must be >= 0 and < maxAgents)
+	/// @param[in]	position	The new desired position.
+	/// @return		False if the position is outside the navigation mesh or if the index is out of bound. True otherwise.
+	bool updateAgentPosition(int index, float* position);
 	
 	/// Gets the filter used by the crowd.
 	/// @return The filter used by the crowd.

@@ -283,7 +283,12 @@ bool Visualization::update()
                 else if (event.key.keysym.sym == SDLK_TAB)
                 {
                     singleSimulationStep = true;
-                }
+				}
+				else if (event.key.keysym.sym == SDLK_r)
+				{
+					float pos[3] = {-15, 0, 0};
+					m_crowd->updateAgentPosition(0, pos);
+				}
                 break;
                 
             case SDL_MOUSEBUTTONDOWN:

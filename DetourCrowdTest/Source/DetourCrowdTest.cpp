@@ -16,12 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <DetourCrowd.h>
-
 #include "Application.h"
 #include "CrowdSample.h"
-#include "InputGeom.h"
 #include "DetourCommon.h"
+#include "InputGeom.h"
 
 #define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
 
@@ -36,9 +34,74 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
+/// Checks the equality of the two vectors on the xz plan.
+bool vectorEqual2D(const float* v1, const float* v2)
+{
+	return v1[0] == v2[0] && v1[2] == v2[2];
+}
+
+TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update the position of an agent with error checking")
+{
+	// Creation of a square
+	float* vert = new float[12];
+	int* tri = new int[6];
+
+	vert[0] = 20.0; vert[1] = 0.0; vert[2] = 20.0;
+	vert[3] = 20.0; vert[4] = 0.0; vert[5] = -20.0;
+	vert[6] = -20.0; vert[7] = 0.0; vert[8] = -20.0;
+	vert[9] = 20.0; vert[10] = 0.0; vert[11] = 20.0;
+
+	tri[0] = 1; tri[1] = 2; tri[2] = 3;
+	tri[3] = 3; tri[4] = 4; tri[5] = 1;
+
+	// Creation of the simulation
+	CrowdSample cs;
+	InputGeom scene;
+	dtNavMesh navMesh;
+
+	REQUIRE(cs.initializeScene(&scene, vert, 4, tri, 2));
+	REQUIRE(cs.initializeNavmesh(scene, &navMesh));
+
+	// Creation of the crowd
+	dtCrowd crowd;
+
+	REQUIRE (crowd.init(20, 0.5, &navMesh));
+
+	// Creation of the agents
+	dtCrowdAgent ag1;
+	dtCrowdAgentParams param1;
+	memset(&param1, 0, sizeof(dtCrowdAgentParams));
+	param1.radius = 0.2;
+	param1.height = 1.7;
+	param1.maxSpeed = 2.0;
+	param1.maxAcceleration = 10.0;
+	param1.collisionQueryRange = 4.0;
+	param1.pathOptimizationRange = 6.0;
+	param1.separationWeight = 1;
+	param1.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
+	param1.obstacleAvoidanceType = 0;
+
+	float posAgt1[3] = {0, 0, 0};
+	float destAgt1[3] = {15, 0, 0};
+
+	// Adding the agent to the crowd
+	int indexAgent1 = crowd.addAgent(posAgt1, &param1);
+
+	float correctPosition[3] = {19, 0, 0};
+	float wrongPosition[3] = {100, 0, 10};
+
+	CHECK(crowd.updateAgentPosition(indexAgent1, correctPosition));
+	// The agent has moved
+	CHECK(vectorEqual2D(crowd.getAgent(indexAgent1)->npos, correctPosition));
+
+	CHECK_FALSE(crowd.updateAgentPosition(indexAgent1, wrongPosition));
+	// The agent has not moved
+	CHECK(vectorEqual2D(crowd.getAgent(indexAgent1)->npos, correctPosition));
+}
+>>>>>>> 975aae2... Allowing users to dynamically change the position of an agent.
 
 TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the agents inside a crowd")
 {
