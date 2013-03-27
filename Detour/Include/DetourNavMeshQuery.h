@@ -143,10 +143,11 @@ public:
 	///  							[(polyRef) * @p pathCount]
 	///  @param[out]	pathCount	The number of polygons returned in the @p path array.
 	///  @param[in]		maxPath		The maximum number of polygons the @p path array can hold. [Limit: >= 1]
+	///  @param[out]	pathCost	The cost of the path found (0 if no path is found).
 	dtStatus findPath(dtPolyRef startRef, dtPolyRef endRef,
 					  const float* startPos, const float* endPos,
 					  const dtQueryFilter* filter,
-					  dtPolyRef* path, int* pathCount, const int maxPath) const;
+					  dtPolyRef* path, int* pathCount, const int maxPath, float* pathCost = 0) const;
 	
 	/// Finds the straight path from the start to the end position within the polygon corridor.
 	///  @param[in]		startPos			Path start position. [(x, y, z)]

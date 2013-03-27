@@ -958,7 +958,7 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 								  const float* startPos, const float* endPos,
 								  const dtQueryFilter* filter,
-								  dtPolyRef* path, int* pathCount, const int maxPath) const
+								  dtPolyRef* path, int* pathCount, const int maxPath, float* pathCost) const
 {
 	dtAssert(m_nav);
 	dtAssert(m_nodePool);
@@ -978,6 +978,9 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	
 	if (startRef == endRef)
 	{
+		if (pathCost)
+			*pathCost = 0;
+
 		path[0] = startRef;
 		*pathCount = 1;
 		return DT_SUCCESS;
@@ -1161,6 +1164,9 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	while (node);
 	
 	*pathCount = n;
+
+	if (pathCost)
+		*pathCost = lastBestNode->cost;
 	
 	return status;
 }
