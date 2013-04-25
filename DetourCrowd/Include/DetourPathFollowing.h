@@ -21,6 +21,7 @@
 
 #include "DetourPathQueue.h"
 #include "DetourNavMeshQuery.h"
+#include "DetourSteeringBehavior.h"
 
 class dtNavMesh;
 struct dtCrowdAgent;
@@ -33,21 +34,11 @@ struct dtCrowdAgentAnimation;
 /// Using a navigation mesh, the pathfollowing behavior works on 
 /// a list of agent in order to update their velocity so they can
 /// reach their goal.
-class dtPathFollowing
+class dtPathFollowing : public dtSteeringBehavior
 {
 public:
 	dtPathFollowing();
 	~dtPathFollowing();
-
-	/// Allocates an object of type dtPathFollowing using the Detour allocator.
-	///
-	/// @return 0 if the allocation failed, a pointer to the memory allocated otherwise.
-	static dtPathFollowing* allocate();
-
-	/// Destroys an object of type dtPathFollowing using the Detour allocator.
-	///
-	/// @param	ptr		The pointer the the area we want to release.
-	static void destroy(dtPathFollowing* ptr);
 
 	/// Initializes the behavior.
 	///
@@ -57,21 +48,16 @@ public:
 	/// @param[in]		maxPathRes	Max number of path results.
 	/// @param[in]		agents		The list of agents (active or not) inside the crowd.
 	/// @param[in]		maxAgents	Size of the list of agents.
+	/// @param[in]		anims		Animations of the agents.
 	///
 	/// @return True if the initialization succeeded.
-	bool init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents);
+	bool init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims);
 
 	/// Cleans the class before destroying
 	void purge();
 
-	/// Update the velocity of the given agents.
-	/// 
-	/// @param[in]		ag				The agent to work on.
-	/// @param[in]		m_agentAnims	The animations for each agent.
-	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
-	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void update(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims, 
-				const float dt, dtCrowdAgentDebugInfo* debug = 0, int index = -1);
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 		
 	/// Get the navigation mesh
 	const dtNavMeshQuery* getNavMeshQuery() const { return m_navMeshQuery; }
@@ -109,30 +95,27 @@ private:
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
 	void updateTopologyOptimization(dtCrowdAgent* ag, const float dt);
 
-	/// Performs some checking and optimization on the agents.
+	/// Performs some checking and optimization on the agent.
 	///
 	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
-	void prepare(dtCrowdAgent* ag, const float dt);
+	void prepare(dtCrowdAgent* ag, float dt);
 
-	/// Computes the new velocity of the given agents according to their environment.
+	/// Computes the new velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///
-	/// @param[in]		ag				The agent to work on.
-	void getVelocity(dtCrowdAgent* ag);
+	/// @param[in]	oldAgent	The agent whose velocity must be updated.
+	/// @param[out]	newAgent	The agent storing the new parameters.
+	void getVelocity(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent);
 
-	/// Finds the next corner the given agents should aim to
+	/// Finds the next corner the agent should aim to
 	/// 
-	/// @param[in]		ag				The agent to work on.
-	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* debug, int index);
+	/// @param[in]	ag	The agent to work on.
+	void getNextCorner(dtCrowdAgent* ag);
 
-	/// Checks whether the given are on an offmesh connection. If so, the path is adjusted.
+	/// Checks whether the agent is on an offmesh connection. If so, the path is adjusted.
 	/// 
 	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nbIdx			Number of agents to work on.
-	/// @param[in]		m_agentAnims	The animations for each agent.
-	void triggerOffMeshConnections(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims);
+	void triggerOffMeshConnections(dtCrowdAgent* ag);
 
 	/// Submits a new move request for the specified agent.
 	/// Sets a flag indicate that the path of the agent is being replanned.
@@ -192,14 +175,15 @@ private:
 	dtNavMeshQuery* m_navMeshQuery;	///< Used to perform queries on the navigation mesh.
 	float m_ext[3];					///< The search distance along each axis.
 
-	dtCrowdAgent* m_agents;		///< the list of agents (active of not) dealt with.
-	dtPolyRef* m_pathResult;	///< The path results
-	int m_maxAgents;			///< Maximal number of agents.
-	int m_maxPathRes;			///< Maximal number of path results
+	dtCrowdAgent* m_agents;					///< the list of agents (active of not) dealt with.
+	dtPolyRef* m_pathResult;				///< The path results
+	dtCrowdAgentAnimation* m_agentAnims;	///< Animations of the agents
+	int m_maxAgents;						///< Maximal number of agents.
+	int m_maxPathRes;						///< Maximal number of path results
 
-	const int m_maxCommonNodes;					///< Maximal number of common nodes.
-	const int m_maxPathQueueNodes;				///< Maximal number of nodes in the path queue.
-	const int m_maxIterPerUpdate;				///< Maximal number of iterations per update.
+	const int m_maxCommonNodes;				///< Maximal number of common nodes.
+	const int m_maxPathQueueNodes;			///< Maximal number of nodes in the path queue.
+	const int m_maxIterPerUpdate;			///< Maximal number of iterations per update.
 };
 
 #endif

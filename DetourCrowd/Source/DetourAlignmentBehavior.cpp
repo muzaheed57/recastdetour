@@ -25,61 +25,42 @@
 static const float EPSILON = 0.0001f;
 
 dtAlignmentBehavior::dtAlignmentBehavior()
-	: m_agents(0)
+	: dtSteeringBehavior()
 {
 }
 
-void dtAlignmentBehavior::update(dtCrowdAgent* ag, float* force)
+void dtAlignmentBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	if (!ag || !m_agents || !m_targets || !m_nbTargets)
-		return;
-
-	int count = 0;
-
-	for (int i = 0; i < m_nbTargets; ++i)
-		if (m_agents[m_targets[i]].active)
-		{
-			++ count;
-			dtVadd(force, force, m_agents[m_targets[i]].vel);
-		}
-
-	dtVscale(force, force, 1.f / (float) count);
-
-	dtVsub(force, force, ag->vel);
-}
-
-void dtAlignmentBehavior::update(dtCrowdAgent* ag, float dt)
-{
-	if (!ag || !m_agents || !m_targets || !m_nbTargets)
+	if (!oldAgent || !newAgent)
 		return;
 
 	float force[] = {0, 0, 0};
 
-	update(ag, force);
-	applyVelocity(ag, force, dt);
+	computeForce(oldAgent, force);
+	applyForce(oldAgent, newAgent, force, dt);
 }
 
-void dtAlignmentBehavior::setTargets(const int* targetsIndices, int nbTargets)
+void dtAlignmentBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 {
-	m_targets = targetsIndices;
-	m_nbTargets = nbTargets;
-}
-
-void dtAlignmentBehavior::applyVelocity(dtCrowdAgent* ag, float* velocity, float dt)
-{
-	dtVclamp(velocity, dtVlen(velocity), ag->params.maxAcceleration);
-
-	dtVscale(velocity, velocity, dt);
-	dtVadd(ag->dvel ,ag->vel, velocity);
-
-	// Nil velocity
-	if (dtVlen(ag->dvel) < EPSILON)
-	{
-		ag->desiredSpeed = 0.f;
+	if (!ag)
 		return;
-	}
 
-	dtVclamp(ag->dvel, dtVlen(ag->dvel), ag->params.maxSpeed);
+	const dtCrowdAgent* agents = ag->params.alignmentAgents;
+	const int* targets = ag->params.alignmentTargets;
+	const int nbTargets = ag->params.alignmentNbTargets;
 
-	ag->desiredSpeed = dtVlen(ag->dvel);
+	if (!agents || !targets || !nbTargets)
+		return;
+
+	int count = 0;
+
+	for (int i = 0; i < nbTargets; ++i)
+		if (agents[targets[i]].active)
+		{
+			++ count;
+			dtVadd(force, force, agents[targets[i]].vel);
+		}
+
+	dtVscale(force, force, 1.f / (float) count);
+	dtVsub(force, force, ag->vel);
 }

@@ -19,44 +19,21 @@
 #ifndef DETOURALIGNMENTBEHAVIOR_H
 #define DETOURALIGNMENTBEHAVIOR_H
 
+#include "DetourSteeringBehavior.h"
+
 struct dtCrowdAgent;
 
 
 /// Defines the alignment behavior.
 ///
 /// An agent using this behavior will keep its velocity aligned with its targets'.
-class dtAlignmentBehavior
+class dtAlignmentBehavior : public dtSteeringBehavior
 {
 public:
 	dtAlignmentBehavior();
 
-	/// Updates the velocity of the given agent.
-	///
-	/// @param[in]	ag	The agent we want to update.
-	/// @param[in]	dt	The time, in seconds, to update the simulation. [Limit: > 0]
-	void update(dtCrowdAgent* ag, float dt);
-
-	/// Updates the velocity of the given agent.
-	///
-	/// @param[in]	ag		The agent we want to update.
-	/// @param[out]	force	The time, in seconds, to update the simulation. [Limit: > 0]
-	void update(dtCrowdAgent* ag, float* force);
-
-	void setAgents(dtCrowdAgent* agents) { m_agents = agents; }
-	void setTargets(const int* targetsIndices, int nbTargets);
-
-private:
-	/// Applies the previously computed velocity according the the given agent's parameters (acceleration, max speed, etc.).
-	/// Called after the update() method.
-	///
-	/// @param[in]	velocity	The output velocity.
-	/// @param[in]	ag			The agent whose velocity we want to compute.
-	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	void applyVelocity(dtCrowdAgent* ag, float* velocity, float dt);
-
-	dtCrowdAgent* m_agents;	///< The list of agents the indices are refering to.
-	const int* m_targets;	///< The indices of the targets
-	int m_nbTargets;		///< The number of target
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 };
 
-#endif DETOURALIGNMENTBEHAVIOR_H
+#endif

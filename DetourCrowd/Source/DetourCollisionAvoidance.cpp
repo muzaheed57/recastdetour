@@ -30,6 +30,7 @@
 
 
 dtCollisionAvoidance::dtCollisionAvoidance() :
+	dtBehavior(),
 	m_velocitySamplesCount(0),
 	m_maxAvoidanceParams(4),
 	m_maxCircles(0),
@@ -85,24 +86,29 @@ bool dtCollisionAvoidance::init(int maxCircles, int maxSegments)
 
 void dtCollisionAvoidance::purge()
 {
+	dtFree(m_circles);
+	m_circles = 0;
+
+	dtFree(m_segments);
+	m_segments = 0;
 }
 
-void dtCollisionAvoidance::update(dtCrowdAgent* ag, const dtCrowdAgent** activeAgts, dtObstacleAvoidanceDebugData* vod)
+void dtCollisionAvoidance::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float )
 {
 	m_velocitySamplesCount = 0;
 
-	addObtacles(ag, activeAgts);
-	updateVelocity(ag, true, vod);
+	addObtacles(oldAgent);
+	updateVelocity(oldAgent, newAgent);
 }
 
-void dtCollisionAvoidance::addObtacles(dtCrowdAgent* ag, const dtCrowdAgent** agents)
+void dtCollisionAvoidance::addObtacles(dtCrowdAgent* ag)
 {
 	reset();
 
 	// Add neighbours as obstacles.
 	for (int j = 0; j < ag->nneis; ++j)
 	{
-		const dtCrowdAgent* nei = agents[ag->neis[j].idx];
+		const dtCrowdAgent* nei = m_activeAgts[ag->neis[j].idx];
 		addCircle(nei->npos, nei->params.radius, nei->vel, nei->dvel);
 	}
 
@@ -118,10 +124,10 @@ void dtCollisionAvoidance::addObtacles(dtCrowdAgent* ag, const dtCrowdAgent** ag
 	}
 }
 
-void dtCollisionAvoidance::updateVelocity(dtCrowdAgent* ag, bool adaptive, dtObstacleAvoidanceDebugData* vod)
+void dtCollisionAvoidance::updateVelocity(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent)
 {
-	m_velocitySamplesCount += sampleVelocityAdaptive(ag->npos, ag->params.radius, ag->desiredSpeed,
-																	  ag->vel, ag->dvel, ag->nvel, vod);
+	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent->npos, oldAgent->params.radius, oldAgent->desiredSpeed,
+																	  oldAgent->vel, oldAgent->dvel, newAgent->nvel, oldAgent->params.caDebug);
 }
 
 

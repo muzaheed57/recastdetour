@@ -14,6 +14,8 @@ SET(detourcrowd_SRCS
 	Source/DetourCohesionBehavior.cpp
 	Source/DetourAlignmentBehavior.cpp
 	Source/DetourGoToBehavior.cpp
+	Source/DetourSteeringBehavior.cpp
+	Source/DetourBehavior.cpp
 )
 
 SET(detourcrowd_HDRS
@@ -30,6 +32,8 @@ SET(detourcrowd_HDRS
 	Include/DetourCohesionBehavior.h
 	Include/DetourAlignmentBehavior.h
 	Include/DetourGoToBehavior.h
+	Include/DetourSteeringBehavior.h
+	Include/DetourBehavior.h
 )
 
 INCLUDE_DIRECTORIES(Include 

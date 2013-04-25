@@ -19,6 +19,8 @@
 #ifndef DETOURSEPARATIONBEHAVIOR_H
 #define DETOURSEPARATIONBEHAVIOR_H
 
+#include "DetourSteeringBehavior.h"
+
 struct dtCrowdAgent;
 class dtCrowd;
 
@@ -27,53 +29,14 @@ class dtCrowd;
 ///
 /// An agent using this behavior will try to keep its distance from one or more targets.
 /// The minimum distance to keep from the targets can be specified.
-class dtSeparationBehavior
+class dtSeparationBehavior : public dtSteeringBehavior
 {
 public:
 	dtSeparationBehavior();
 	~dtSeparationBehavior();
 
-	/// Computes the new velocity of the agent
-	///
-	/// @param[in]	ag		The agent whose velocity must be updated.
-	/// @param[in]	dt		The time, in seconds, since the last frame.
-	void update(dtCrowdAgent* ag, float dt);
-
-	/// Computes the new velocity of the agent
-	///
-	/// @param[in]	ag		The agent whose velocity must be updated.
-	/// @param[out]	force	The computed velocity.
-	/// @param[in]	dt		The time, in seconds, since the last frame.
-	void update(dtCrowdAgent* ag, float* force, float dt);
-	
-	/// Sets the targets the agent must keep its distance from.
-	///
-	/// @param[in]	targets		The list of agent representing the targets.
-	/// @param[in]	nbTargets	The number of targets to avoid.
-	void setTargets(const int* targets, int nbTargets);
-
-	void setAgents(dtCrowdAgent* agents) { m_agents = agents; }
-
-	float m_separationDistance;	///< From distance from which the agent considers the targets that must be avoided.
-	float m_separationWeight;	///< A coefficient defining how agressively the agent should avoid the targets.
-	
-private:
-	/// Computes the new velocity for the agent.
-	///
-	/// @param[in]	ag				The agent whose velocity must be updated.
-	/// @param[out]	velocity		The new velocity for the agent.
-	void prepareVelocity(const dtCrowdAgent* ag, float* velocity);
-
-	/// Scales the velocity according the agent's parameters.
-	///
-	/// @param[out]	ag				The agent whose velocity must be updated.
-	/// @param[in]	velocity		The new velocity for the agent.
-	/// @param[in]	dt				The time, in seconds, since the last frame.
-	void applyVelocity(dtCrowdAgent* ag, float* velocity, float dt);
-
-	const int* m_targets;		///< The others agents we want to keep our distances from.
-	int m_nbTargets;			///< The number of targets.
-	dtCrowdAgent* m_agents;		///< The list of agents the indices are refering to.
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 };
 
 #endif // DETOURSEPARATIONBEHAVIOR_H

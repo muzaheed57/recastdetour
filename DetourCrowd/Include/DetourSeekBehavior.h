@@ -19,6 +19,8 @@
 #ifndef DETOURSEEKBEHAVIOR_H
 #define DETOURSEEKBEHAVIOR_H
 
+#include "DetourSteeringBehavior.h"
+
 struct dtCrowdAgent;
 
 
@@ -29,28 +31,17 @@ struct dtCrowdAgent;
 /// (the agent will never get any closer than this distance).
 /// Also the agent can have a prediction factor, which means that it will predict the next
 /// position of its target (according to its velocity) and head to it.
-class dtSeekBehavior
+class dtSeekBehavior : public dtSteeringBehavior
 {
 public:
 	dtSeekBehavior();
 	~dtSeekBehavior();
 
-	/// Computes the new velocity of the agent
-	///
-	/// @param[in]	ag		The agent whose velocity must be updated.
-	/// @param[out]	force	The computed force that must be applied to the agent's velocity.
-	/// @param[in]	dt		The time, in seconds, since the last frame.
-	void update(dtCrowdAgent* ag, float* force, const float dt) const;
-
-	void setTarget(dtCrowdAgent* newTarget) { m_target = newTarget; }
-	const dtCrowdAgent* getTarget() const { return m_target; }
-	
-	float m_distance;				///< Minimal distance to keep between the agent and its target.
-	float m_predictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
-									/// Nonetheless a big value is not realistic when agents are close to each other.
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
 private:
-	const dtCrowdAgent* m_target;	///< The agent we seek.
+	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
 };
 
 #endif // DETOURSEEKBEHAVIOR_H

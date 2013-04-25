@@ -21,12 +21,10 @@
 #include "InputGeom.h"
 #include "NavMeshCreator.h"
 #include "JSON.h"
-#include "DetourSeekBehavior.h"
 
+#include "DetourSeekBehavior.h"
 #include "DetourAlignmentBehavior.h"
 #include "DetourCohesionBehavior.h"
-#include "DetourFlockingBehavior.h"
-#include "DetourSeekBehavior.h"
 #include "DetourSeparationBehavior.h"
 
 #include <Recast.h>
@@ -43,6 +41,7 @@ CrowdSample::CrowdSample()
 , m_seekDist(0.f)
 , m_seekPredict(0.f)
 , m_separationWeight(0.f)
+, m_separationDist(0.f)
 {
     strcpy(m_sceneFileName,"");
 }
@@ -193,7 +192,8 @@ bool CrowdSample::loadFromBuffer( const char* data )
 							// Seek behavior
 							if (type && type->IsString() && type->AsString() == L"seek")
 							{
-								m_agentCfgs[iAgent].parameters.seekBehavior = new dtSeekBehavior;
+								m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtSeekBehavior>();
+								m_agentsBehaviors[iAgent] = "seek";
 
 								JSONValue* target = behavior->Child(L"targetIdx");
 								if (target && target->IsNumber())
@@ -209,10 +209,17 @@ bool CrowdSample::loadFromBuffer( const char* data )
 							}
 							// Separation behavior
 							else if (type && type->IsString() && type->AsString() == L"separation")
-							{												
+							{			
+								m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtSeparationBehavior>();
+								m_agentsBehaviors[iAgent] = "separation";
+
 								JSONValue* weight = behavior->Child(L"weight");
 								if (weight && weight->IsNumber())
 									m_separationWeight = (float) weight->AsNumber();
+
+								JSONValue* dist = behavior->Child(L"distance");
+								if (dist && dist->IsNumber())
+									m_separationDist = (float) weight->AsNumber();
 
 								JSONValue* targets = behavior->Child(L"targets");
 								if (targets && targets->IsArray())
@@ -229,7 +236,9 @@ bool CrowdSample::loadFromBuffer( const char* data )
 							// Alignment behavior
 							else if (type && type->IsString() && type->AsString() == L"alignment")
 							{				
-								m_agentCfgs[iAgent].parameters.alignmentBehavior = new dtAlignmentBehavior;
+								m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtAlignmentBehavior>();
+								m_agentsBehaviors[iAgent] = "alignment";
+
 								JSONValue* targets = behavior->Child(L"targets");
 								if (targets && targets->IsArray())
 								{
@@ -245,7 +254,9 @@ bool CrowdSample::loadFromBuffer( const char* data )
 							// Cohesion behavior
 							else if (type && type->IsString() && type->AsString() == L"cohesion")
 							{				
-								m_agentCfgs[iAgent].parameters.cohesionBehavior = new dtCohesionBehavior;
+								m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtCohesionBehavior>();
+								m_agentsBehaviors[iAgent] = "cohesion";
+
 								JSONValue* targets = behavior->Child(L"targets");
 								if (targets && targets->IsArray())
 								{
@@ -411,32 +422,33 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
 	for (int i(0) ; i < m_agentCount ; ++i)
     {
 		// Seeking behavior
-		if (m_agentCfgs[i].parameters.seekBehavior)
+		if (m_agentsBehaviors[i] == "seek")
 		{
-			m_agentCfgs[i].parameters.seekBehavior->m_distance = m_seekDist;
-			m_agentCfgs[i].parameters.seekBehavior->m_predictionFactor = m_seekPredict;
+			m_agentCfgs[i].parameters.seekDistance = m_seekDist;
+			m_agentCfgs[i].parameters.seekPredictionFactor = m_seekPredict;
 
 			if (m_seekTargets.find(i) != m_seekTargets.end())
-				m_agentCfgs[i].parameters.seekBehavior->setTarget(crowd->getAgent(m_seekTargets[i]));
+				m_agentCfgs[i].parameters.seekTarget = crowd->getAgent(m_seekTargets[i]);
 		}
 
 		// Separation behavior
-		if (!m_separationTargets.empty())
+		if (m_agentsBehaviors[i] == "separation")
 		{
-			m_agentCfgs[i].parameters.separationBehavior = new dtSeparationBehavior;
-			m_agentCfgs[i].parameters.separationBehavior->m_separationWeight = m_separationWeight;
-			m_agentCfgs[i].parameters.separationBehavior->setAgents(crowd->getAgents());
+			m_agentCfgs[i].parameters.separationWeight = m_separationWeight;
+			m_agentCfgs[i].parameters.separationDistance = m_separationDist;
+			m_agentCfgs[i].parameters.separationAgents = crowd->getAgents();
 			int* targets = (int*) dtAlloc(sizeof(int) * m_separationTargets.size(), DT_ALLOC_PERM);
 
 			std::copy(m_separationTargets.begin(), m_separationTargets.end(), targets);
 
-			m_agentCfgs[i].parameters.separationBehavior->setTargets(targets, m_separationTargets.size());
+			m_agentCfgs[i].parameters.separationTargets = targets;
+			m_agentCfgs[i].parameters.separationNbTargets = m_separationTargets.size();
 		}
 
 		// alignment behavior
-		if (m_agentCfgs[i].parameters.alignmentBehavior)
+		if (m_agentsBehaviors[i] == "alignment")
 		{
-			m_agentCfgs[i].parameters.alignmentBehavior->setAgents(crowd->getAgents());
+			m_agentCfgs[i].parameters.alignmentAgents = crowd->getAgents();
 
 			if (!m_alignmentTargets.empty())
 			{
@@ -444,14 +456,15 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
 
 				std::copy(m_alignmentTargets.begin(), m_alignmentTargets.end(), targets);
 
-				m_agentCfgs[i].parameters.alignmentBehavior->setTargets(targets, m_alignmentTargets.size());
+				m_agentCfgs[i].parameters.alignmentTargets = targets;
+				m_agentCfgs[i].parameters.alignmentNbTargets = m_alignmentTargets.size();
 			}
 		}
 
 		// cohesion behavior
-		if (m_agentCfgs[i].parameters.cohesionBehavior)
+		if (m_agentsBehaviors[i] == "cohesion")
 		{
-			m_agentCfgs[i].parameters.cohesionBehavior->setAgents(crowd->getAgents());
+			m_agentCfgs[i].parameters.cohesionAgents = crowd->getAgents();
 
 			if (!m_cohesionTargets.empty())
 			{
@@ -459,7 +472,8 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
 
 				std::copy(m_cohesionTargets.begin(), m_cohesionTargets.end(), targets);
 
-				m_agentCfgs[i].parameters.cohesionBehavior->setTargets(targets, m_cohesionTargets.size());
+				m_agentCfgs[i].parameters.cohesionTargets = targets;
+				m_agentCfgs[i].parameters.cohesionNbTargets = m_cohesionTargets.size();
 			}
 		}
 
@@ -498,13 +512,18 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
 
 	for (std::vector<Flocking>::const_iterator it = m_flockingsGroups.begin(); it < m_flockingsGroups.end(); ++it)
 	{
-		dtFlockingBehavior* fb = new dtFlockingBehavior(it->desiredSeparation, 
-														it->separationWeight, it->cohesionWeight, it->alignmentWeight, 
-														crowd->getAgents());
+		dtFlockingBehavior* fb = dtAllocBehavior<dtFlockingBehavior>();
+		fb->m_alignmentWeight = it->alignmentWeight;
+		fb->m_cohesionWeight = it->cohesionWeight;
+		fb->m_separationWeight = it->separationWeight;
 
 		for (int i(0) ; i < m_agentCount ; ++i)
 			if (m_agentsFlockingNeighbors[i].empty() == false)
-				crowd->getAgent(i)->params.flockingBehavior = fb;
+			{
+				crowd->getAgent(i)->params.steeringBehavior = fb;
+				crowd->getAgent(i)->params.flockingAgents = crowd->getAgents();
+				crowd->getAgent(i)->params.flockingSeparationDistance = it->desiredSeparation;
+			}
 
 		m_flockingBehaviors.push_back(fb);
 	}

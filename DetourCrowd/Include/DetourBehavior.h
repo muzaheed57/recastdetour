@@ -16,28 +16,25 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURGOTOBEHAVIOR_H
-#define DETOURGOTOBEHAVIOR_H
-
-#include "DetourSteeringBehavior.h"
+#ifndef DETOURBEHAVIORINTERFACE_H
+#define DETOURBEHAVIORINTERFACE_H
 
 struct dtCrowdAgent;
 
 
-/// Defines the GoTo behavior.
-///
-/// This behavior allows the user to set a target, and the agent will try to reach it.
-class dtGoToBehavior : public dtSteeringBehavior
+/// Interface defining a behavior.
+class dtBehavior
 {
 public:
-	dtGoToBehavior();
-	~dtGoToBehavior();
+	dtBehavior();
+	~dtBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
-
-private:
-	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
+	/// Updates the desired velocity of an agent and stores the updates data into the second agent
+	///
+	/// @param[in]	oldAgent	The agent we want to update.
+	/// @param[out]	newAgent	The agent storing the updated version of the oldAgent.
+	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt) = 0;
 };
 
 #endif

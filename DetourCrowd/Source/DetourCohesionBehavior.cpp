@@ -28,9 +28,7 @@
 static const float EPSILON = 0.0001f;
 
 dtCohesionBehavior::dtCohesionBehavior()
-	: m_agents(0)
-	, m_targets(0)
-	, m_nbTargets(0)
+	: dtSteeringBehavior()
 	, m_gotoBehabior(0)
 {
 	m_gotoBehabior = dtAllocBehavior<dtGoToBehavior>();
@@ -41,41 +39,44 @@ dtCohesionBehavior::~dtCohesionBehavior()
 	dtFreeBehavior<dtGoToBehavior>(m_gotoBehabior);
 }
 
-void dtCohesionBehavior::update(dtCrowdAgent* ag, float* force)
+void dtCohesionBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	if (!m_agents || !m_targets || !m_nbTargets)
+	if (!oldAgent || !newAgent)
 		return;
-
-	int count = 0;
-	dtVset(force, 0, 0, 0);
-
-	for (int i = 0; i < m_nbTargets; ++i)
-	{
-		dtCrowdAgent& target = m_agents[m_targets[i]];
-
-		if (!target.active)
-			continue;
-
-		dtVadd(force, force, target.npos);
-		++count;
-	}
-
-	dtVscale(force, force, 1.f / (float) count);
-	dtVsub(force, force, ag->npos);
-}
-
-void dtCohesionBehavior::update(dtCrowdAgent* ag, float dt)
-{
-	if (!m_agents || !m_targets || !m_nbTargets)
-		return;
-
-	int count = 0;
+	
 	float force[] = {0, 0, 0};
 	float center[] = {0, 0, 0};
+	const dtCrowdAgent* agents = oldAgent->params.cohesionAgents;
+	const int* targets = oldAgent->params.cohesionTargets;
+	const int nbTargets = oldAgent->params.cohesionNbTargets;
 
-	for (int i = 0; i < m_nbTargets; ++i)
+	getGravityCenter(agents, targets, nbTargets, center);
+
+	oldAgent->params.gotoTarget = center;
+	oldAgent->params.gotoDistance = 0.f;
+	m_gotoBehabior->update(oldAgent, newAgent, dt);
+}
+
+void dtCohesionBehavior::computeForce(const dtCrowdAgent* ag, float* force)
+{
+	const dtCrowdAgent* agents = ag->params.cohesionAgents;
+	const int* targets = ag->params.cohesionTargets;
+	const int nbTargets = ag->params.cohesionNbTargets;
+	int count = 0;
+	float center[] = {0, 0, 0};
+
+	getGravityCenter(agents, targets, nbTargets, center);
+
+	dtVsub(force, center, ag->npos);
+}
+
+void dtCohesionBehavior::getGravityCenter(const dtCrowdAgent* agents, const int* targets, int nbTargets, float* center)
+{
+	int count = 0;
+
+	for (int i = 0; i < nbTargets; ++i)
 	{
-		dtCrowdAgent& target = m_agents[m_targets[i]];
+		const dtCrowdAgent& target = agents[targets[i]];
 
 		if (!target.active)
 			continue;
@@ -85,16 +86,4 @@ void dtCohesionBehavior::update(dtCrowdAgent* ag, float dt)
 	}
 
 	dtVscale(center, center, 1.f / (float) count);
-
-	m_gotoBehabior->m_target = center;
-	m_gotoBehabior->m_distance = 0.f;
-	m_gotoBehabior->update(ag, force, dt);
-
-	dtVcopy(ag->dvel, force);
-}
-
-void dtCohesionBehavior::setTargets(const int* targets, int nbTargets)
-{
-	m_targets = targets;
-	m_nbTargets = nbTargets;
 }

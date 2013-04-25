@@ -16,27 +16,34 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURGOTOBEHAVIOR_H
-#define DETOURGOTOBEHAVIOR_H
+#ifndef DETOURSTEERINGBEHAVIOR_H
+#define DETOURSTEERINGBEHAVIOR_H
 
-#include "DetourSteeringBehavior.h"
+#include "DetourBehavior.h"
 
 struct dtCrowdAgent;
 
 
-/// Defines the GoTo behavior.
-///
-/// This behavior allows the user to set a target, and the agent will try to reach it.
-class dtGoToBehavior : public dtSteeringBehavior
+/// Interface defining a steering behavior.
+class dtSteeringBehavior : public dtBehavior
 {
 public:
-	dtGoToBehavior();
-	~dtGoToBehavior();
+	dtSteeringBehavior();
+	virtual ~dtSteeringBehavior();
+	
+	/// Computes the force that should be applied to the velocity of the given agent.
+	///
+	/// @param[in]	ag		The agent we want to update.
+	/// @param[out]	force	The computed force.
+	virtual void computeForce(const dtCrowdAgent* ag, float* force) = 0;
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
-
-private:
+protected:
+	/// Applies the previously computed force the velocity of the old agent and stores the result into the new agent.
+	///
+	/// @param[in]	oldAgent	The agent we want to update.
+	/// @param[out]	newAgent	The agent storing the updated version of the oldAgent.
+	/// @param[in]	force		The computed force.
+	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
 };
 

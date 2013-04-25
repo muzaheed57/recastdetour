@@ -52,12 +52,7 @@ dtCrowd* TestScene::createScene(dtCrowdAgentParams& param, float* vertices, int*
 	param.pathOptimizationRange = 6.0;
 	param.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
 	param.obstacleAvoidanceType = 0;
-	param.flockingBehavior = 0;
-	param.seekBehavior = 0;
-	param.separationBehavior = 0;
-	param.cohesionBehavior = 0;
-	param.alignmentBehavior = 0;
-	param.gotoBehavior = 0;
+	param.steeringBehavior = 0;
 
 	return m_crowd;
 }

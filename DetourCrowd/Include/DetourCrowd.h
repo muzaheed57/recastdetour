@@ -31,6 +31,7 @@ class dtGoToBehavior;
 class dtSeparationBehavior;
 class dtAlignmentBehavior;
 class dtCohesionBehavior;
+class dtSteeringBehavior;
 
 
 /// The maximum number of neighbors that a crowd agent can take into account
@@ -91,25 +92,65 @@ enum CrowdAgentState
 	DT_CROWDAGENT_STATE_OFFMESH,		///< The agent is traversing an off-mesh connection.
 };
 
+struct dtCrowdAgentAnimation
+{
+	unsigned char active;
+	float initPos[3], startPos[3], endPos[3];
+	dtPolyRef polyRef;
+	float t, tmax;
+};
+
 /// Configuration parameters for a crowd agent.
 /// @ingroup crowd
 struct dtCrowdAgentParams
 {
-	dtFlockingBehavior* flockingBehavior;
-	dtSeekBehavior* seekBehavior;
-	dtSeparationBehavior* separationBehavior;
-	dtAlignmentBehavior* alignmentBehavior;
-	dtCohesionBehavior* cohesionBehavior;
-	dtGoToBehavior* gotoBehavior;
+	dtSteeringBehavior* steeringBehavior;
 
-	// Parameters for the flocking behavior.
-	int* toFlockWith;			///< Indices of the agents to flock with.
-	int nbFlockingNeighbors;	///< Number of agents to flock with.
+	// Parameters for the seek behavior
+	const dtCrowdAgent* seekTarget;	///< The agent we seek.
+	float seekDistance;				///< Minimal distance to keep between the agent and its target.
+	float seekPredictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
+									///  Nonetheless a big value is not realistic when agents are close to each other.
 
-	float radius;						///< Agent radius. [Limit: >= 0]
-	float height;						///< Agent height. [Limit: > 0]
-	float maxAcceleration;				///< Maximum allowed acceleration. [Limit: >= 0]
-	float maxSpeed;						///< Maximum allowed speed. [Limit: >= 0]
+	// Parameters for the alignment behavior
+	dtCrowdAgent* alignmentAgents;	///< The list of agents the indices are refering to.
+	const int* alignmentTargets;	///< The indices of the targets
+	int alignmentNbTargets;			///< The number of target
+
+	// Parameters for the cohesion behavior
+	dtCrowdAgent* cohesionAgents;	///< The list of agents the indices are refering to.
+	const int* cohesionTargets;		///< The indices of the targets
+	int cohesionNbTargets;			///< The number of target
+
+	// Parameters for the goto behavior
+	float gotoDistance;				///< Minimal distance to keep between the agent and its target.
+	float* gotoTarget;				///< The position we want to reach.
+
+	// Parameters for the flocking behavior
+	int* toFlockWith;					///< Indices of the agents to flock with.
+	int nbFlockingNeighbors;			///< Number of agents to flock with.
+	dtCrowdAgent* flockingAgents;		///< The list of agents the indices are refering to.
+	float flockingSeparationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
+
+	// Parameters for the separation behavior
+	int* separationTargets;				///< The others agents we want to keep our distances from.
+	int separationNbTargets;			///< The number of targets.
+	dtCrowdAgent* separationAgents;		///< The list of agents the indices are refering to.
+	float separationDistance;			///< From distance from which the agent considers the targets that must be avoided.
+	float separationWeight;				///< A coefficient defining how agressively the agent should avoid the targets.
+
+	// Parameters for the pathFollowing behavior
+	dtCrowdAgentAnimation* pfAnims;		///< The animations for each agent.
+	dtCrowdAgentDebugInfo* pfDebug;		///< A debug object to load with debug information. [Opt]
+	int pfDebugIbdex;					///< The index of the agent for debug purpose.
+
+	// Parameters for the collision avoidance behavior.
+	dtObstacleAvoidanceDebugData* caDebug;	///< A debug object to load with debug information. [Opt]
+
+	float radius;					///< Agent radius. [Limit: >= 0]
+	float height;					///< Agent height. [Limit: > 0]
+	float maxAcceleration;			///< Maximum allowed acceleration. [Limit: >= 0]
+	float maxSpeed;					///< Maximum allowed speed. [Limit: >= 0]
 
 	/// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
 	float collisionQueryRange;
@@ -193,14 +234,6 @@ struct dtCrowdAgent
 	dtPathQueueRef targetPathqRef;		///< Path finder ref.
 	bool targetReplan;					///< Flag indicating that the current path is being replanned.
 	float targetReplanTime;				/// <Time since the agent's target was replanned.
-};
-
-struct dtCrowdAgentAnimation
-{
-	unsigned char active;
-	float initPos[3], startPos[3], endPos[3];
-	dtPolyRef polyRef;
-	float t, tmax;
 };
 
 /// Crowd agent update flags.

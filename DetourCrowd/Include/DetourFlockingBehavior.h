@@ -19,6 +19,8 @@
 #ifndef DETOURFLOCKINGBEHAVIOR_H
 #define DETOURFLOCKINGBEHAVIOR_H
 
+#include "DetourSteeringBehavior.h"
+
 struct dtCrowdAgent;
 class dtSeparationBehavior;
 class dtCohesionBehavior;
@@ -32,42 +34,24 @@ class dtAlignmentBehavior;
 /// Agents behaving that way will behave like a flock, or a herd. This basically means that 
 /// they will try to stick together as they move, heading in the same direction, and without 
 /// bumping into each other.
-class dtFlockingBehavior
+class dtFlockingBehavior : public dtSteeringBehavior
 {
 public:
 	dtFlockingBehavior();
-	dtFlockingBehavior(float desiredSeparation, 
-					   float separationWeight, float cohesionWeight, float alignmentWeight, 
-					   dtCrowdAgent* agents);
+	dtFlockingBehavior(float separationWeight, float cohesionWeight, float alignmentWeight);
 	~dtFlockingBehavior();
 
-	/// Updates the velocity of the given agent.
-	///
-	/// @param[in]	ag	The agent we want to update.
-	/// @param[in]	dt	The time, in seconds, to update the simulation. [Limit: > 0]
-	void update(dtCrowdAgent* ag, float dt);
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+
+	float m_separationWeight;		///< The strength of the separation velocity.
+	float m_cohesionWeight;			///< The strength of the cohesion velocity.
+	float m_alignmentWeight;		///< The strength of the alignment velocity.
 	
-	void setAgents(dtCrowdAgent* agents) { m_agents = agents; }
-
-	float m_separationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
-	float m_separationWeight;	///< The strength of the separation velocity.
-	float m_cohesionWeight;		///< The strength of the cohesion velocity.
-	float m_alignmentWeight;	///< The strength of the alignment velocity.
-
 private:	
-	/// Prepares the previously computed velocity according the the given agent's parameters (acceleration, max speed, etc.).
-	/// Called after the update() method.
-	///
-	/// @param[in]	velocity	The output velocity.
-	/// @param[in]	ag			The agent whose velocity we want to compute.
-	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	void prepareVelocity(float* velocity, dtCrowdAgent* ag, float dt);
-
-	dtCrowdAgent* m_agents;						///< The list of agents the indices are refering to.
-
 	dtSeparationBehavior* m_separationBehavior;	///< The separation behavior
 	dtCohesionBehavior* m_cohesionBehavior;		///< The cohesion behavior
 	dtAlignmentBehavior* m_alignmentBehavior;	///< The alignment behavior
 };
 
-#endif // DETOURFLOCKINGBEHAVIOR_H
+#endif

@@ -32,20 +32,27 @@
 static const float EPSILON = 0.0001f;
 
 dtFlockingBehavior::dtFlockingBehavior()
-{
-}
-
-dtFlockingBehavior::dtFlockingBehavior(float desiredSeparation, 
-									   float separationWeight, float cohesionWeight, float alignmentWeight, 
-									   dtCrowdAgent* agents)
-	: m_agents(agents)
-	, m_separationDistance(desiredSeparation)
-	, m_separationWeight(separationWeight)
-	, m_cohesionWeight(cohesionWeight)
-	, m_alignmentWeight(alignmentWeight)
+	: dtSteeringBehavior()
 	, m_separationBehavior(0)
 	, m_cohesionBehavior(0)
 	, m_alignmentBehavior(0)
+	, m_separationWeight(0)
+	, m_cohesionWeight(0)
+	, m_alignmentWeight(0)
+{
+	m_separationBehavior = dtAllocBehavior<dtSeparationBehavior>();
+	m_cohesionBehavior = dtAllocBehavior<dtCohesionBehavior>();
+	m_alignmentBehavior = dtAllocBehavior<dtAlignmentBehavior>();
+}
+
+dtFlockingBehavior::dtFlockingBehavior(float separationWeight, float cohesionWeight, float alignmentWeight)
+	: dtSteeringBehavior()
+	, m_separationBehavior(0)
+	, m_cohesionBehavior(0)
+	, m_alignmentBehavior(0)
+	, m_separationWeight(separationWeight)
+	, m_cohesionWeight(cohesionWeight)
+	, m_alignmentWeight(alignmentWeight)
 {
 	m_separationBehavior = dtAllocBehavior<dtSeparationBehavior>();
 	m_cohesionBehavior = dtAllocBehavior<dtCohesionBehavior>();
@@ -59,55 +66,49 @@ dtFlockingBehavior::~dtFlockingBehavior()
 	dtFreeBehavior<dtAlignmentBehavior>(m_alignmentBehavior);
 }
 
-void dtFlockingBehavior::update(dtCrowdAgent* ag, float dt)
+void dtFlockingBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	const int* neighborsList = ag->params.toFlockWith;
-	int nbNeighbors = ag->params.nbFlockingNeighbors;
-	
-	if (nbNeighbors == 0 || !neighborsList || !m_separationBehavior)
+	if (!oldAgent || !newAgent)
 		return;
 
+	dtCrowdAgent* agents = oldAgent->params.flockingAgents;
+	int* neighborsList = oldAgent->params.toFlockWith;
+	int nbNeighbors = oldAgent->params.nbFlockingNeighbors;
+	
+	if (!agents || nbNeighbors == 0 || !neighborsList || !m_separationBehavior)
+		return;
+
+	float totalForce[] = {0, 0, 0};
+
+	oldAgent->params.separationAgents = agents;
+	oldAgent->params.separationTargets = neighborsList;
+	oldAgent->params.separationNbTargets = nbNeighbors;
+	oldAgent->params.separationDistance = oldAgent->params.flockingSeparationDistance;
+	oldAgent->params.separationWeight = m_separationWeight;
+	
+	oldAgent->params.cohesionAgents = agents;
+	oldAgent->params.cohesionTargets = neighborsList;
+	oldAgent->params.cohesionNbTargets = nbNeighbors;
+
+	oldAgent->params.alignmentAgents = agents;
+	oldAgent->params.alignmentTargets = neighborsList;
+	oldAgent->params.alignmentNbTargets = nbNeighbors;
+	
+	computeForce(oldAgent, totalForce);
+	applyForce(oldAgent, newAgent, totalForce, dt);
+}
+
+void dtFlockingBehavior::computeForce(const dtCrowdAgent* ag, float* force)
+{
 	float separationForce[] = {0, 0, 0};
 	float cohesionForce[] = {0, 0, 0};
 	float alignmentForce[] = {0, 0, 0};
-	float totalForce[] = {0, 0, 0};
 
-	m_separationBehavior->setAgents(m_agents);
-	m_separationBehavior->setTargets(neighborsList, nbNeighbors);
-	m_separationBehavior->m_separationDistance = m_separationDistance;
-	m_separationBehavior->m_separationWeight = m_separationWeight;
-	m_separationBehavior->update(ag, separationForce, dt);
-	
-	m_cohesionBehavior->setAgents(m_agents);
-	m_cohesionBehavior->setTargets(neighborsList, nbNeighbors);
-	m_cohesionBehavior->update(ag, cohesionForce);
+	m_separationBehavior->computeForce(ag, separationForce);
+	m_cohesionBehavior->computeForce(ag, cohesionForce);
+	m_alignmentBehavior->computeForce(ag, alignmentForce);
 
-	m_alignmentBehavior->setAgents(m_agents);
-	m_alignmentBehavior->setTargets(neighborsList, nbNeighbors);
-	m_alignmentBehavior->update(ag, alignmentForce);
-	
-	dtVmad(totalForce, totalForce, separationForce, m_separationWeight);
-	dtVmad(totalForce, totalForce, cohesionForce, m_cohesionWeight);
-	dtVmad(totalForce, totalForce, alignmentForce, m_alignmentWeight);
-	
-	prepareVelocity(totalForce, ag, dt);
-}
-
-void dtFlockingBehavior::prepareVelocity(float* desiredVelocityDelta, dtCrowdAgent* ag, float dt)
-{
-	dtVclamp(desiredVelocityDelta, dtVlen(desiredVelocityDelta), ag->params.maxAcceleration);
-
-	dtVscale(desiredVelocityDelta, desiredVelocityDelta, dt);
-	dtVadd(ag->dvel ,ag->vel, desiredVelocityDelta);
-
-	// Nil velocity
-	if (dtVlen(ag->dvel) < EPSILON)
-	{
-		ag->desiredSpeed = 0.f;
-		return;
-	}
-	
-	dtVclamp(ag->dvel, dtVlen(ag->dvel), ag->params.maxSpeed);
-
-	ag->desiredSpeed = dtVlen(ag->dvel);
+	dtVmad(force, force, separationForce, m_separationWeight);
+	dtVmad(force, force, cohesionForce, m_cohesionWeight);
+	dtVmad(force, force, alignmentForce, m_alignmentWeight);
 }

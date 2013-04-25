@@ -16,28 +16,15 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURGOTOBEHAVIOR_H
-#define DETOURGOTOBEHAVIOR_H
-
-#include "DetourSteeringBehavior.h"
-
-struct dtCrowdAgent;
+#include "DetourBehavior.h"
 
 
-/// Defines the GoTo behavior.
-///
-/// This behavior allows the user to set a target, and the agent will try to reach it.
-class dtGoToBehavior : public dtSteeringBehavior
+dtBehavior::dtBehavior()
 {
-public:
-	dtGoToBehavior();
-	~dtGoToBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+}
 
-private:
-	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
-};
+dtBehavior::~dtBehavior()
+{
 
-#endif
+}

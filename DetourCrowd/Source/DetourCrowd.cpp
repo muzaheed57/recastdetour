@@ -234,7 +234,7 @@ void dtCrowd::purge()
 	if (m_pathFollow)
 	{
 		m_pathFollow->purge();
-		dtPathFollowing::destroy(m_pathFollow);
+		dtFreeBehavior<dtPathFollowing>(m_pathFollow);
 		m_pathFollow = 0;
 	}
 
@@ -249,7 +249,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 {
 	purge();
 
-	m_pathFollow = dtPathFollowing::allocate();
+	m_pathFollow = dtAllocBehavior<dtPathFollowing>();
 
 	for (int i = 0; i < MAX_AVOIDANCE_PARAMS; ++i)
 		if (!m_collisionHandler[i].init())
@@ -305,7 +305,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	
 	float ext[3] = {m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f};
 
-	if (!m_pathFollow->init(nav, ext, m_maxPathResult, m_agents, m_maxAgents))
+	if (!m_pathFollow->init(nav, ext, m_maxPathResult, m_agents, m_maxAgents, m_agentAnims))
 		return false;
 	
 	return true;
@@ -562,36 +562,14 @@ void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* 
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 		
-		if (ag->params.flockingBehavior)
-		{
-			ag->params.flockingBehavior->update(ag, dt);
-		}
-		else if (ag->params.seekBehavior)
-		{
-			float vel[3];
-			ag->params.seekBehavior->update(ag, vel, dt);
-			dtVcopy(ag->dvel, vel);
-		}
-		else if (ag->params.separationBehavior)
-		{
-			ag->params.separationBehavior->update(ag, dt);
-		}
-		else if (ag->params.alignmentBehavior)
-		{
-			ag->params.alignmentBehavior->update(ag, dt);
-		}
-		else if (ag->params.cohesionBehavior)
-		{
-			ag->params.cohesionBehavior->update(ag, dt);
-		}
-		else if (ag->params.gotoBehavior)
-		{
-			float vel[3];
-			ag->params.gotoBehavior->update(ag, vel, dt);
-			dtVcopy(ag->dvel, vel);
-		}
+		if (ag->params.steeringBehavior)
+			ag->params.steeringBehavior->update(ag, ag, dt);
 		else
-			m_pathFollow->update(ag, m_agentAnims, dt, debug, i);
+		{
+			ag->params.pfDebug = debug;
+			ag->params.pfDebugIbdex = i;
+			m_pathFollow->update(ag, ag, dt);
+		}
 	}
 	
 	// Collision avoidance
@@ -605,7 +583,8 @@ void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* 
 
 		if (ag->params.updateFlags & DT_CROWD_OBSTACLE_AVOIDANCE && agentIsMoving(agentsIdx[i]))
 		{
-			m_collisionHandler[ag->params.obstacleAvoidanceType].update(ag, (const dtCrowdAgent**)agents, 0);
+			m_collisionHandler[ag->params.obstacleAvoidanceType].m_activeAgts = (const dtCrowdAgent**) agents;
+			m_collisionHandler[ag->params.obstacleAvoidanceType].update(ag, ag, dt);
 		}
 		else
 		{

@@ -72,7 +72,7 @@ INSTALL(TARGETS DetourSceneCreator EXPORT "RecastNavigationTargets-${PLATFORM_ST
     ARCHIVE DESTINATION lib/${PLATFORM_STR}
 )
 
-TARGET_LINK_LIBRARIES(DetourSceneCreator Detour)
+TARGET_LINK_LIBRARIES(DetourSceneCreator Detour DetourCrowd)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/EHsc /GR- /W4")

@@ -19,6 +19,8 @@
 #ifndef DETOURCOLLISIONAVOIDANCE_H
 #define DETOURCOLLISIONAVOIDANCE_H
 
+#include "DetourBehavior.h"
+
 struct dtCrowdAgent;
 struct dtCrowdAgentDebugInfo;
 
@@ -99,7 +101,7 @@ struct dtObstacleAvoidanceParams
 ///
 /// The agents use this behavior in order to change their velocity in order 
 /// to avoid obstacles.
-class dtCollisionAvoidance
+class dtCollisionAvoidance : public dtBehavior
 {
 public:
 	dtCollisionAvoidance();
@@ -117,31 +119,25 @@ public:
 	/// Cleans the behavior.
 	void purge();
 
-	/// Updates  the velocity of the given agents in order to avoid obstacles.
-	///
-	/// @param[in]		agents			List of agents.
-	/// @param[in]		avtiveAgts		List of active agents.
-	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void update(dtCrowdAgent* ag, const dtCrowdAgent** activeAgts, dtObstacleAvoidanceDebugData* debug = 0);
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	
 	/// Returns the number of velocity samples.
 	int getVelocitySamplesCount() const { return m_velocitySamplesCount; }
 	
 	dtObstacleAvoidanceParams m_params;		///< Parameters describing how the obstacles should be avoided.
+	const dtCrowdAgent** m_activeAgts;		///< The active agents of the crowd.
 
 private:
 	/// Registers all the neighbors of the given agent as obstacles.
 	///
 	/// @param[in]		ag			The index we want to change.
-	/// @param[in]		agents		The new parameters.
-	void addObtacles(dtCrowdAgent* ag, const dtCrowdAgent** agents);
+	void addObtacles(dtCrowdAgent* ag);
 
-	/// Updates the velocity of the given agent according to its parameters.
+	/// Updates the velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///
-	/// @param[in]		ag				The agent whose velocity must be updated.
-	/// @param[in]		adaptive		Indicates how we want to update our velocity.
-	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void updateVelocity(dtCrowdAgent* ag, bool adaptive, dtObstacleAvoidanceDebugData* vod);
+	/// @param[in]	oldAgent	The agent whose velocity must be updated.
+	/// @param[out]	newAgent	The agent storing the new parameters.
+	void updateVelocity(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent);
 
 	/// Resets the number of circles and segments.
 	void reset();
@@ -204,8 +200,8 @@ private:
 	const int m_maxAvoidanceParams;		///< The maximum number of crowd avoidance configurations supported by the collision avoidance.
 
 	float m_invHorizTime;		
-	float m_vmax;			///< The maximal speed.
-	float m_invVmax;		///< The inverse of the maximal speed.
+	float m_vmax;					///< The maximal speed.
+	float m_invVmax;				///< The inverse of the maximal speed.
 
 	int m_maxCircles;				///< Maximum number of circles.
 	dtObstacleCircle* m_circles;	///< The obstacles as circles.

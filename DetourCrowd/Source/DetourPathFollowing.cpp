@@ -28,25 +28,8 @@
 #include <cstring>
 
 
-dtPathFollowing* dtPathFollowing::allocate()
-{
-	void* mem = dtAlloc(sizeof(dtPathFollowing), DT_ALLOC_PERM);
-
-	if (!mem)
-		return 0;
-
-	return new(mem) dtPathFollowing;
-}
-
-void dtPathFollowing::destroy(dtPathFollowing* ptr)
-{
-	if (!ptr) return;
-
-	ptr->~dtPathFollowing();
-	dtFree(ptr);
-}
-
 dtPathFollowing::dtPathFollowing() :
+	dtSteeringBehavior(),
 	m_navMeshQuery(0),
 	m_agents(0),
 	m_pathResult(0),
@@ -64,7 +47,7 @@ dtPathFollowing::~dtPathFollowing()
 	purge();
 }
 
-bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents)
+bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims)
 {
 	purge();
 
@@ -74,6 +57,7 @@ bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCro
 	m_agents = agents;
 	m_maxAgents = maxAgents;
 	m_maxPathRes = maxPathRes;
+	m_agentAnims = anims;
 
 	if (!m_navMeshQuery || !m_pathResult)
 		return false;
@@ -102,38 +86,44 @@ void dtPathFollowing::prepare(dtCrowdAgent* ag, const float dt)
 	updateTopologyOptimization(ag, dt);
 }
 
-void dtPathFollowing::getVelocity(dtCrowdAgent* ag)
+void dtPathFollowing::getVelocity(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent)
 {
-	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+	if (oldAgent->state != DT_CROWDAGENT_STATE_WALKING)
 		return;
-	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE)
+	if (oldAgent->targetState == DT_CROWDAGENT_TARGET_NONE)
 		return;
 
 	float dvel[3] = {0,0,0};
 
-	if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
+	if (oldAgent->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 	{
-		dtVcopy(dvel, ag->targetPos);
-		ag->desiredSpeed = dtVlen(ag->targetPos);
+		dtVcopy(dvel, oldAgent->targetPos);
+		newAgent->desiredSpeed = dtVlen(oldAgent->targetPos);
 	}
 	else
 	{
 		// Calculate steering direction.
-		if (ag->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS)
-			calcSmoothSteerDirection(ag, dvel);
+		if (oldAgent->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS)
+			calcSmoothSteerDirection(oldAgent, dvel);
 		else
-			calcStraightSteerDirection(ag, dvel);
+			calcStraightSteerDirection(oldAgent, dvel);
 
 		// Calculate speed scale, which tells the agent to slowdown at the end of the path.
-		const float slowDownRadius = ag->params.radius*2;	// TODO: make less hacky.
-		const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
+		const float slowDownRadius = oldAgent->params.radius * 2;	// TODO: make less hacky.
+		const float speedScale = getDistanceToGoal(oldAgent, slowDownRadius) / slowDownRadius;
 
-		ag->desiredSpeed = ag->params.maxSpeed;
-		dtVscale(dvel, dvel, ag->desiredSpeed * speedScale);
+		newAgent->desiredSpeed = oldAgent->params.maxSpeed;
+		dtVscale(dvel, dvel, newAgent->desiredSpeed * speedScale);
 	}
 		
-	dtVcopy(ag->dvel, dvel);
+	dtVcopy(newAgent->dvel, dvel);
 }
+
+void dtPathFollowing::computeForce(const dtCrowdAgent* ag, float* force)
+{
+
+}
+
 
 float dtPathFollowing::getDistanceToGoal(const dtCrowdAgent* ag, const float range)
 {
@@ -190,7 +180,7 @@ void dtPathFollowing::calcStraightSteerDirection(const dtCrowdAgent* ag, float* 
 	dtVnormalize(dir);
 }
 
-void dtPathFollowing::triggerOffMeshConnections(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims)
+void dtPathFollowing::triggerOffMeshConnections(dtCrowdAgent* ag)
 {
 	// Trigger off-mesh connections (depends on corners).
 
@@ -230,8 +220,9 @@ void dtPathFollowing::triggerOffMeshConnections(dtCrowdAgent* ag, dtCrowdAgentAn
 	}
 }
 
-void dtPathFollowing::getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* debug, int index)
+void dtPathFollowing::getNextCorner(dtCrowdAgent* ag)
 {
+	dtCrowdAgentDebugInfo* debug = ag->params.pfDebug;
 	const int debugIdx = debug ? debug->idx : -1;
 
 	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
@@ -252,7 +243,7 @@ void dtPathFollowing::getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* deb
 		ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navMeshQuery, &m_filter);
 
 		// Copy data for debug purposes.
-		if (debugIdx == index)
+		if (debugIdx == ag->params.pfDebugIbdex)
 		{
 			dtVcopy(debug->optStart, ag->corridor.getPos());
 			dtVcopy(debug->optEnd, target);
@@ -261,7 +252,7 @@ void dtPathFollowing::getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* deb
 	else
 	{
 		// Copy data for debug purposes.
-		if (debugIdx == index)
+		if (debugIdx == ag->params.pfDebugIbdex)
 		{
 			dtVset(debug->optStart, 0,0,0);
 			dtVset(debug->optEnd, 0,0,0);
@@ -722,11 +713,10 @@ bool dtPathFollowing::overOffmeshConnection(const dtCrowdAgent* ag, const float 
 	return false;
 }
 
-void dtPathFollowing::update(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims, 
-	const float dt, dtCrowdAgentDebugInfo* debug, int index)
+void dtPathFollowing::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	prepare(ag, dt);
-	getNextCorner(ag, debug, index);
-	triggerOffMeshConnections(ag, m_agentAnims);
-	getVelocity(ag);
+	prepare(oldAgent, dt);
+	getNextCorner(oldAgent);
+	triggerOffMeshConnections(oldAgent);
+	getVelocity(oldAgent, newAgent);
 }

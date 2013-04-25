@@ -27,11 +27,7 @@
 static const float EPSILON = 0.0001f;
 
 dtSeparationBehavior::dtSeparationBehavior()
-	: m_targets(0)
-	, m_nbTargets(0)
-	, m_agents(0)
-	, m_separationDistance(-1.f)
-	, m_separationWeight(-1.f)
+	: dtSteeringBehavior()
 {
 }
 
@@ -39,43 +35,35 @@ dtSeparationBehavior::~dtSeparationBehavior()
 {
 }
 
-void dtSeparationBehavior::update(dtCrowdAgent* ag, float* velocity, float dt)
+void dtSeparationBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	// If there are no targets, then the agent doesn't move
-	if (!m_agents || !m_targets || m_nbTargets <= 0)
+	if (!oldAgent || !newAgent)
 		return;
 
-	prepareVelocity(ag, velocity);
+	float force[] = {0, 0, 0};
+
+	computeForce(oldAgent, force);
+	applyForce(oldAgent, newAgent, force, dt);
 }
 
-void dtSeparationBehavior::update(dtCrowdAgent* ag, float dt)
+void dtSeparationBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 {
-	// If there are no targets, then the agent doesn't move
-	if (!m_agents || !m_targets || m_nbTargets <= 0)
+	const dtCrowdAgent* agents = ag->params.separationAgents;
+	const int* targets = ag->params.separationTargets;
+	const int nbTargets = ag->params.separationNbTargets;
+	const float distance = ag->params.separationDistance;
+
+	if (!agents || !targets || nbTargets <= 0)
 		return;
 
-	float velocity[] = {0, 0, 0};
-
-	prepareVelocity(ag, velocity);
-	applyVelocity(ag, velocity, dt);
-}
-
-void dtSeparationBehavior::setTargets(const int* targets, int nbTargets)
-{
-	m_targets = targets;
-	m_nbTargets = nbTargets;
-}
-
-void dtSeparationBehavior::prepareVelocity(const dtCrowdAgent* ag, float* velocity)
-{
-	float maxDistance = (m_separationDistance < 0.f) ? ag->params.collisionQueryRange : m_separationDistance;
+	float maxDistance = (distance < 0.f) ? ag->params.collisionQueryRange : distance;
 	const float invSeparationDist = 1.f / maxDistance;
 	float weight;
 	int count = 0;
 
-	for (int i = 0; i < m_nbTargets; ++i)
+	for (int i = 0; i < nbTargets; ++i)
 	{
-		dtCrowdAgent& target = m_agents[m_targets[i]];
+		const dtCrowdAgent& target = agents[targets[i]];
 
 		if (!target.active)
 			continue;
@@ -88,32 +76,13 @@ void dtSeparationBehavior::prepareVelocity(const dtCrowdAgent* ag, float* veloci
 		if (dist > maxDistance || dist < EPSILON)
 			continue;
 
-		weight = m_separationWeight * (1.f - dtSqr(dist * invSeparationDist));
+		weight = ag->params.separationWeight * (1.f - dtSqr(dist * invSeparationDist));
 
 		++count;
 		dtVnormalize(diff);
-		dtVmad(velocity, velocity, diff, weight / dist);
+		dtVmad(force, force, diff, weight / dist);
 	}
 
 	if (count > 0)
-		dtVscale(velocity, velocity, (1.f / (float) count));
-}
-
-void dtSeparationBehavior::applyVelocity(dtCrowdAgent* ag, float* velocity, float dt)
-{
-	dtVclamp(velocity, dtVlen(velocity), ag->params.maxAcceleration);
-
-	dtVscale(velocity, velocity, dt);
-	dtVadd(ag->dvel ,ag->vel, velocity);
-
-	// Nil velocity
-	if (dtVlen(ag->dvel) < EPSILON)
-	{
-		ag->desiredSpeed = 0.f;
-		return;
-	}
-
-	dtVclamp(ag->dvel, dtVlen(ag->dvel), ag->params.maxSpeed);
-
-	ag->desiredSpeed = dtVlen(ag->dvel);
+		dtVscale(force, force, (1.f / (float) count));
 }

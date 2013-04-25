@@ -19,6 +19,8 @@
 #ifndef DETOURCOHESIONBEHAVIOR_H
 #define DETOURCOHESIONBEHAVIOR_H
 
+#include "DetourSteeringBehavior.h"
+
 struct dtCrowdAgent;
 class dtGoToBehavior;
 
@@ -27,32 +29,25 @@ class dtGoToBehavior;
 ///
 /// An agent using the cohesion behavior will move towards the 
 /// center of gravity of its targets.
-class dtCohesionBehavior
+class dtCohesionBehavior : public dtSteeringBehavior
 {
 public:
 	dtCohesionBehavior();
 	~dtCohesionBehavior();
 
-	/// Updates the velocity of the given agent.
-	///
-	/// @param[in]	ag		The agent we want to update.
-	/// @param[out]	force	The time, in seconds, to update the simulation. [Limit: > 0]
-	void update(dtCrowdAgent* ag, float* force);
-
-	/// Updates the velocity of the given agent.
-	///
-	/// @param[in]	ag	The agent we want to update.
-	/// @param[in]	dt	The time, in seconds, to update the simulation. [Limit: > 0]
-	void update(dtCrowdAgent* ag, float dt);
-
-	void setAgents(dtCrowdAgent* agents) { m_agents = agents; }
-	void setTargets(const int* targets, int nbTargets);
+	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
 private:
-	dtCrowdAgent* m_agents;			///< The list of agents the indices are refering to.
-	const int* m_targets;			///< The indices of the targets
-	int m_nbTargets;				///< The number of target
+	/// Computes the average position of the given agents.
+	///
+	/// @param[in]	agents		The agents of the crowd.
+	/// @param[in]	targets		The indices of the targets.
+	/// @param[in]	nbTargets	The number of targets.
+	/// @param[out]	center		The computed center of gravity.
+	void getGravityCenter(const dtCrowdAgent* agents, const int* targets, int nbTargets, float* center);
+
 	dtGoToBehavior* m_gotoBehabior;	///< The GoTo behavior used to move the agent.
 };
 
-#endif DETOURCOHESIONBEHAVIOR_H
+#endif

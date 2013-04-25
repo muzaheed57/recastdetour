@@ -27,6 +27,7 @@
 
 #include <map>
 #include <vector>
+#include <string>
 
 #include <map>
 
@@ -70,7 +71,6 @@ public:
 private:
 	struct Flocking
 	{
-		size_t nbMaxAgents;
 		float distance;
 		float desiredSeparation;
 		float separationWeight;
@@ -88,8 +88,10 @@ private:
 	float m_seekPredict;
 	std::vector<int> m_separationTargets;
 	float m_separationWeight;
+	float m_separationDist;
 	std::vector<int> m_alignmentTargets;
 	std::vector<int> m_cohesionTargets;
+	std::map<int, std::string> m_agentsBehaviors;
 };
 
 #endif
