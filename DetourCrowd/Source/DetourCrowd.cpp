@@ -26,6 +26,7 @@
 #include "DetourAlignmentBehavior.h"
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
+#include "DetourBehavior.h"
 #include "DetourCohesionBehavior.h"
 #include "DetourCollisionAvoidance.h"
 #include "DetourCommon.h"
@@ -197,10 +198,12 @@ dtCrowd::dtCrowd() :
 	m_activeAgents(0),
 	m_agentAnims(0),
 	m_agentsToUpdate(0),
-	m_pathFollow(0),
 	m_grid(0),
-	m_maxPathResult(0),
-	m_maxAgentRadius(0)
+	m_maxPathResult(256),
+	m_maxAgentRadius(0),
+	m_maxPathQueueNodes(4096),
+	m_maxCommonNodes(512),
+	m_navMeshQuery(0)
 {
 }
 
@@ -231,15 +234,8 @@ void dtCrowd::purge()
 	dtFree(m_agentsToUpdate);
 	m_agentsToUpdate = 0;
 
-	if (m_pathFollow)
-	{
-		m_pathFollow->purge();
-		dtFreeBehavior<dtPathFollowing>(m_pathFollow);
-		m_pathFollow = 0;
-	}
-
-	for (int i = 0; i < MAX_AVOIDANCE_PARAMS; ++i)
-		m_collisionHandler[i].purge();
+	dtFreeNavMeshQuery(m_navMeshQuery);
+	m_navMeshQuery = 0;
 }
 
 /// @par
@@ -249,19 +245,17 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 {
 	purge();
 
-	m_pathFollow = dtAllocBehavior<dtPathFollowing>();
+	m_navMeshQuery = dtAllocNavMeshQuery();
 
-	for (int i = 0; i < MAX_AVOIDANCE_PARAMS; ++i)
-		if (!m_collisionHandler[i].init())
-			return false;
-
-	if (!m_pathFollow)
+	if (dtStatusFailed(m_navMeshQuery->init(nav, m_maxCommonNodes)))
 		return false;
 
+	if (!m_pathQueue.init(m_maxPathResult, m_maxPathQueueNodes, nav))
+		return false;
+	
 	m_maxAgents = maxAgents;
 	m_maxAgentRadius = maxAgentRadius;
 	m_nbActiveAgents = 0;
-
 	m_agentsToUpdate = (int*) dtAlloc(sizeof(int) * maxAgents, DT_ALLOC_PERM);
 
 	if (!m_agentsToUpdate)
@@ -271,12 +265,11 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 		m_agentsToUpdate[i] = i;
 
 	m_grid = dtAllocProximityGrid();
+
 	if (!m_grid)
 		return false;
 	if (!m_grid->init(m_maxAgents*4, maxAgentRadius*3))
 		return false;
-	
-	m_maxPathResult = 256;
 	
 	m_agents = (dtCrowdAgent*)dtAlloc(sizeof(dtCrowdAgent)*m_maxAgents, DT_ALLOC_PERM);
 	if (!m_agents)
@@ -294,36 +287,19 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	{
 		new(&m_agents[i]) dtCrowdAgent();
 		m_agents[i].active = 0;
+
 		if (!m_agents[i].corridor.init(m_maxPathResult))
 			return false;
 	}
 
 	for (int i = 0; i < m_maxAgents; ++i)
-	{
 		m_agentAnims[i].active = 0;
-	}
 	
-	float ext[3] = {m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f};
-
-	if (!m_pathFollow->init(nav, ext, m_maxPathResult, m_agents, m_maxAgents, m_agentAnims))
-		return false;
+	m_ext[0] = m_maxAgentRadius * 2.0f;
+	m_ext[1] = m_maxAgentRadius * 1.5f;
+	m_ext[2] = m_maxAgentRadius * 2.0f;
 	
 	return true;
-}
-
-void dtCrowd::setObstacleAvoidanceParams(const int idx, const dtObstacleAvoidanceParams* params)
-{
-	m_collisionHandler[idx].m_params = *params;
-}
-
-const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int idx) const
-{
-	return &m_collisionHandler[idx].m_params;
-}
-
-int dtCrowd::getVelocitySampleCount() const 
-{ 
-	return m_collisionHandler->getVelocitySamplesCount(); 
 }
 
 const int dtCrowd::getAgentCount() const
@@ -392,7 +368,6 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->ncorners = 0;
 
 	dtVset(ag->dvel, 0,0,0);
-	dtVset(ag->nvel, 0,0,0);
 	dtVset(ag->vel, 0,0,0);
 	dtVcopy(ag->npos, nearest);
 
@@ -412,37 +387,37 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 
 const dtQueryFilter* dtCrowd::getFilter() const 
 { 
-	return m_pathFollow->getQueryFilter(); 
+	return &m_filter; 
 }
 
 dtQueryFilter* dtCrowd::getEditableFilter() 
 { 
-	return m_pathFollow->getQueryFilter(); 
+	return &m_filter; 
 }
 
 const float* dtCrowd::getQueryExtents() const 
 { 
-	return m_pathFollow->getQueryExtent(); 
+	return m_ext;//->getQueryExtent(); 
 }
 
 const dtPathQueue* dtCrowd::getPathQueue() const 
 { 
-	return m_pathFollow->getPathQueue(); 
+	return &m_pathQueue; 
 }
 
 dtPathQueue* dtCrowd::getPathQueue()
 { 
-	return m_pathFollow->getPathQueue(); 
+	return &m_pathQueue; 
 }
 
 const dtNavMeshQuery* dtCrowd::getNavMeshQuery() const 
 { 
-	return m_pathFollow->getNavMeshQuery(); 
+	return m_navMeshQuery; 
 }
 
 dtNavMeshQuery* dtCrowd::getNavMeshQuery() 
 { 
-	return m_pathFollow->getNavMeshQuery(); 
+	return m_navMeshQuery;
 }
 
 /// @par
@@ -564,33 +539,6 @@ void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* 
 		
 		if (ag->params.steeringBehavior)
 			ag->params.steeringBehavior->update(ag, ag, dt);
-		else
-		{
-			ag->params.pfDebug = debug;
-			ag->params.pfDebugIbdex = i;
-			m_pathFollow->update(ag, ag, dt);
-		}
-	}
-	
-	// Collision avoidance
-	const int debugIdx = debug ? debug->idx : -1;
-	for (int i = 0; i < nbIdx; ++i)
-	{
-		dtCrowdAgent* ag = 0;
-
-		if (!getActiveAgent(&ag, agentsIdx[i]))
-			continue;
-
-		if (ag->params.updateFlags & DT_CROWD_OBSTACLE_AVOIDANCE && agentIsMoving(agentsIdx[i]))
-		{
-			m_collisionHandler[ag->params.obstacleAvoidanceType].m_activeAgts = (const dtCrowdAgent**) agents;
-			m_collisionHandler[ag->params.obstacleAvoidanceType].update(ag, ag, dt);
-		}
-		else
-		{
-			// If not using velocity planning, new velocity is directly the desired velocity.
-			dtVcopy(ag->nvel, ag->dvel);
-		}
 	}
 
 	// Fake dynamic constraint
@@ -606,7 +554,7 @@ void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* 
 
 		const float maxDelta = ag->params.maxAcceleration * dt;
 		float dv[3];
-		dtVsub(dv, ag->nvel, ag->vel);
+		dtVsub(dv, ag->dvel, ag->vel);
 		float ds = dtVlen(dv);
 
 		if (ds > maxDelta)
@@ -671,22 +619,24 @@ void dtCrowd::updatePosition(const float dt, int* agentsIdx, int nbIdx)
 				diff[1] = 0;
 
 				float dist = dtVlenSqr(diff);
+
 				if (dist > dtSqr(ag->params.radius + nei->params.radius))
 					continue;
+
 				dist = sqrtf(dist);
 				float pen = (ag->params.radius + nei->params.radius) - dist;
 				if (dist < EPSILON)
 				{
 					// Agents on top of each other, try to choose diverging separation directions.
 					if (idx0 > idx1)
-						dtVset(diff, -ag->dvel[2],0,ag->dvel[0]);
+						dtVset(diff, -ag->dvel[2], 0, ag->dvel[0]);
 					else
-						dtVset(diff, ag->dvel[2],0,-ag->dvel[0]);
+						dtVset(diff, ag->dvel[2], 0, -ag->dvel[0]);
 					pen = 0.01f;
 				}
 				else
 				{
-					pen = (1.0f/dist) * (pen*0.5f) * COLLISION_RESOLVE_FACTOR;
+					pen = (1.0f / dist) * (pen * 0.5f) * COLLISION_RESOLVE_FACTOR;
 				}
 
 				dtVmad(ag->disp, ag->disp, diff, pen);			
@@ -811,7 +761,7 @@ void dtCrowd::updateEnvironment(int* agentsIdx, int nbIdx)
 		// if it has become invalid.
 		const float updateThr = ag->params.collisionQueryRange * 0.25f;
 		if (dtVdist2DSqr(ag->npos, ag->boundary.getCenter()) > dtSqr(updateThr) ||
-			!ag->boundary.isValid(m_pathFollow->getNavMeshQuery(), m_pathFollow->getQueryFilter()))
+			!ag->boundary.isValid(m_navMeshQuery, &m_filter))
 		{
 			ag->boundary.update(ag->corridor.getFirstPoly(), ag->npos, ag->params.collisionQueryRange,
 				getNavMeshQuery(), getEditableFilter());
@@ -856,7 +806,6 @@ bool dtCrowd::updateAgentPosition(int index, const float* position)
 		ag.desiredSpeed = 0;
 
 		dtVset(ag.dvel, 0, 0, 0);
-		dtVset(ag.nvel, 0, 0, 0);
 		dtVset(ag.vel, 0, 0, 0);
 		dtVcopy(ag.npos, nearestPosition);
 

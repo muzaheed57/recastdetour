@@ -19,6 +19,7 @@
 #ifndef DETOURCOMMON_H
 #define DETOURCOMMON_H
 
+
 /**
 @defgroup detour Detour
 
@@ -260,7 +261,14 @@ inline float dtVdist2DSqr(const float* v1, const float* v2)
 ///  @param[in,out]	v	The vector to normalize. [(x, y, z)]
 inline void dtVnormalize(float* v)
 {
-	float d = 1.0f / dtSqrt(dtSqr(v[0]) + dtSqr(v[1]) + dtSqr(v[2]));
+	static const float EPSILON = 0.0001f;
+	float d;
+
+	if (dtVlen(v) < EPSILON)
+		d = 0.f;
+	else
+		d = 1.0f / dtSqrt(dtSqr(v[0]) + dtSqr(v[1]) + dtSqr(v[2]));
+
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;

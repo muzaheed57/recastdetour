@@ -19,24 +19,7 @@
 #ifndef DETOURBEHAVIORSTESTS_H
 #define DETOURBEHAVIORSTESTS_H
 
-#define CATCH_CONFIG_MAIN
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
-#pragma warning(push, 0)
-#include <catch.hpp>
-#pragma warning(pop)
-#pragma GCC diagnostic pop
-
-#include "DetourCrowdTestUtils.h"
-
-#include "DetourAlignmentBehavior.h"
-#include "DetourCohesionBehavior.h"
-#include "DetourCommon.h"
-#include "DetourFlockingBehavior.h"
-#include "DetourGoToBehavior.h"
-#include "DetourSeekBehavior.h"
-#include "DetourSeparationBehavior.h"
+#include "DetourPipelineTest.h"
 
 #include <cstring>
 
@@ -101,6 +84,10 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 	{
 		dtCrowdAgentParams param3, param4, paramLeader;
 
+		dtPathFollowing* pf = dtAllocBehavior<dtPathFollowing>();
+		pf->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
+			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
+
 		memcpy(&paramLeader, &param1, sizeof(dtCrowdAgentParams));
 		param1.steeringBehavior = new dtFlockingBehavior(2, 1, 1);
 		param2.steeringBehavior = param1.steeringBehavior;
@@ -108,6 +95,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		param2.flockingAgents = crowd->getAgents();
 		param1.flockingSeparationDistance = 2;
 		param2.flockingSeparationDistance = 2;
+		paramLeader.steeringBehavior = pf;
 
 		memcpy(&param3, &param1, sizeof(dtCrowdAgentParams));
 		memcpy(&param4, &param1, sizeof(dtCrowdAgentParams));
@@ -190,6 +178,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 
 		delete param1.steeringBehavior;
 		param1.steeringBehavior = 0;
+		dtFreeBehavior<dtPathFollowing>(pf);
 	}
 
 	SECTION("Separation Behavior", "With the separation behavior, an agent tries to flee its target")
@@ -258,6 +247,16 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 	SECTION("Alignment Behavior", "With the alignment behavior, an agent will align its velocity to its target")
 	{
 		dtCrowdAgentParams param3;
+
+		dtPathFollowing* pf1 = dtAllocBehavior<dtPathFollowing>();
+		dtPathFollowing* pf2 = dtAllocBehavior<dtPathFollowing>();
+		pf1->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
+			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
+		pf2->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
+			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
+		param2.steeringBehavior = pf1;
+		param3.steeringBehavior = pf2;
+
 		memcpy(&param3, &param2, sizeof(dtCrowdAgentParams));
 		float posAgt1[] = {0, 0, 0};
 		float posAgt2[] = {0, 0, 1};
@@ -283,14 +282,12 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		REQUIRE(crowd->requestMoveTarget(indexAgent3, dest3, destAgt3));
 
 		int targets[] = {1, 2};
-		dtCrowdAgentParams paramAgt3;
-		memcpy(&paramAgt3, &param1, sizeof(dtCrowdAgentParams));
-		paramAgt3.steeringBehavior = new dtAlignmentBehavior;
-		paramAgt3.alignmentAgents = crowd->getAgents();
-		paramAgt3.alignmentTargets = targets;
-		paramAgt3.alignmentNbTargets = 2;
+		param1.steeringBehavior = new dtAlignmentBehavior;
+		param1.alignmentAgents = crowd->getAgents();
+		param1.alignmentTargets = targets;
+		param1.alignmentNbTargets = 2;
 
-		crowd->updateAgentParameters(indexAgent1, &paramAgt3);
+		crowd->updateAgentParameters(indexAgent1, &param1);
 
 		for (int i = 0; i < 10; ++i)
 			crowd->update(0.1f, 0);
@@ -314,8 +311,10 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		// After even longer, the agent should have stopped
 		CHECK(dtVlen(crowd->getAgent(indexAgent1)->vel) <= 0.2f);
 
-		delete paramAgt3.steeringBehavior;
-		paramAgt3.steeringBehavior = 0;
+		delete param1.steeringBehavior;
+		param1.steeringBehavior = 0;
+		dtFreeBehavior<dtPathFollowing>(pf1);
+		dtFreeBehavior<dtPathFollowing>(pf2);
 	}
 
 	SECTION("Cohesion Behavior", "With the cohesion behavior, an agent will be attracted to its targets")

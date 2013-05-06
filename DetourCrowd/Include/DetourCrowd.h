@@ -19,9 +19,12 @@
 #ifndef DETOURCROWD_H
 #define DETOURCROWD_H
 
+#include "DetourBehavior.h"
 #include "DetourCollisionAvoidance.h"
 #include "DetourLocalBoundary.h"
+#include "DetourNavMeshQuery.h"
 #include "DetourPathCorridor.h"
+#include "DetourPipelineBehavior.h"
 #include "DetourProximityGrid.h"
 #include "DetourPathQueue.h"
 
@@ -31,7 +34,6 @@ class dtGoToBehavior;
 class dtSeparationBehavior;
 class dtAlignmentBehavior;
 class dtCohesionBehavior;
-class dtSteeringBehavior;
 
 
 /// The maximum number of neighbors that a crowd agent can take into account
@@ -45,13 +47,6 @@ static const int DT_CROWDAGENT_MAX_NEIGHBOURS = 6;
 /// corners will be one less than this number.
 /// @ingroup crowd
 static const int DT_CROWDAGENT_MAX_CORNERS = 4;
-
-/// The maximum number of crowd avoidance configurations supported by the
-/// crowd manager.
-/// @ingroup crowd
-/// @see dtObstacleAvoidanceParams, dtCrowd::setObstacleAvoidanceParams(), dtCrowd::getObstacleAvoidanceParams(),
-///		 dtCrowdAgentParams::obstacleAvoidanceType
-static const int DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS = 8;
 
 template <typename T>
 T* dtAllocBehavior()
@@ -104,7 +99,7 @@ struct dtCrowdAgentAnimation
 /// @ingroup crowd
 struct dtCrowdAgentParams
 {
-	dtSteeringBehavior* steeringBehavior;
+	dtBehavior* steeringBehavior;
 
 	// Parameters for the seek behavior
 	const dtCrowdAgent* seekTarget;	///< The agent we seek.
@@ -146,6 +141,7 @@ struct dtCrowdAgentParams
 
 	// Parameters for the collision avoidance behavior.
 	dtObstacleAvoidanceDebugData* caDebug;	///< A debug object to load with debug information. [Opt]
+	dtCrowdAgent* caAgents;					///< The agents in the crowd.
 
 	float radius;					///< Agent radius. [Limit: >= 0]
 	float height;					///< Agent height. [Limit: > 0]
@@ -159,10 +155,6 @@ struct dtCrowdAgentParams
 
 	/// Flags that impact steering behavior. (See: #UpdateFlags)
 	unsigned char updateFlags;
-
-	/// The index of the avoidance configuration to use for the agent. 
-	/// [Limits: 0 <= value <= #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
-	unsigned char obstacleAvoidanceType;	
 
 	/// User defined data attached to the agent.
 	void* userData;
@@ -210,7 +202,6 @@ struct dtCrowdAgent
 	float npos[3];		///< The current agent position. [(x, y, z)]
 	float disp[3];
 	float dvel[3];		///< The desired velocity of the agent. [(x, y, z)]
-	float nvel[3];
 	float vel[3];		///< The actual velocity of the agent. [(x, y, z)]
 
 	/// The agent's configuration parameters.
@@ -268,14 +259,17 @@ class dtCrowd
 	dtCrowdAgent** m_activeAgents;
 	dtCrowdAgentAnimation* m_agentAnims;
 	int* m_agentsToUpdate;
-
-	dtPathFollowing* m_pathFollow;
-	dtCollisionAvoidance m_collisionHandler[DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS];
+	float m_ext[3];
+	dtPathQueue m_pathQueue;			///< A Queue of destination in order to reach the target.
+	dtNavMeshQuery* m_navMeshQuery;		///< Used to perform queries on the navigation mesh.
+	dtQueryFilter m_filter;				///< Defines polygon filtering and traversal costs for navigation mesh query operations.
 	
 	dtProximityGrid* m_grid;
 	
 	int m_maxPathResult;
 	float m_maxAgentRadius;
+	int m_maxCommonNodes;
+	int m_maxPathQueueNodes;
 
 	inline int getAgentIndex(const dtCrowdAgent* agent) const  { return agent - m_agents; }
 	bool getActiveAgent(dtCrowdAgent** ag, int id);
@@ -292,17 +286,6 @@ public:
 	///  @param[in]		nav				The navigation mesh to use for planning.
 	/// @return True if the initialization succeeded.
 	bool init(const int maxAgents, const float maxAgentRadius, dtNavMesh* nav);
-	
-	/// Sets the shared avoidance configuration for the specified index.
-	///  @param[in]		idx		The index. [Limits: 0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
-	///  @param[in]		params	The new configuration.
-	void setObstacleAvoidanceParams(const int idx, const dtObstacleAvoidanceParams* params);
-
-	/// Gets the shared avoidance configuration for the specified index.
-	///  @param[in]		idx		The index of the configuration to retreive. 
-	///							[Limits:  0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
-	/// @return The requested configuration.
-	const dtObstacleAvoidanceParams* getObstacleAvoidanceParams(const int idx) const;
 	
 	/// Gets the specified agent from the pool.
 	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
@@ -419,10 +402,6 @@ public:
 	/// @return The search extents used by the crowd. [(x, y, z)]
 	const float* getQueryExtents() const;
 	
-	/// Gets the velocity sample count.
-	/// @return The velocity sample count.
-	int getVelocitySampleCount() const;
-	
 	/// Gets the crowd's proximity grid.
 	/// @return The crowd's proximity grid.
 	const dtProximityGrid* getGrid() const { return m_grid; }
@@ -435,6 +414,10 @@ public:
 	/// Gets the query object used by the crowd.
 	const dtNavMeshQuery* getNavMeshQuery() const;
 	dtNavMeshQuery* getNavMeshQuery();
+
+	dtCrowdAgentAnimation* getAnims() { return m_agentAnims; }
+	int getMaxPathResult() { return m_maxPathResult; }
+	int getNbMaxAgents() { return m_maxAgents; }
 };
 
 /// Allocates a crowd object using the Detour allocator.

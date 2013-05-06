@@ -83,6 +83,15 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	float a3Destination[3] = {1, 0, 0};
 	float a4Destination[3] = {0, 0, 0};
 
+	dtPathFollowing* pf1 = dtAllocBehavior<dtPathFollowing>();
+	dtPathFollowing* pf2 = dtAllocBehavior<dtPathFollowing>();
+	pf1->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
+		crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
+	pf2->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
+		crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
+	param1.steeringBehavior = pf1;
+	param2.steeringBehavior = pf2;
+
 	// Adding the agents to the crowd
 	int indexAgent1 = crowd->addAgent(a1ReferencePosition, &param1);
 	int indexAgent2 = crowd->addAgent(a2ReferencePosition, &param2);
@@ -282,6 +291,9 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
         CHECK(dtVequal(crowd->getAgent(indexAgent1)->vel, a1ReferenceVelocity));
         CHECK(dtVequal(crowd->getAgent(indexAgent2)->vel, a2ReferenceVelocity));	
 	}
+
+	dtFreeBehavior<dtPathFollowing>(pf1);
+	dtFreeBehavior<dtPathFollowing>(pf2);
 }
 
 TEST_CASE("DetourCrowdTest/InitCrowd", "Test whether the initialization of a crowd is successful")

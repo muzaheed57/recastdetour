@@ -28,6 +28,7 @@ SET(
   detourcrowdtest_HDRS
   Include/DetourBehaviorsTests.h
   Include/DetourCrowdTestUtils.h
+  Include/DetourPipelineTest.h
   )
   
 SET(catch_INC Contrib/catch/include)

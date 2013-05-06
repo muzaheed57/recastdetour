@@ -80,7 +80,7 @@ bool DebugInfo::endUpdate(float dt)
 {
     TimeVal end = getPerfTime();
     
-    m_crowdSampleCount.addSample((float)m_crowd->getVelocitySampleCount());
+    //m_crowdSampleCount.addSample((float)m_crowd->getVelocitySampleCount());
     m_crowdTotalTime.addSample(getPerfDeltaTimeUsec(m_lastStart, end) / 1000.0f);
     
     m_debuggedAgentInfo.vod->normalizeSamples();

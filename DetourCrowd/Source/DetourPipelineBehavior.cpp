@@ -16,57 +16,35 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
-#include "DetourSceneCreator.h"
+#include "DetourPipelineBehavior.h"
 
-Application::Application()
-:  m_context()
+#include "DetourAlloc.h"
+
+#include "DetourCrowd.h"
+
+
+dtPipelineBehavior::dtPipelineBehavior()
+	: dtBehavior()
+	, m_behaviors(0)
+	, m_nbBehaviors(0)
 {
 }
 
-Application::~Application()
+dtPipelineBehavior::~dtPipelineBehavior()
 {
-    
 }
 
-bool Application::init(const char* fileName)
+void dtPipelineBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	dtSceneCreator sc;
+	if (m_behaviors == 0 || m_nbBehaviors == 0 || !oldAgent || !newAgent)
+		return;
 
-	if (!sc.createFromFile(fileName))
-		return false;
-
-	if (!sc.initialize(&m_scene, &m_navMesh, &m_crowd))
-		return false;
-
-	m_debug.m_crowd = &m_crowd;
-	
-	m_visu.m_scene = &m_scene;
-	m_visu.m_crowd = &m_crowd;
-	m_visu.m_navmesh = &m_navMesh;
-	m_visu.m_debugInfo = &m_debug;
-
-	//Run the simulation
-	if (!m_visu.initialize())
-		return false;
-
-	return true;
+	for (int i = 0; i < m_nbBehaviors; ++i)
+		m_behaviors[i]->update(oldAgent, newAgent, dt);
 }
 
-bool Application::run()
+void dtPipelineBehavior::setBehaviors(dtBehavior** behaviors, int nbBehaviors)
 {
-    while (!m_visu.m_stopRequested)
-    {
-        if (!m_visu.update())
-        {
-            return false;
-        }
-    }
-    
-    if (!m_visu.terminate())
-    {
-        return false;
-    }
-    
-    return false;
+	m_behaviors = behaviors;
+	m_nbBehaviors = nbBehaviors;
 }

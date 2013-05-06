@@ -156,39 +156,39 @@ void CrowdToolState::init(class Sample* sample)
 		// Make polygons with 'disabled' flag invalid.
 		crowd->getEditableFilter()->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
 		
-		// Setup local avoidance params to different qualities.
-		dtObstacleAvoidanceParams params;
-		// Use mostly default settings, copy from dtCrowd.
-		memcpy(&params, crowd->getObstacleAvoidanceParams(0), sizeof(dtObstacleAvoidanceParams));
-		
-		// Low (11)
-		params.velBias = 0.5f;
-		params.adaptiveDivs = 5;
-		params.adaptiveRings = 2;
-		params.adaptiveDepth = 1;
-		crowd->setObstacleAvoidanceParams(0, &params);
-		
-		// Medium (22)
-		params.velBias = 0.5f;
-		params.adaptiveDivs = 5; 
-		params.adaptiveRings = 2;
-		params.adaptiveDepth = 2;
-		crowd->setObstacleAvoidanceParams(1, &params);
-		
-		// Good (45)
-		params.velBias = 0.5f;
-		params.adaptiveDivs = 7;
-		params.adaptiveRings = 2;
-		params.adaptiveDepth = 3;
-		crowd->setObstacleAvoidanceParams(2, &params);
-		
-		// High (66)
-		params.velBias = 0.5f;
-		params.adaptiveDivs = 7;
-		params.adaptiveRings = 3;
-		params.adaptiveDepth = 3;
-		
-		crowd->setObstacleAvoidanceParams(3, &params);
+		//// Setup local avoidance params to different qualities.
+		//dtObstacleAvoidanceParams params;
+		//// Use mostly default settings, copy from dtCrowd.
+		//memcpy(&params, crowd->getObstacleAvoidanceParams(0), sizeof(dtObstacleAvoidanceParams));
+		//
+		//// Low (11)
+		//params.velBias = 0.5f;
+		//params.adaptiveDivs = 5;
+		//params.adaptiveRings = 2;
+		//params.adaptiveDepth = 1;
+		//crowd->setObstacleAvoidanceParams(0, &params);
+		//
+		//// Medium (22)
+		//params.velBias = 0.5f;
+		//params.adaptiveDivs = 5; 
+		//params.adaptiveRings = 2;
+		//params.adaptiveDepth = 2;
+		//crowd->setObstacleAvoidanceParams(1, &params);
+		//
+		//// Good (45)
+		//params.velBias = 0.5f;
+		//params.adaptiveDivs = 7;
+		//params.adaptiveRings = 2;
+		//params.adaptiveDepth = 3;
+		//crowd->setObstacleAvoidanceParams(2, &params);
+		//
+		//// High (66)
+		//params.velBias = 0.5f;
+		//params.adaptiveDivs = 7;
+		//params.adaptiveRings = 3;
+		//params.adaptiveDepth = 3;
+		//
+		//crowd->setObstacleAvoidanceParams(3, &params);
 	}
 }
 
@@ -657,7 +657,6 @@ void CrowdToolState::addAgent(const float* p)
 		ap.updateFlags |= DT_CROWD_OBSTACLE_AVOIDANCE;
 	if (m_toolParams.m_separation)
 		ap.updateFlags |= DT_CROWD_SEPARATION;
-	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
 	
 	int idx = crowd->addAgent(p, &ap);
 	if (idx != -1)
@@ -813,7 +812,6 @@ void CrowdToolState::updateAgentParams()
 		if (!ag->active) continue;
 		memcpy(&params, &ag->params, sizeof(dtCrowdAgentParams));
 		params.updateFlags = updateFlags;
-		params.obstacleAvoidanceType = obstacleAvoidanceType;
 		crowd->updateAgentParameters(i, &params);
 	}	
 }
@@ -845,7 +843,7 @@ void CrowdToolState::updateTick(const float dt)
 	
 	m_agentDebug.vod->normalizeSamples();
 	
-	m_crowdSampleCount.addSample((float)crowd->getVelocitySampleCount());
+	//m_crowdSampleCount.addSample((float)crowd->getVelocitySampleCount());
 	m_crowdTotalTime.addSample(getPerfDeltaTimeUsec(startTime, endTime) / 1000.0f);
 }
 

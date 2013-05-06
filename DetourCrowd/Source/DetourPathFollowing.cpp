@@ -30,7 +30,6 @@
 
 dtPathFollowing::dtPathFollowing() :
 	dtSteeringBehavior(),
-	m_navMeshQuery(0),
 	m_agents(0),
 	m_pathResult(0),
 	m_maxAgents(0),
@@ -47,27 +46,27 @@ dtPathFollowing::~dtPathFollowing()
 	purge();
 }
 
-bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims)
+bool dtPathFollowing::init(dtPathQueue* pq, dtNavMeshQuery* navMeshQuery, const float* ext, dtQueryFilter* filter, int maxPathRes, 
+						   dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims)
 {
 	purge();
 
-	m_navMeshQuery = dtAllocNavMeshQuery();
+	m_navMeshQuery = navMeshQuery;
 	m_pathResult = (dtPolyRef*) dtAlloc(sizeof(dtPolyRef) * maxPathRes, DT_ALLOC_PERM);
 
 	m_agents = agents;
 	m_maxAgents = maxAgents;
 	m_maxPathRes = maxPathRes;
 	m_agentAnims = anims;
+	m_filter = filter;
+	m_pathQueue = pq;
 
-	if (!m_navMeshQuery || !m_pathResult)
+	if (!m_pathResult)
 		return false;
 
-	if (dtStatusFailed(m_navMeshQuery->init(navMesh, m_maxCommonNodes)))
+	if (!m_navMeshQuery || !filter || !pq)
 		return false;
-
-	if (!m_pathQueue.init(maxPathRes, m_maxPathQueueNodes, navMesh))
-		return false;
-
+	
 	dtVset(m_ext, ext[0], ext[1], ext[2]);
 
 	return true;
@@ -75,8 +74,6 @@ bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCro
 
 void dtPathFollowing::purge()
 {
-	dtFreeNavMeshQuery(m_navMeshQuery);
-	m_navMeshQuery = 0;
 }
 
 void dtPathFollowing::prepare(dtCrowdAgent* ag, const float dt)
@@ -233,14 +230,14 @@ void dtPathFollowing::getNextCorner(dtCrowdAgent* ag)
 
 	// Find corners for steering
 	ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
-		DT_CROWDAGENT_MAX_CORNERS, m_navMeshQuery, &m_filter);
+		DT_CROWDAGENT_MAX_CORNERS, m_navMeshQuery, m_filter);
 
 	// Check to see if the corner after the next corner is directly visible,
 	// and short cut to there.
 	if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_VIS) && ag->ncorners > 0)
 	{
 		const float* target = &ag->cornerVerts[dtMin(1,ag->ncorners-1)*3];
-		ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navMeshQuery, &m_filter);
+		ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navMeshQuery, m_filter);
 
 		// Copy data for debug purposes.
 		if (debugIdx == ag->params.pfDebugIbdex)
@@ -281,7 +278,7 @@ void dtPathFollowing::updateTopologyOptimization(dtCrowdAgent* ag, const float d
 	for (int i = 0; i < nqueue; ++i)
 	{
 		dtCrowdAgent* ag = queue[i];
-		ag->corridor.optimizePathTopology(m_navMeshQuery, &m_filter);
+		ag->corridor.optimizePathTopology(m_navMeshQuery, m_filter);
 		ag->topologyOptTime = 0;
 	}
 
@@ -343,13 +340,13 @@ void dtPathFollowing::checkPathValidity(dtCrowdAgent* ag, const float dt)
 	float agentPos[3];
 	dtPolyRef agentRef = ag->corridor.getFirstPoly();
 	dtVcopy(agentPos, ag->npos);
-	if (!m_navMeshQuery->isValidPolyRef(agentRef, &m_filter))
+	if (!m_navMeshQuery->isValidPolyRef(agentRef, m_filter))
 	{
 		// Current location is not valid, try to reposition.
 		// TODO: this can snap agents, how to handle that?
 		float nearest[3];
 		agentRef = 0;
-		m_navMeshQuery->findNearestPoly(ag->npos, m_ext, &m_filter, &agentRef, nearest);
+		m_navMeshQuery->findNearestPoly(ag->npos, m_ext, m_filter, &agentRef, nearest);
 		dtVcopy(agentPos, nearest);
 
 		if (!agentRef)
@@ -374,11 +371,11 @@ void dtPathFollowing::checkPathValidity(dtCrowdAgent* ag, const float dt)
 	// Try to recover move request position.
 	if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED)
 	{
-		if (!m_navMeshQuery->isValidPolyRef(ag->targetRef, &m_filter))
+		if (!m_navMeshQuery->isValidPolyRef(ag->targetRef, m_filter))
 		{
 			// Current target is not valid, try to reposition.
 			float nearest[3];
-			m_navMeshQuery->findNearestPoly(ag->targetPos, m_ext, &m_filter, &ag->targetRef, nearest);
+			m_navMeshQuery->findNearestPoly(ag->targetPos, m_ext, m_filter, &ag->targetRef, nearest);
 			dtVcopy(ag->targetPos, nearest);
 			replan = true;
 		}
@@ -391,7 +388,7 @@ void dtPathFollowing::checkPathValidity(dtCrowdAgent* ag, const float dt)
 	}
 
 	// If nearby corridor is not valid, replan.
-	if (!ag->corridor.isValid(CHECK_LOOKAHEAD, m_navMeshQuery, &m_filter))
+	if (!ag->corridor.isValid(CHECK_LOOKAHEAD, m_navMeshQuery, m_filter))
 	{
 		// Fix current path.
 		// ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
@@ -468,7 +465,7 @@ void dtPathFollowing::updateMoveRequest()
 
 			// Quick seach towards the goal.
 			static const int MAX_ITER = 20;
-			m_navMeshQuery->initSlicedFindPath(path[0], ag->targetRef, ag->npos, ag->targetPos, &m_filter);
+			m_navMeshQuery->initSlicedFindPath(path[0], ag->targetRef, ag->npos, ag->targetPos, m_filter);
 			m_navMeshQuery->updateSlicedFindPath(MAX_ITER, 0);
 			dtStatus status = 0;
 			if (ag->targetReplan) // && npath > 10)
@@ -534,15 +531,15 @@ void dtPathFollowing::updateMoveRequest()
 	for (int i = 0; i < nqueue; ++i)
 	{
 		dtCrowdAgent* ag = queue[i];
-		ag->targetPathqRef = m_pathQueue.request(ag->corridor.getLastPoly(), ag->targetRef,
-			ag->corridor.getTarget(), ag->targetPos, &m_filter);
+		ag->targetPathqRef = m_pathQueue->request(ag->corridor.getLastPoly(), ag->targetRef,
+			ag->corridor.getTarget(), ag->targetPos, m_filter);
 		if (ag->targetPathqRef != DT_PATHQ_INVALID)
 			ag->targetState = DT_CROWDAGENT_TARGET_WAITING_FOR_PATH;
 	}
 
 
 	// Update requests.
-	m_pathQueue.update(m_maxIterPerUpdate);
+	m_pathQueue->update(m_maxIterPerUpdate);
 
 	dtStatus status;
 
@@ -558,7 +555,7 @@ void dtPathFollowing::updateMoveRequest()
 		if (ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_PATH)
 		{
 			// Poll path queue.
-			status = m_pathQueue.getRequestStatus(ag->targetPathqRef);
+			status = m_pathQueue->getRequestStatus(ag->targetPathqRef);
 			if (dtStatusFailed(status))
 			{
 				// Path find failed, retry if the target location is still valid.
@@ -582,7 +579,7 @@ void dtPathFollowing::updateMoveRequest()
 				dtPolyRef* res = m_pathResult;
 				bool valid = true;
 				int nres = 0;
-				status = m_pathQueue.getPathResult(ag->targetPathqRef, res, &nres, m_maxPathRes);
+				status = m_pathQueue->getPathResult(ag->targetPathqRef, res, &nres, m_maxPathRes);
 				if (dtStatusFailed(status) || !nres)
 					valid = false;
 

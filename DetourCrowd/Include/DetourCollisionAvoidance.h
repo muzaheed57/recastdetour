@@ -125,7 +125,7 @@ public:
 	int getVelocitySamplesCount() const { return m_velocitySamplesCount; }
 	
 	dtObstacleAvoidanceParams m_params;		///< Parameters describing how the obstacles should be avoided.
-	const dtCrowdAgent** m_activeAgts;		///< The active agents of the crowd.
+	dtCrowdAgent* m_activeAgts;				///< The active agents of the crowd.
 
 private:
 	/// Registers all the neighbors of the given agent as obstacles.

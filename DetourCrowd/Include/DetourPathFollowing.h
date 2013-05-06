@@ -51,7 +51,8 @@ public:
 	/// @param[in]		anims		Animations of the agents.
 	///
 	/// @return True if the initialization succeeded.
-	bool init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims);
+	bool init(dtPathQueue* pq, dtNavMeshQuery* navMeshQuery, const float* ext, dtQueryFilter* filter, int maxPathRes, 
+			  dtCrowdAgent* agents, int maxAgents, dtCrowdAgentAnimation* anims);
 
 	/// Cleans the class before destroying
 	void purge();
@@ -60,20 +61,20 @@ public:
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 		
 	/// Get the navigation mesh
-	const dtNavMeshQuery* getNavMeshQuery() const { return m_navMeshQuery; }
-	dtNavMeshQuery* getNavMeshQuery() { return m_navMeshQuery; }
+	//const dtNavMeshQuery* getNavMeshQuery() const { return m_navMeshQuery; }
+	//dtNavMeshQuery* getNavMeshQuery() { return m_navMeshQuery; }
 
 	/// Get the query filter
-	const dtQueryFilter* getQueryFilter() const { return &m_filter; }
-	dtQueryFilter* getQueryFilter() { return &m_filter; }
+	/*const dtQueryFilter* getQueryFilter() const { return &m_filter; }
+	dtQueryFilter* getQueryFilter() { return &m_filter; }*/
 
 	/// Get the search distance along each axis. [(x, y, z)]
-	const float* getQueryExtent() const { return m_ext; }
-	float* getQueryExtent() { return m_ext; }
+	//const float* getQueryExtent() const { return m_ext; }
+	//float* getQueryExtent() { return m_ext; }
 
-	/// Get the path queue
-	const dtPathQueue* getPathQueue() const { return &m_pathQueue; }
-	dtPathQueue* getPathQueue() { return &m_pathQueue; }
+	///// Get the path queue
+	//const dtPathQueue* getPathQueue() const { return &m_pathQueue; }
+	//dtPathQueue* getPathQueue() { return &m_pathQueue; }
 
 	/// Get the path result
 	const dtPolyRef* getPathRes() const { return m_pathResult; }
@@ -170,10 +171,10 @@ private:
 	/// @param[out]		dir			The direction resulting of the computation.
 	void calcStraightSteerDirection(const dtCrowdAgent* ag, float* dir);
 
-	dtQueryFilter m_filter;			///< Defines polygon filtering and traversal costs for navigation mesh query operations.
-	dtPathQueue m_pathQueue;		///< A Queue of destination in order to reach the target.
-	dtNavMeshQuery* m_navMeshQuery;	///< Used to perform queries on the navigation mesh.
-	float m_ext[3];					///< The search distance along each axis.
+	dtQueryFilter* m_filter;			///< Defines polygon filtering and traversal costs for navigation mesh query operations.
+	dtPathQueue* m_pathQueue;			///< A Queue of destination in order to reach the target.
+	dtNavMeshQuery* m_navMeshQuery;		///< Used to perform queries on the navigation mesh.
+	float m_ext[3];						///< The search distance along each axis.
 
 	dtCrowdAgent* m_agents;					///< the list of agents (active of not) dealt with.
 	dtPolyRef* m_pathResult;				///< The path results

@@ -7,7 +7,6 @@
 	[
 		{
 			"position": [-4, 0, 0],
-			"destination": [4, 0, 0],
 			"parameters": 
 			{
 				"maxSpeed": 2,
@@ -16,15 +15,26 @@
 				"height": 1.7,
 				"collisionQueryRange": 4.0,
 				"pathOptimizationRange": 6,
-				"updateFlags":
+				"pipeline":
 				[
-					"DT_CROWD_OBSTACLE_AVOIDANCE"
-				]
+	                {
+	                	"behavior":
+		                {
+		                    "type": "pathFollowing",
+		                    "destination": [4, 0, 0]
+		                }
+	            	},
+	            	{	            		
+		                "behavior":
+		                {
+		                    "type": "collisionAvoidance"
+		                }
+	            	}
+                ]
 			}
 		},
 		{
 			"position": [4, 0, 0],
-			"destination": [-4, 0, 0],
 			"parameters": 
 			{
 				"maxSpeed": 2,
@@ -33,10 +43,22 @@
 				"height": 1.7,
 				"collisionQueryRange": 4.0,
 				"pathOptimizationRange": 6,
-				"updateFlags":
+				"pipeline":
 				[
-					"DT_CROWD_OBSTACLE_AVOIDANCE"
-				]
+	                {
+	                	"behavior":
+		                {
+		                    "type": "pathFollowing",
+		                    "destination": [-4, 0, 0]
+		                }
+	            	},
+	            	{	            		
+		                "behavior":
+		                {
+		                    "type": "collisionAvoidance"
+		                }
+	            	}
+                ]
 			}
 		}
 	]

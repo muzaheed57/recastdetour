@@ -33,6 +33,7 @@
 
 class rcContext;
 class InputGeom;
+class JSONValue;
 
 struct AgentConfiguration
 {
@@ -52,6 +53,10 @@ public:
     bool loadFromBuffer(const char* data);
     bool loadFromFile(const char* fileName);
 
+	char* getSceneFile();
+	void parseCrowd(dtCrowd* crowd);
+	void parseAgentsInfo();
+
     bool initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMesh);
 
 	/// Method to call when we want to create a scene without using a JSON file.
@@ -69,6 +74,9 @@ public:
 	float m_maxRadius;
     
 private:
+	void parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd* crowd, bool pipeline);
+	void parsePipeline(JSONValue* pipelineChild, std::size_t iAgent, dtCrowd* crowd);
+
 	struct Flocking
 	{
 		float distance;
@@ -80,18 +88,16 @@ private:
 
     void computeMaximumRadius();
     
+	JSONValue* m_root;
 	std::vector<Flocking> m_flockingsGroups;
 	std::vector<dtFlockingBehavior*> m_flockingBehaviors;
 	std::map<int, std::vector<int> > m_agentsFlockingNeighbors;
 	std::map<int, int> m_seekTargets;
-	float m_seekDist;
-	float m_seekPredict;
 	std::vector<int> m_separationTargets;
-	float m_separationWeight;
-	float m_separationDist;
 	std::vector<int> m_alignmentTargets;
 	std::vector<int> m_cohesionTargets;
 	std::map<int, std::string> m_agentsBehaviors;
+	std::map<int, std::vector<dtBehavior*> > m_pipeline;
 };
 
 #endif
