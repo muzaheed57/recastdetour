@@ -19,8 +19,9 @@
 #include "DetourPipelineBehavior.h"
 
 #include "DetourAlloc.h"
-
 #include "DetourCrowd.h"
+
+#include <new>
 
 
 dtPipelineBehavior::dtPipelineBehavior()
@@ -34,7 +35,27 @@ dtPipelineBehavior::~dtPipelineBehavior()
 {
 }
 
-void dtPipelineBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+dtPipelineBehavior* dtPipelineBehavior::allocate()
+{
+	void* mem = dtAlloc(sizeof(dtPipelineBehavior), DT_ALLOC_PERM);
+
+	if (mem)
+		return new(mem) dtPipelineBehavior();
+
+	return 0;
+}
+
+void dtPipelineBehavior::free(dtPipelineBehavior* ptr)
+{
+	if (!ptr)
+		return;
+
+	ptr->~dtPipelineBehavior();
+	dtFree(ptr);
+	ptr = 0;
+}
+
+void dtPipelineBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
 	if (m_behaviors == 0 || m_nbBehaviors == 0 || !oldAgent || !newAgent)
 		return;

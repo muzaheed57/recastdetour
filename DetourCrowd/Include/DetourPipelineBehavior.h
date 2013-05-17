@@ -30,7 +30,10 @@ public:
 	dtPipelineBehavior();
 	~dtPipelineBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtPipelineBehavior* allocate();
+	static void free(dtPipelineBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 
 	void setBehaviors(dtBehavior** behaviors, int nbBehaviors);
 

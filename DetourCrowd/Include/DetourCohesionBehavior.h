@@ -25,17 +25,28 @@ struct dtCrowdAgent;
 class dtGoToBehavior;
 
 
+struct dtCohesionAgentsParams
+{
+	dtCrowdAgent* cohesionAgents;	///< The list of agents the indices are refering to.
+	const int* cohesionTargets;		///< The indices of the targets
+	int cohesionNbTargets;			///< The number of target
+};
+
+
 /// Defines the cohesion behavior.
 ///
 /// An agent using the cohesion behavior will move towards the 
 /// center of gravity of its targets.
-class dtCohesionBehavior : public dtSteeringBehavior
+class dtCohesionBehavior : public dtSteeringBehavior<dtCohesionAgentsParams>
 {
 public:
-	dtCohesionBehavior();
+	dtCohesionBehavior(unsigned nbMaxAgents);
 	~dtCohesionBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtCohesionBehavior* allocate(unsigned nbMaxAgents);
+	static void free(dtCohesionBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
 private:
@@ -47,7 +58,7 @@ private:
 	/// @param[out]	center		The computed center of gravity.
 	void getGravityCenter(const dtCrowdAgent* agents, const int* targets, int nbTargets, float* center);
 
-	dtGoToBehavior* m_gotoBehabior;	///< The GoTo behavior used to move the agent.
+	dtGoToBehavior* m_gotoBehabior;								///< The GoTo behavior used to move the agent.
 };
 
 #endif

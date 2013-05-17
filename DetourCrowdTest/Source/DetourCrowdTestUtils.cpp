@@ -32,9 +32,21 @@ TestScene::~TestScene()
 	m_crowd = 0;
 }
 
-dtCrowd* TestScene::createScene(dtCrowdAgentParams& param, float* vertices, int* triangles)
+dtCrowd* TestScene::createSquareScene()
 {
-	if (!m_cs.initializeScene(&m_scene, vertices, 4, triangles, 2)) 
+	// Creation of a square
+	float* vert = new float[12];
+	int* tri = new int[6];
+
+	vert[0] = 20.0; vert[1] = 0.0; vert[2] = 20.0;
+	vert[3] = 20.0; vert[4] = 0.0; vert[5] = -20.0;
+	vert[6] = -20.0; vert[7] = 0.0; vert[8] = -20.0;
+	vert[9] = -20.0; vert[10] = 0.0; vert[11] = 20.0;
+
+	tri[0] = 0; tri[1] = 1; tri[2] = 2;
+	tri[3] = 2; tri[4] = 3; tri[5] = 0;
+
+	if (!m_cs.initializeScene(&m_scene, vert, 4, tri, 2)) 
 		return 0;
 
 	if (!m_cs.initializeNavmesh(m_scene, &m_navMesh)) 
@@ -43,15 +55,23 @@ dtCrowd* TestScene::createScene(dtCrowdAgentParams& param, float* vertices, int*
 	if (!m_crowd->init(20, 0.5, &m_navMesh)) 
 		return 0;
 
-	memset(&param, 0, sizeof(dtCrowdAgentParams));
-	param.radius = 0.2;
-	param.height = 1.7;
-	param.maxSpeed = 2.0;
-	param.maxAcceleration = 10.0;
-	param.collisionQueryRange = 4.0;
-	param.pathOptimizationRange = 6.0;
-	param.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
-	param.steeringBehavior = 0;
-
 	return m_crowd;
+}
+
+bool TestScene::defaultInitializeAgent(dtCrowd& crowd, int index) const
+{
+	if (index == -1)
+		return false;
+
+	dtCrowdAgent* ag = crowd.getAgent(index);
+
+	ag->radius = 0.2;
+	ag->height = 1.7;
+	ag->maxSpeed = 2.0;
+	ag->maxAcceleration = 10.0;
+	ag->collisionQueryRange = 4.0;
+	ag->updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
+	ag->behavior = 0;
+
+	return true;
 }

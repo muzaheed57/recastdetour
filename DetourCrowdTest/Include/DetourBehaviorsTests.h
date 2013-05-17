@@ -26,47 +26,34 @@
 
 TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors behave correctly")
 {
-	// Creation of a square
-	float vert[12];
-	int tri[6];
-
-	vert[0] = 20.0; vert[1] = 0.0; vert[2] = 20.0;
-	vert[3] = 20.0; vert[4] = 0.0; vert[5] = -20.0;
-	vert[6] = -20.0; vert[7] = 0.0; vert[8] = -20.0;
-	vert[9] = -20.0; vert[10] = 0.0; vert[11] = 20.0;
-
-	tri[0] = 0; tri[1] = 1; tri[2] = 2;
-	tri[3] = 2; tri[4] = 3; tri[5] = 0;
-
-	dtCrowdAgentParams param1, param2;
 	TestScene ts;
-	dtCrowd* crowd = ts.createScene(param1, vert, tri);
-
+	dtCrowd* crowd = ts.createSquareScene();
 	REQUIRE(crowd != 0);
-
-	memcpy(&param2, &param1, sizeof(dtCrowdAgentParams));
-
+	
 	SECTION("Seek Behavior", "With the seeking behavior, an agent must move towards its target")
 	{
-		param1.steeringBehavior = new dtSeekBehavior;
-		param1.seekTarget = crowd->getAgent(1);
-
 		float posAgt1[] = {0, 0, 0};
 		float posAgt2[] = {15, 0, 0};
 		float destAgt2[] = {15, 0, 0};
 
+		dtSeekBehavior* seek = dtSeekBehavior::allocate(5);
+		dtSeekBehaviorParams* params = seek->addBehaviorParams(*crowd->getAgent(0));
+		params->seekTarget = crowd->getAgent(1);
+		params->seekDistance = 0;
+		params->seekPredictionFactor = 0;
+
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
-		int indexAgent2 = crowd->addAgent(posAgt2, &param2);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
 		REQUIRE_FALSE(indexAgent2 == -1);
 
-		dtPolyRef dest;
-		// Set the destination
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getQueryExtents(), crowd->getFilter(), &dest, 0);
-		REQUIRE(crowd->requestMoveTarget(indexAgent2, dest, destAgt2));
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
 
+		crowd->getAgent(indexAgent1)->behavior = seek;
+				
 		crowd->update(2.0, 0);
 
 		float agt1NewPos[3];
@@ -76,50 +63,14 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		// The first agent should move to the right (since he is seeking the second agent)
 		CHECK(posAgt1[0] < crowd->getAgent(indexAgent2)->npos[0]);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
+		dtSeekBehavior::free(seek);
+		crowd->getAgent(indexAgent1)->behavior = 0;
 	}
 
 	SECTION("Flocking Behavior", "Unit tests about the flocking behavior")
 	{
-		dtCrowdAgentParams param3, param4, paramLeader;
-
-		dtPathFollowing* pf = dtAllocBehavior<dtPathFollowing>();
-		pf->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
-			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
-
-		memcpy(&paramLeader, &param1, sizeof(dtCrowdAgentParams));
-		param1.steeringBehavior = new dtFlockingBehavior(2, 1, 1);
-		param2.steeringBehavior = param1.steeringBehavior;
-		param1.flockingAgents = crowd->getAgents();
-		param2.flockingAgents = crowd->getAgents();
-		param1.flockingSeparationDistance = 2;
-		param2.flockingSeparationDistance = 2;
-		paramLeader.steeringBehavior = pf;
-
-		memcpy(&param3, &param1, sizeof(dtCrowdAgentParams));
-		memcpy(&param4, &param1, sizeof(dtCrowdAgentParams));
-
-		// Creation of the list of flocking neighbors for each agent
-		param1.nbFlockingNeighbors = 4;
-		param2.nbFlockingNeighbors = 4;
-		param3.nbFlockingNeighbors = 4;
-		param4.nbFlockingNeighbors = 4;
-
-		int* toFlockWith1 = (int*) dtAlloc(sizeof(int) * param1.nbFlockingNeighbors, DT_ALLOC_TEMP);
-		int* toFlockWith2 = (int*) dtAlloc(sizeof(int) * param2.nbFlockingNeighbors, DT_ALLOC_TEMP);
-		int* toFlockWith3 = (int*) dtAlloc(sizeof(int) * param3.nbFlockingNeighbors, DT_ALLOC_TEMP);
-		int* toFlockWith4 = (int*) dtAlloc(sizeof(int) * param4.nbFlockingNeighbors, DT_ALLOC_TEMP);
-
-		toFlockWith1[0] = 1; toFlockWith1[1] = 2; toFlockWith1[2] = 3; toFlockWith1[3] = 4;
-		toFlockWith2[0] = 0; toFlockWith2[1] = 2; toFlockWith2[2] = 3; toFlockWith2[3] = 4;
-		toFlockWith3[0] = 0; toFlockWith3[1] = 1; toFlockWith3[2] = 3; toFlockWith3[3] = 4;
-		toFlockWith4[0] = 0; toFlockWith4[1] = 1; toFlockWith4[2] = 2; toFlockWith4[3] = 4;
-
-		param1.toFlockWith = toFlockWith1;
-		param2.toFlockWith = toFlockWith2;
-		param3.toFlockWith = toFlockWith3;
-		param4.toFlockWith = toFlockWith4;
+		dtPathFollowing* pf = dtPathFollowing::allocate(1);
+		dtFlockingBehavior* flocking = dtFlockingBehavior::allocate(5, 2, 1, 1);
 
 		float posAgt1[] = {0, 0, 0};
 		float posAgt2[] = {1, 0, 1};
@@ -129,11 +80,24 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		float destLeader[] = {-14, 0, -14};
 
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
-		int indexAgent2 = crowd->addAgent(posAgt2, &param2);
-		int indexAgent3 = crowd->addAgent(posAgt3, &param3);
-		int indexAgent4 = crowd->addAgent(posAgt4, &param4);
-		int indexLeader = crowd->addAgent(posLeader, &paramLeader);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
+		int indexAgent3 = crowd->addAgent(posAgt3);
+		int indexAgent4 = crowd->addAgent(posAgt4);
+		int indexLeader = crowd->addAgent(posLeader);
+
+		dtPathFollowingParams* pfParams = pf->addBehaviorParams(*crowd->getAgent(4));
+
+		dtFlockingBehaviorParams* flockParams = flocking->addBehaviorParams(*crowd->getAgent(0));
+		dtFlockingBehaviorParams* flockParams2 = flocking->addBehaviorParams(*crowd->getAgent(1));
+		dtFlockingBehaviorParams* flockParams3 = flocking->addBehaviorParams(*crowd->getAgent(2));
+		dtFlockingBehaviorParams* flockParams4 = flocking->addBehaviorParams(*crowd->getAgent(3));
+
+		dtPolyRef polyLeader;
+		float posLeaderNavMesh[3];
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posLeader, crowd->getCrowdQuery()->getQueryExtents(), 
+			crowd->getCrowdQuery()->getQueryFilter(), &polyLeader, posLeaderNavMesh);
+		pfParams->corridor.reset(polyLeader, posLeaderNavMesh);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
 		REQUIRE_FALSE(indexAgent2 == -1);
@@ -141,14 +105,62 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		REQUIRE_FALSE(indexAgent4 == -1);
 		REQUIRE_FALSE(indexLeader == -1);
 
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
+		ts.defaultInitializeAgent(*crowd, indexAgent3);
+		ts.defaultInitializeAgent(*crowd, indexAgent4);
+		ts.defaultInitializeAgent(*crowd, indexLeader);
+
+		crowd->getAgent(indexAgent1)->behavior = flocking;
+		crowd->getAgent(indexAgent2)->behavior = flocking;
+		crowd->getAgent(indexAgent3)->behavior = flocking;
+		crowd->getAgent(indexAgent4)->behavior = flocking;
+		
+		flockParams->agents = crowd->getAgents();
+		flockParams->separationDistance = 2;
+		flockParams2->agents = crowd->getAgents();
+		flockParams2->separationDistance = 2;
+		flockParams3->agents = crowd->getAgents();
+		flockParams3->separationDistance = 2;
+		flockParams4->agents = crowd->getAgents();
+		flockParams4->separationDistance = 2;
+		flockParams->nbflockingTargets = 4;
+		flockParams2->nbflockingTargets = 4;
+		flockParams3->nbflockingTargets = 4;
+		flockParams4->nbflockingTargets = 4;
+
+		int* toFlockWith1 = (int*) dtAlloc(sizeof(int) * flockParams->nbflockingTargets, DT_ALLOC_TEMP);
+		int* toFlockWith2 = (int*) dtAlloc(sizeof(int) * flockParams2->nbflockingTargets, DT_ALLOC_TEMP);
+		int* toFlockWith3 = (int*) dtAlloc(sizeof(int) * flockParams3->nbflockingTargets, DT_ALLOC_TEMP);
+		int* toFlockWith4 = (int*) dtAlloc(sizeof(int) * flockParams4->nbflockingTargets, DT_ALLOC_TEMP);
+
+		toFlockWith1[0] = 1; toFlockWith1[1] = 2; toFlockWith1[2] = 3; toFlockWith1[3] = 4;
+		toFlockWith2[0] = 0; toFlockWith2[1] = 2; toFlockWith2[2] = 3; toFlockWith2[3] = 4;
+		toFlockWith3[0] = 0; toFlockWith3[1] = 1; toFlockWith3[2] = 3; toFlockWith3[3] = 4;
+		toFlockWith4[0] = 0; toFlockWith4[1] = 1; toFlockWith4[2] = 2; toFlockWith4[3] = 4;
+
+		flockParams->toFlockWith = toFlockWith1;
+		flockParams2->toFlockWith = toFlockWith2;
+		flockParams3->toFlockWith = toFlockWith3;
+		flockParams4->toFlockWith = toFlockWith4;
+				
+		pf->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents());
+
+		crowd->getAgent(indexAgent2)->behavior = crowd->getAgent(indexAgent1)->behavior;
+		crowd->getAgent(indexAgent3)->behavior = crowd->getAgent(indexAgent1)->behavior;
+		crowd->getAgent(indexAgent4)->behavior = crowd->getAgent(indexAgent1)->behavior;
+
+		crowd->getAgent(indexLeader)->behavior = pf;
+
 		// Set the destination
-		crowd->getNavMeshQuery()->findNearestPoly(destLeader, crowd->getQueryExtents(), crowd->getFilter(), &crowd->getAgent(indexLeader)->targetRef, 0);
-		REQUIRE(crowd->getAgent(indexLeader)->targetRef != 0);
-		REQUIRE(crowd->requestMoveTarget(indexLeader, crowd->getAgent(indexLeader)->targetRef, destLeader));
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destLeader, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+																&pfParams->targetRef, 0);
+		REQUIRE(pfParams->targetRef != 0);
+		REQUIRE(pf->requestMoveTarget(indexLeader, pfParams->targetRef, destLeader));
 
 		// We perform several update on the flocking group.
 		for (int i = 0; i < 100; ++i)
-			crowd->update(0.1f, 0);
+			crowd->update(0.1f);
 
 		// Each agent should be heading toward the upper left corner
 		for (int i = 0; i < 4; ++i)
@@ -164,21 +176,20 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 			crowd->update(0.1f, 0);
 
 		// We check that the minimal space between each agent is respected
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent2)->npos) > param1.flockingSeparationDistance / 2.f);
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent3)->npos) > param1.flockingSeparationDistance / 2.f);
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent4)->npos) > param1.flockingSeparationDistance / 2.f);
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent4)->npos, crowd->getAgent(indexAgent2)->npos) > param1.flockingSeparationDistance / 2.f);
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent4)->npos, crowd->getAgent(indexAgent3)->npos) > param1.flockingSeparationDistance / 2.f);
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent3)->npos, crowd->getAgent(indexAgent2)->npos) > param1.flockingSeparationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent2)->npos) > flockParams->separationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent3)->npos) > flockParams->separationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent4)->npos) > flockParams->separationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent4)->npos, crowd->getAgent(indexAgent2)->npos) > flockParams->separationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent4)->npos, crowd->getAgent(indexAgent3)->npos) > flockParams->separationDistance / 2.f);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent3)->npos, crowd->getAgent(indexAgent2)->npos) > flockParams->separationDistance / 2.f);
 
 		dtFree(toFlockWith1);
 		dtFree(toFlockWith2);
 		dtFree(toFlockWith3);
 		dtFree(toFlockWith4);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
-		dtFreeBehavior<dtPathFollowing>(pf);
+		dtFlockingBehavior::free(flocking);
+		dtPathFollowing::free(pf);
 	}
 
 	SECTION("Separation Behavior", "With the separation behavior, an agent tries to flee its target")
@@ -188,15 +199,16 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		float destAgt2[] = {2, 0, 0};
 
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
-		int indexAgent2 = crowd->addAgent(posAgt2, &param2);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
 		REQUIRE_FALSE(indexAgent2 == -1);
 
-		// Set the destination
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getQueryExtents(), crowd->getFilter(), &crowd->getAgent(indexAgent2)->targetRef, 0);
-		crowd->requestMoveTarget(indexAgent2, crowd->getAgent(indexAgent2)->targetRef, destAgt2);
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
+		
+		crowd->getAgent(indexAgent1)->collisionQueryRange = 0.f;
 
 		crowd->update(2.0, 0);
 
@@ -209,8 +221,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		CHECK(dtVequal(agt1NewVel, nilVector));
 
 		// We now set the distance
-		param1.collisionQueryRange = 5.f;
-		crowd->updateAgentParameters(indexAgent1, &param1);
+		crowd->getAgent(indexAgent1)->collisionQueryRange = 5.f;
 
 		crowd->update(2.0, 0);
 
@@ -220,13 +231,15 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		CHECK(dtVequal(agt1NewVel, nilVector));
 
 		// Set the behavior
-		param1.steeringBehavior = new dtSeparationBehavior;
-		param1.separationAgents = crowd->getAgents();
-		param1.separationTargets = &indexAgent2;
-		param1.separationNbTargets = 1;
-		param1.separationWeight = 1.f;
-		param1.separationDistance = 2.f;
-		crowd->updateAgentParameters(indexAgent1, &param1);
+		dtSeparationBehavior* separation = dtSeparationBehavior::allocate(5);
+		dtSeparationBehaviorParams* params = separation->addBehaviorParams(*crowd->getAgent(indexAgent1));
+		params->separationAgents= crowd->getAgents();
+		params->separationTargets = &indexAgent2;
+		params->separationNbTargets = 1;
+		params->separationWeight = 1.f;
+		params->separationDistance = 2.f;
+		
+		crowd->getAgent(indexAgent1)->behavior = separation;
 
 		crowd->update(2.0, 0);
 
@@ -238,26 +251,67 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 			crowd->update(1.0, 0);
 
 		// The agent should have moved to the left far enough to respect the minimal distance
-		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent2)->npos) >= param1.separationDistance);
+		CHECK(dtVdist2D(crowd->getAgent(indexAgent1)->npos, crowd->getAgent(indexAgent2)->npos) >= params->separationDistance);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
+		dtSeparationBehavior::free(separation);
+	}
+
+	SECTION("PathFollowing Behavior", "Tests whether the agent can follow a path to reach its destination")
+	{
+		float posAgt1[] = {0, 0, 0};
+		float destAgt1[] = {-18, 0, 0};
+
+		float posAgt2[] = {0, 0, 1};
+		float destAgt2[] = {18, 0, 1};
+
+		// Adding the agents to the crowd
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
+
+		REQUIRE_FALSE(indexAgent1 == -1);
+		REQUIRE_FALSE(indexAgent2 == -1);
+
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
+
+		dtPathFollowing* pf1 = dtPathFollowing::allocate(2);
+		dtPathFollowingParams* pfParams = pf1->addBehaviorParams(*crowd->getAgent(indexAgent1));
+		dtPathFollowingParams* pfParams2 = pf1->addBehaviorParams(*crowd->getAgent(indexAgent2));
+
+		crowd->getAgent(indexAgent1)->behavior = pf1;
+		crowd->getAgent(indexAgent2)->behavior = pf1;
+
+		dtPolyRef poly1, poly2;
+		float pos1NavMesh[3], pos2NavMesh[3];
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
+		pfParams->corridor.reset(poly1, pos1NavMesh);
+		pfParams2->corridor.reset(poly2, pos2NavMesh);
+
+		pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents());
+		
+		// Set the destinations
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+			&pfParams->targetRef, 0);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+			&pfParams2->targetRef, 0);
+		REQUIRE(pf1->requestMoveTarget(indexAgent1, pfParams->targetRef, destAgt1));
+		REQUIRE(pf1->requestMoveTarget(indexAgent2, pfParams2->targetRef, destAgt2));
+
+		for (int i = 0; i < 100; ++i)
+			crowd->update(1.0);
+
+		float newPos[3];
+		float newPos2[3];
+		dtVcopy(newPos, crowd->getAgent(indexAgent1)->npos);
+		dtVcopy(newPos2, crowd->getAgent(indexAgent2)->npos);
+
+		CHECK(newPos[0] < -10.f);
+		CHECK(newPos2[0] > 10.f);
 	}
 
 	SECTION("Alignment Behavior", "With the alignment behavior, an agent will align its velocity to its target")
 	{
-		dtCrowdAgentParams param3;
-
-		dtPathFollowing* pf1 = dtAllocBehavior<dtPathFollowing>();
-		dtPathFollowing* pf2 = dtAllocBehavior<dtPathFollowing>();
-		pf1->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
-			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
-		pf2->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
-			crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims());
-		param2.steeringBehavior = pf1;
-		param3.steeringBehavior = pf2;
-
-		memcpy(&param3, &param2, sizeof(dtCrowdAgentParams));
 		float posAgt1[] = {0, 0, 0};
 		float posAgt2[] = {0, 0, 1};
 		float posAgt3[] = {0, 0, -1};
@@ -265,36 +319,56 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		float destAgt3[] = {15, 0, -1};
 
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
-		int indexAgent2 = crowd->addAgent(posAgt2, &param2);
-		int indexAgent3 = crowd->addAgent(posAgt3, &param3);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
+		int indexAgent3 = crowd->addAgent(posAgt3);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
 		REQUIRE_FALSE(indexAgent2 == -1);
 		REQUIRE_FALSE(indexAgent3 == -1);
 
-		// Set the destination
-		dtPolyRef dest2, dest3;
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getQueryExtents(), crowd->getFilter(), &dest2, 0);
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt3, crowd->getQueryExtents(), crowd->getFilter(), &dest3, 0);
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
+		ts.defaultInitializeAgent(*crowd, indexAgent3);
+		
+		dtPathFollowing* pf1 = dtPathFollowing::allocate(2);
+		dtPathFollowingParams* pfParams = pf1->addBehaviorParams(*crowd->getAgent(indexAgent2));
+		dtPathFollowingParams* pfParams2 = pf1->addBehaviorParams(*crowd->getAgent(indexAgent3));
 
-		REQUIRE(crowd->requestMoveTarget(indexAgent2, dest2, destAgt2));
-		REQUIRE(crowd->requestMoveTarget(indexAgent3, dest3, destAgt3));
+		dtPolyRef poly1, poly2;
+		float pos1NavMesh[3], pos2NavMesh[3];
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
+		pfParams->corridor.reset(poly1, pos1NavMesh);
+		pfParams2->corridor.reset(poly2, pos2NavMesh);
+
+		pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents());
+		
+		crowd->getAgent(indexAgent2)->behavior = pf1;
+		crowd->getAgent(indexAgent3)->behavior = pf1;
+
+		// Set the destination
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &pfParams->targetRef, 0);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt3, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &pfParams2->targetRef, 0);
+
+		REQUIRE(pf1->requestMoveTarget(indexAgent2, pfParams->targetRef, destAgt2));
+		REQUIRE(pf1->requestMoveTarget(indexAgent3, pfParams2->targetRef, destAgt3));
 
 		int targets[] = {1, 2};
-		param1.steeringBehavior = new dtAlignmentBehavior;
-		param1.alignmentAgents = crowd->getAgents();
-		param1.alignmentTargets = targets;
-		param1.alignmentNbTargets = 2;
-
-		crowd->updateAgentParameters(indexAgent1, &param1);
+		dtAlignmentBehavior* align = dtAlignmentBehavior::allocate(1);
+		dtAlignmentBehaviorParams* params = align->addBehaviorParams(*crowd->getAgent(indexAgent1));
+		params->alignmentAgents = crowd->getAgents();
+		params->alignmentTargets = targets;
+		params->alignmentNbTargets = 2;
+		
+		crowd->getAgent(indexAgent1)->behavior = align;
 
 		for (int i = 0; i < 10; ++i)
 			crowd->update(0.1f, 0);
 
 		// The velocity should not be nil
 		CHECK(dtVlen(crowd->getAgent(indexAgent1)->vel) > 0);
-		// But not as fast as the others agents
+		// But not as fast as the others agents'
 		CHECK(dtVlen(crowd->getAgent(indexAgent1)->vel) < dtVlen(crowd->getAgent(indexAgent3)->vel));
 
 
@@ -311,44 +385,37 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		// After even longer, the agent should have stopped
 		CHECK(dtVlen(crowd->getAgent(indexAgent1)->vel) <= 0.2f);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
-		dtFreeBehavior<dtPathFollowing>(pf1);
-		dtFreeBehavior<dtPathFollowing>(pf2);
+		dtAlignmentBehavior::free(align);
+		dtPathFollowing::free(pf1);
 	}
 
 	SECTION("Cohesion Behavior", "With the cohesion behavior, an agent will be attracted to its targets")
 	{
-		dtCrowdAgentParams param3;
-		memcpy(&param3, &param2, sizeof(dtCrowdAgentParams));
 		float posAgt1[] = {0, 0, 0};
 		float posAgt2[] = {-5, 0, 1};
 		float posAgt3[] = {-5, 0, -1};
-		float destAgt2[] = {-5, 0, 1};
-		float destAgt3[] = {-5, 0, -1};
-
-		int targets[] = {1, 2};
-		param1.steeringBehavior = new dtCohesionBehavior;
-		param1.cohesionAgents = crowd->getAgents();
-		param1.cohesionTargets = targets;
-		param1.cohesionNbTargets = 2;
 
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
-		int indexAgent2 = crowd->addAgent(posAgt2, &param2);
-		int indexAgent3 = crowd->addAgent(posAgt3, &param3);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		int indexAgent2 = crowd->addAgent(posAgt2);
+		int indexAgent3 = crowd->addAgent(posAgt3);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
 		REQUIRE_FALSE(indexAgent2 == -1);
 		REQUIRE_FALSE(indexAgent3 == -1);
 
-		// Set the destination
-		dtPolyRef dest2, dest3;
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getQueryExtents(), crowd->getFilter(), &dest2, 0);
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt3, crowd->getQueryExtents(), crowd->getFilter(), &dest3, 0);
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
+		ts.defaultInitializeAgent(*crowd, indexAgent2);
+		ts.defaultInitializeAgent(*crowd, indexAgent3);
 
-		REQUIRE(crowd->requestMoveTarget(indexAgent2, dest2, destAgt2));
-		REQUIRE(crowd->requestMoveTarget(indexAgent3, dest3, destAgt3));
+		int targets[] = {1, 2};
+		dtCohesionBehavior* cohesion = dtCohesionBehavior::allocate(5);
+		dtCohesionAgentsParams* params = cohesion->addBehaviorParams(*crowd->getAgent(0));
+		params->cohesionAgents = crowd->getAgents();
+		params->cohesionTargets = targets;
+		params->cohesionNbTargets = 2;
+		
+		crowd->getAgent(indexAgent1)->behavior = cohesion;
 
 		for (int i = 0; i < 10; ++i)
 			crowd->update(0.1f, 0);
@@ -369,23 +436,25 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		// After even longer, the agent should have stopped
 		CHECK(dtVlen(crowd->getAgent(indexAgent1)->vel) == 0.f);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
+		dtCohesionBehavior::free(cohesion);
 	}
 
 	SECTION("GoTo Behavior", "With the goto behavior, an agent must move towards the given position")
 	{
-		param1.steeringBehavior = new dtGoToBehavior;
+		dtGoToBehavior* go = dtGoToBehavior::allocate(5);
+		dtGoToBehaviorParams* params = go->addBehaviorParams(*crowd->getAgent(0));
 
 		float posAgt1[] = {0, 0, 0};
 		float destAgt1[] = {15, 0, 0};
 
-		param1.gotoTarget = destAgt1;
-
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
+		int indexAgent1 = crowd->addAgent(posAgt1);
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
 
 		REQUIRE_FALSE(indexAgent1 == -1);
+
+		params->gotoTarget = destAgt1;
+		crowd->getAgent(indexAgent1)->behavior = go;
 
 		crowd->update(2.0, 0);
 
@@ -399,7 +468,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		CHECK(crowd->getAgent(indexAgent1)->npos[0] < 15.1f);
 		CHECK(crowd->getAgent(indexAgent1)->npos[0] > 14.9f);
 
-		param1.gotoTarget[0] = 25.f;
+		params->gotoTarget[0] = 25.f;
 
 		for (int i = 0; i < 1000; ++i)
 			crowd->update(0.1f, 0);
@@ -408,8 +477,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		CHECK(crowd->getAgent(indexAgent1)->npos[0] < 20.1f);
 		CHECK(crowd->getAgent(indexAgent1)->npos[0] > 19.6f);
 
-		delete param1.steeringBehavior;
-		param1.steeringBehavior = 0;
+		dtGoToBehavior::free(go);
 	}
 }
 

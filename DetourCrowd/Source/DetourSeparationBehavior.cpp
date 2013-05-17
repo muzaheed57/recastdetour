@@ -22,12 +22,11 @@
 #include "DetourCrowd.h"
 
 #include <cmath>
+#include <new>
 
 
-static const float EPSILON = 0.0001f;
-
-dtSeparationBehavior::dtSeparationBehavior()
-	: dtSteeringBehavior()
+dtSeparationBehavior::dtSeparationBehavior(unsigned nbMaxAgents)
+	: dtSteeringBehavior<dtSeparationBehaviorParams>(nbMaxAgents)
 {
 }
 
@@ -35,7 +34,27 @@ dtSeparationBehavior::~dtSeparationBehavior()
 {
 }
 
-void dtSeparationBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+dtSeparationBehavior* dtSeparationBehavior::allocate(unsigned nbMaxAgents)
+{
+	void* mem = dtAlloc(sizeof(dtSeparationBehavior), DT_ALLOC_PERM);
+
+	if (mem)
+		return new(mem) dtSeparationBehavior(nbMaxAgents);
+
+	return 0;
+}
+
+void dtSeparationBehavior::free(dtSeparationBehavior* ptr)
+{
+	if (!ptr)
+		return;
+
+	ptr->~dtSeparationBehavior();
+	dtFree(ptr);
+	ptr = 0;
+}
+
+void dtSeparationBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
 	if (!oldAgent || !newAgent)
 		return;
@@ -48,15 +67,15 @@ void dtSeparationBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent
 
 void dtSeparationBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 {
-	const dtCrowdAgent* agents = ag->params.separationAgents;
-	const int* targets = ag->params.separationTargets;
-	const int nbTargets = ag->params.separationNbTargets;
-	const float distance = ag->params.separationDistance;
+	const dtCrowdAgent* agents = getBehaviorParams(*ag)->separationAgents;
+	const int* targets = getBehaviorParams(*ag)->separationTargets;
+	const int nbTargets = getBehaviorParams(*ag)->separationNbTargets;
+	const float distance = getBehaviorParams(*ag)->separationDistance;
 
 	if (!agents || !targets || nbTargets <= 0)
 		return;
 
-	float maxDistance = (distance < 0.f) ? ag->params.collisionQueryRange : distance;
+	float maxDistance = (distance < 0.f) ? ag->collisionQueryRange : distance;
 	const float invSeparationDist = 1.f / maxDistance;
 	float weight;
 	int count = 0;
@@ -71,12 +90,12 @@ void dtSeparationBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 		float diff[3];
 		dtVsub(diff, ag->npos, target.npos);
 
-		float dist = dtVlen(diff) - ag->params.radius - target.params.radius;
+		float dist = dtVlen(diff) - ag->radius - target.radius;
 
 		if (dist > maxDistance || dist < EPSILON)
 			continue;
 
-		weight = ag->params.separationWeight * (1.f - dtSqr(dist * invSeparationDist));
+		weight = getBehaviorParams(*ag)->separationWeight * (1.f - dtSqr(dist * invSeparationDist));
 
 		++count;
 		dtVnormalize(diff);

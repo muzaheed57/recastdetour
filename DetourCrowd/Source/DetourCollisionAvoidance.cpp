@@ -29,8 +29,8 @@
 #include <cstring>
 
 
-dtCollisionAvoidance::dtCollisionAvoidance() :
-	dtBehavior(),
+dtCollisionAvoidance::dtCollisionAvoidance(unsigned nbMaxAgents, const dtCrowdAgentEnvironment* env) :
+	dtParametrizedBehavior<dtObstacleAvoidanceParams>(nbMaxAgents),
 	m_velocitySamplesCount(0),
 	m_maxAvoidanceParams(4),
 	m_maxCircles(0),
@@ -38,13 +38,34 @@ dtCollisionAvoidance::dtCollisionAvoidance() :
 	m_ncircles(0),
 	m_maxSegments(0),
 	m_segments(0),
-	m_nsegments(0)
+	m_nsegments(0),
+	m_env(env)
 {
 }
 
 dtCollisionAvoidance::~dtCollisionAvoidance()
 {
 	purge();
+}
+
+dtCollisionAvoidance* dtCollisionAvoidance::allocate(unsigned nbMaxAgents, const dtCrowdAgentEnvironment* env)
+{
+	void* mem = dtAlloc(sizeof(dtCollisionAvoidance), DT_ALLOC_PERM);
+
+	if (mem)
+		return new(mem) dtCollisionAvoidance(nbMaxAgents, env);
+
+	return 0;
+}
+
+void dtCollisionAvoidance::free(dtCollisionAvoidance* ptr)
+{
+	if (!ptr)
+		return;
+
+	ptr->~dtCollisionAvoidance();
+	dtFree(ptr);
+	ptr = 0;
 }
 
 bool dtCollisionAvoidance::init(int maxCircles, int maxSegments)
@@ -68,18 +89,6 @@ bool dtCollisionAvoidance::init(int maxCircles, int maxSegments)
 		return false;
 
 	memset(m_segments, 0, sizeof(dtObstacleSegment)*m_maxSegments);
-	
-	// Init obstacle query params.
-	m_params.velBias = 0.4f;
-	m_params.weightDesVel = 2.0f;
-	m_params.weightCurVel = 0.75f;
-	m_params.weightSide = 0.75f;
-	m_params.weightToi = 2.5f;
-	m_params.horizTime = 2.5f;
-	m_params.gridSize = 33;
-	m_params.adaptiveDivs = 7;
-	m_params.adaptiveRings = 2;
-	m_params.adaptiveDepth = 5;
 
 	return true;
 }
@@ -93,7 +102,7 @@ void dtCollisionAvoidance::purge()
 	m_segments = 0;
 }
 
-void dtCollisionAvoidance::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float )
+void dtCollisionAvoidance::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float )
 {
 	m_velocitySamplesCount = 0;
 
@@ -101,22 +110,23 @@ void dtCollisionAvoidance::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent
 	updateVelocity(oldAgent, newAgent);
 }
 
-void dtCollisionAvoidance::addObtacles(dtCrowdAgent* ag)
+void dtCollisionAvoidance::addObtacles(const dtCrowdAgent* ag)
 {
+	const dtCrowdAgentEnvironment& agEnv = m_env[ag->id];
 	reset();
-	m_activeAgts = ag->params.caAgents;
+	m_activeAgts = getBehaviorParams(*ag)->caAgents;
 
 	// Add neighbours as obstacles.
-	for (int j = 0; j < ag->nneis; ++j)
+	for (int j = 0; j < agEnv.nbNeighbors; ++j)
 	{
-		const dtCrowdAgent& nei = m_activeAgts[ag->neis[j].idx];
-		addCircle(nei.npos, nei.params.radius, nei.vel, nei.dvel);
+		const dtCrowdAgent& nei = m_activeAgts[agEnv.neighbors[j].idx];
+		addCircle(nei.npos, nei.radius, nei.vel, nei.dvel);
 	}
 
 	// Append neighbour segments as obstacles.
-	for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
+	for (int j = 0; j < agEnv.boundary.getSegmentCount(); ++j)
 	{
-		const float* s = ag->boundary.getSegment(j);
+		const float* s = agEnv.boundary.getSegment(j);
 
 		if (dtTriArea2D(ag->npos, s, s+3) < 0.0f)
 			continue;
@@ -125,11 +135,12 @@ void dtCollisionAvoidance::addObtacles(dtCrowdAgent* ag)
 	}
 }
 
-void dtCollisionAvoidance::updateVelocity(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent)
+void dtCollisionAvoidance::updateVelocity(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent)
 {
 	float newVelocity[] = {0, 0, 0};
-	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent->npos, oldAgent->params.radius, oldAgent->desiredSpeed,
-													 oldAgent->vel, oldAgent->dvel, newVelocity, oldAgent->params.caDebug);
+	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent->npos, oldAgent->radius, oldAgent->desiredSpeed,
+													 oldAgent->vel, oldAgent->dvel, newVelocity, *oldAgent, 
+													 getBehaviorParams(*oldAgent)->caDebug);
 	dtVcopy(newAgent->dvel, newVelocity);
 }
 
@@ -368,12 +379,13 @@ void dtCollisionAvoidance::prepare(const float* pos, const float* dvel)
 }
 
 float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
-											  const float* pos, const float rad,
-											  const float* vel, const float* dvel,
-											  dtObstacleAvoidanceDebugData* debug)
+										  const float* pos, const float rad,
+										  const float* vel, const float* dvel,
+										  const dtCrowdAgent& ag, 
+										  dtObstacleAvoidanceDebugData* debug)
 {
 	// Find min time of impact and exit amongst all obstacles.
-	float tmin = m_params.horizTime;
+	float tmin = getBehaviorParams(ag)->horizTime;
 	float side = 0;
 	int nside = 0;
 
@@ -446,10 +458,10 @@ float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
 	if (nside)
 		side /= nside;
 
-	const float vpen = m_params.weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
-	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
-	const float spen = m_params.weightSide * side;
-	const float tpen = m_params.weightToi * (1.0f/(0.1f+tmin*m_invHorizTime));
+	const float vpen = getBehaviorParams(ag)->weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
+	const float vcpen = getBehaviorParams(ag)->weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
+	const float spen = getBehaviorParams(ag)->weightSide * side;
+	const float tpen = getBehaviorParams(ag)->weightToi * (1.0f/(0.1f+tmin*m_invHorizTime));
 
 	const float penalty = vpen + vcpen + spen + tpen;
 
@@ -461,12 +473,12 @@ float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
 }
 
 int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
-													 const float* vel, const float* dvel, float* nvel,
-													 dtObstacleAvoidanceDebugData* debug)
+												 const float* vel, const float* dvel, float* nvel, const dtCrowdAgent& ag, 
+												 dtObstacleAvoidanceDebugData* debug)
 {
 	prepare(pos, dvel);
 
-	m_invHorizTime = 1.0f / m_params.horizTime;
+	m_invHorizTime = 1.0f / getBehaviorParams(ag)->horizTime;
 	m_vmax = vmax;
 	m_invVmax = 1.0f / vmax;
 
@@ -479,9 +491,9 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 	float pat[(DT_MAX_PATTERN_DIVS*DT_MAX_PATTERN_RINGS+1)*2];
 	int npat = 0;
 
-	const int ndivs = (int)m_params.adaptiveDivs;
-	const int nrings= (int)m_params.adaptiveRings;
-	const int depth = (int)m_params.adaptiveDepth;
+	const int ndivs = (int)getBehaviorParams(ag)->adaptiveDivs;
+	const int nrings= (int)getBehaviorParams(ag)->adaptiveRings;
+	const int depth = (int)getBehaviorParams(ag)->adaptiveDepth;
 
 	const int nd = dtClamp(ndivs, 1, DT_MAX_PATTERN_DIVS);
 	const int nr = dtClamp(nrings, 1, DT_MAX_PATTERN_RINGS);
@@ -507,9 +519,9 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 	}
 
 	// Start sampling.
-	float cr = vmax * (1.0f - m_params.velBias);
+	float cr = vmax * (1.0f - getBehaviorParams(ag)->velBias);
 	float res[3];
-	dtVset(res, dvel[0] * m_params.velBias, 0, dvel[2] * m_params.velBias);
+	dtVset(res, dvel[0] * getBehaviorParams(ag)->velBias, 0, dvel[2] * getBehaviorParams(ag)->velBias);
 	int ns = 0;
 
 	for (int k = 0; k < depth; ++k)
@@ -527,7 +539,7 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 
 			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+0.001f)) continue;
 
-			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, debug);
+			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, ag, debug);
 			ns++;
 			if (penalty < minPenalty)
 			{

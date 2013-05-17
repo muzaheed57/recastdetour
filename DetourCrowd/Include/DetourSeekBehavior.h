@@ -24,6 +24,15 @@
 struct dtCrowdAgent;
 
 
+/// Parameters for the seek behavior
+struct dtSeekBehaviorParams
+{
+	const dtCrowdAgent* seekTarget;	///< The agent we seek.
+	float seekDistance;				///< Minimal distance to keep between the agent and its target.
+	float seekPredictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
+									///  Nonetheless a big value is not realistic when agents are close to each other.
+};
+
 /// This class implements the seek behavior.
 ///
 /// An agent with this behavior will try to reach its target.
@@ -31,17 +40,21 @@ struct dtCrowdAgent;
 /// (the agent will never get any closer than this distance).
 /// Also the agent can have a prediction factor, which means that it will predict the next
 /// position of its target (according to its velocity) and head to it.
-class dtSeekBehavior : public dtSteeringBehavior
+class dtSeekBehavior : public dtSteeringBehavior<dtSeekBehaviorParams>
 {
 public:
-	dtSeekBehavior();
+	dtSeekBehavior(unsigned maxAgents);
 	~dtSeekBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtSeekBehavior* allocate(unsigned nbMaxAgents);
+	static void free(dtSeekBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
 private:
 	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
 };
+
 
 #endif // DETOURSEEKBEHAVIOR_H

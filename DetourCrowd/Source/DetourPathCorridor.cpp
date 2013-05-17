@@ -443,7 +443,6 @@ void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	
 	// Move along navmesh and update new position.
 	float result[3];
-	static const int MAX_VISITED = 16;
 	dtPolyRef visited[MAX_VISITED];
 	int nvisited = 0;
 	navquery->moveAlongSurface(m_path[0], m_pos, npos, filter,

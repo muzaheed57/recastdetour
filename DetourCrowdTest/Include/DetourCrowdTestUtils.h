@@ -33,14 +33,17 @@ public:
 	TestScene();
 	~TestScene();
 
-	/// Creation of the scene.
+	/// Creation of the 3D scene (a square).
 	///
-	/// @param[out]	param		Will be initialized to a default configuration
 	/// @param[in]	vertices	The vertices for the creation of the navigation mesh
 	/// @param[in]	triangles	The triangles for the creation of the navigation mesh
 	///
 	/// @return Return the newly created crowd. Return 0 if something went wrong.
-	dtCrowd* createScene(dtCrowdAgentParams& param, float* vertices, int* triangles);
+	dtCrowd* createSquareScene();
+
+	bool defaultInitializeAgent(dtCrowd& crowd, int index) const;
+
+	dtNavMesh* getNavMesh() { return &m_navMesh; }
 
 private:
 	CrowdSample m_cs;

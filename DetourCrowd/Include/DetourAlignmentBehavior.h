@@ -24,15 +24,26 @@
 struct dtCrowdAgent;
 
 
+struct dtAlignmentBehaviorParams
+{
+	dtCrowdAgent* alignmentAgents;	///< The list of agents the indices are refering to.
+	const int* alignmentTargets;	///< The indices of the targets
+	int alignmentNbTargets;			///< The number of target
+};
+
 /// Defines the alignment behavior.
 ///
 /// An agent using this behavior will keep its velocity aligned with its targets'.
-class dtAlignmentBehavior : public dtSteeringBehavior
+class dtAlignmentBehavior : public dtSteeringBehavior<dtAlignmentBehaviorParams>
 {
 public:
-	dtAlignmentBehavior();
+	static dtAlignmentBehavior* allocate(unsigned nbMaxAgents);
+	static void free(dtAlignmentBehavior* ptr);
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	dtAlignmentBehavior(unsigned nbMaxAgents);
+	~dtAlignmentBehavior();
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 };
 

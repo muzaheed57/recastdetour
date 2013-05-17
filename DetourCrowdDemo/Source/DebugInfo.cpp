@@ -17,6 +17,7 @@
 //
 
 #include "DebugInfo.h"
+#include "DetourCollisionAvoidance.h"
 
 #include <DetourCommon.h>
 

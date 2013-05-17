@@ -24,16 +24,25 @@
 struct dtCrowdAgent;
 
 
+struct dtGoToBehaviorParams
+{
+	float gotoDistance;		///< Minimal distance to keep between the agent and its target.
+	float* gotoTarget;		///< The position we want to reach.
+};
+
 /// Defines the GoTo behavior.
 ///
 /// This behavior allows the user to set a target, and the agent will try to reach it.
-class dtGoToBehavior : public dtSteeringBehavior
+class dtGoToBehavior : public dtSteeringBehavior<dtGoToBehaviorParams>
 {
 public:
-	dtGoToBehavior();
+	dtGoToBehavior(unsigned nbMaxAgents);
 	~dtGoToBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtGoToBehavior* allocate(unsigned nbMaxAgents);
+	static void free(dtGoToBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
 private:

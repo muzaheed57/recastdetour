@@ -20,20 +20,20 @@
 #define DETOURCROWD_H
 
 #include "DetourBehavior.h"
-#include "DetourCollisionAvoidance.h"
 #include "DetourLocalBoundary.h"
 #include "DetourNavMeshQuery.h"
-#include "DetourPathCorridor.h"
 #include "DetourPipelineBehavior.h"
 #include "DetourProximityGrid.h"
-#include "DetourPathQueue.h"
+
 
 class dtSeekBehavior;
+
 class dtFlockingBehavior;
 class dtGoToBehavior;
 class dtSeparationBehavior;
 class dtAlignmentBehavior;
 class dtCohesionBehavior;
+class dtObstacleAvoidanceDebugData;
 
 
 /// The maximum number of neighbors that a crowd agent can take into account
@@ -41,33 +41,6 @@ class dtCohesionBehavior;
 /// @ingroup crowd
 static const int DT_CROWDAGENT_MAX_NEIGHBOURS = 6;
 
-/// The maximum number of corners a crowd agent will look ahead in the path.
-/// This value is used for sizing the crowd agent corner buffers.
-/// Due to the behavior of the crowd manager, the actual number of useful
-/// corners will be one less than this number.
-/// @ingroup crowd
-static const int DT_CROWDAGENT_MAX_CORNERS = 4;
-
-template <typename T>
-T* dtAllocBehavior()
-{
-	void* mem = dtAlloc(sizeof(T), DT_ALLOC_PERM);
-
-	if (mem)
-		return new(mem) T;
-
-	return 0;
-}
-
-template <typename T>
-void dtFreeBehavior(T* ptr)
-{
-	if (!ptr)
-		return;
-
-	ptr->~T();
-	dtFree(ptr);
-}
 
 /// Provides neighbor data for agents managed by the crowd.
 /// @ingroup crowd
@@ -95,71 +68,6 @@ struct dtCrowdAgentAnimation
 	float t, tmax;
 };
 
-/// Configuration parameters for a crowd agent.
-/// @ingroup crowd
-struct dtCrowdAgentParams
-{
-	dtBehavior* steeringBehavior;
-
-	// Parameters for the seek behavior
-	const dtCrowdAgent* seekTarget;	///< The agent we seek.
-	float seekDistance;				///< Minimal distance to keep between the agent and its target.
-	float seekPredictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
-									///  Nonetheless a big value is not realistic when agents are close to each other.
-
-	// Parameters for the alignment behavior
-	dtCrowdAgent* alignmentAgents;	///< The list of agents the indices are refering to.
-	const int* alignmentTargets;	///< The indices of the targets
-	int alignmentNbTargets;			///< The number of target
-
-	// Parameters for the cohesion behavior
-	dtCrowdAgent* cohesionAgents;	///< The list of agents the indices are refering to.
-	const int* cohesionTargets;		///< The indices of the targets
-	int cohesionNbTargets;			///< The number of target
-
-	// Parameters for the goto behavior
-	float gotoDistance;				///< Minimal distance to keep between the agent and its target.
-	float* gotoTarget;				///< The position we want to reach.
-
-	// Parameters for the flocking behavior
-	int* toFlockWith;					///< Indices of the agents to flock with.
-	int nbFlockingNeighbors;			///< Number of agents to flock with.
-	dtCrowdAgent* flockingAgents;		///< The list of agents the indices are refering to.
-	float flockingSeparationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
-
-	// Parameters for the separation behavior
-	int* separationTargets;				///< The others agents we want to keep our distances from.
-	int separationNbTargets;			///< The number of targets.
-	dtCrowdAgent* separationAgents;		///< The list of agents the indices are refering to.
-	float separationDistance;			///< From distance from which the agent considers the targets that must be avoided.
-	float separationWeight;				///< A coefficient defining how agressively the agent should avoid the targets.
-
-	// Parameters for the pathFollowing behavior
-	dtCrowdAgentAnimation* pfAnims;		///< The animations for each agent.
-	dtCrowdAgentDebugInfo* pfDebug;		///< A debug object to load with debug information. [Opt]
-	int pfDebugIbdex;					///< The index of the agent for debug purpose.
-
-	// Parameters for the collision avoidance behavior.
-	dtObstacleAvoidanceDebugData* caDebug;	///< A debug object to load with debug information. [Opt]
-	dtCrowdAgent* caAgents;					///< The agents in the crowd.
-
-	float radius;					///< Agent radius. [Limit: >= 0]
-	float height;					///< Agent height. [Limit: > 0]
-	float maxAcceleration;			///< Maximum allowed acceleration. [Limit: >= 0]
-	float maxSpeed;					///< Maximum allowed speed. [Limit: >= 0]
-
-	/// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
-	float collisionQueryRange;
-
-	float pathOptimizationRange;		///< The path visibility optimization range. [Limit: > 0]
-
-	/// Flags that impact steering behavior. (See: #UpdateFlags)
-	unsigned char updateFlags;
-
-	/// User defined data attached to the agent.
-	void* userData;
-};
-
 enum MoveRequestState
 {
 	DT_CROWDAGENT_TARGET_NONE = 0,
@@ -171,30 +79,36 @@ enum MoveRequestState
 	DT_CROWDAGENT_TARGET_VELOCITY,
 };
 
+struct dtCrowdAgentEnvironment
+{
+	dtCrowdAgentEnvironment(int nbMaxAgents);
+	~dtCrowdAgentEnvironment();
+
+	/// The local boundary data for the agent.
+	dtLocalBoundary boundary;
+
+	/// The known neighbors of the agent.
+	dtCrowdNeighbour neighbors[DT_CROWDAGENT_MAX_NEIGHBOURS];
+
+	/// The number of neighbors.
+	int nbNeighbors;
+};
+
 /// Represents an agent managed by a #dtCrowd object.
 /// @ingroup crowd
 struct dtCrowdAgent
 {
+	/// Unique identifier of the agent
+	int id;
+
 	/// 1 if the agent is active, or 0 if the agent is in an unused slot in the agent pool.
 	unsigned char active;
 
 	/// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
 	unsigned char state;
 
-	/// The path corridor the agent is using.
-	dtPathCorridor corridor;
-
-	/// The local boundary data for the agent.
-	dtLocalBoundary boundary;
-	
-	/// Time since the agent's path corridor was optimized.
-	float topologyOptTime;
-	
-	/// The known neighbors of the agent.
-	dtCrowdNeighbour neis[DT_CROWDAGENT_MAX_NEIGHBOURS];
-
-	/// The number of neighbors.
-	int nneis;
+	/// The environment of the agent
+	//dtCrowdAgentEnvironment environment;
 	
 	/// The desired speed.
 	float desiredSpeed;
@@ -203,28 +117,22 @@ struct dtCrowdAgent
 	float disp[3];
 	float dvel[3];		///< The desired velocity of the agent. [(x, y, z)]
 	float vel[3];		///< The actual velocity of the agent. [(x, y, z)]
+			
+	dtBehavior* behavior;
 
-	/// The agent's configuration parameters.
-	dtCrowdAgentParams params;
+	float radius;					///< Agent radius. [Limit: >= 0]
+	float height;					///< Agent height. [Limit: > 0]
+	float maxAcceleration;			///< Maximum allowed acceleration. [Limit: >= 0]
+	float maxSpeed;					///< Maximum allowed speed. [Limit: >= 0]
 
-	/// The local path corridor corners for the agent. (Staight path.) [(x, y, z) * #ncorners]
-	float cornerVerts[DT_CROWDAGENT_MAX_CORNERS*3];
+	/// Flags that impact steering behavior. (See: #UpdateFlags)
+	unsigned char updateFlags;
 
-	/// The local path corridor corner flags. (See: #dtStraightPathFlags) [(flags) * #ncorners]
-	unsigned char cornerFlags[DT_CROWDAGENT_MAX_CORNERS];
+	/// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
+	float collisionQueryRange;
 
-	/// The reference id of the polygon being entered at the corner. [(polyRef) * #ncorners]
-	dtPolyRef cornerPolys[DT_CROWDAGENT_MAX_CORNERS];
-
-	/// The number of corners.
-	int ncorners;
-	
-	unsigned char targetState;			///< State of the movement request.
-	dtPolyRef targetRef;				///< Target polyref of the movement request.
-	float targetPos[3];					///< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
-	dtPathQueueRef targetPathqRef;		///< Path finder ref.
-	bool targetReplan;					///< Flag indicating that the current path is being replanned.
-	float targetReplanTime;				/// <Time since the agent's target was replanned.
+	/// User defined data attached to the agent.
+	void* userData;
 };
 
 /// Crowd agent update flags.
@@ -249,23 +157,41 @@ struct dtCrowdAgentDebugInfo
 class dtPathFollowing;
 class dtCollisionAvoidance;
 
+class dtCrowdQuery
+{
+public:
+	dtCrowdQuery(int maxAgents);
+
+	~dtCrowdQuery();
+
+	dtCrowdAgentAnimation* getAgentsAnims();
+	float* getQueryExtents();
+	dtNavMeshQuery* getNavMeshQuery();
+	dtQueryFilter* getQueryFilter();
+	dtProximityGrid* getProximityGrid();
+
+private:
+	dtCrowdAgentAnimation* m_agentAnims;
+	float m_ext[3];
+	dtNavMeshQuery* m_navMeshQuery;			///< Used to perform queries on the navigation mesh.
+	dtQueryFilter m_filter;					///< Defines polygon filtering and traversal costs for navigation mesh query operations.
+	dtProximityGrid* m_grid;
+	int m_maxAgents;
+};
+
 /// Provides local steering behaviors for a group of agents. 
 /// @ingroup crowd
 class dtCrowd
 {
+	dtCrowdQuery* m_crowdQuery;
+	dtCrowdAgentEnvironment* m_agentsEnv;
+
 	int m_maxAgents;
 	int m_nbActiveAgents;
 	dtCrowdAgent* m_agents;
 	dtCrowdAgent** m_activeAgents;
-	dtCrowdAgentAnimation* m_agentAnims;
 	int* m_agentsToUpdate;
-	float m_ext[3];
-	dtPathQueue m_pathQueue;			///< A Queue of destination in order to reach the target.
-	dtNavMeshQuery* m_navMeshQuery;		///< Used to perform queries on the navigation mesh.
-	dtQueryFilter m_filter;				///< Defines polygon filtering and traversal costs for navigation mesh query operations.
-	
-	dtProximityGrid* m_grid;
-	
+		
 	int m_maxPathResult;
 	float m_maxAgentRadius;
 	int m_maxCommonNodes;
@@ -297,6 +223,8 @@ public:
 	/// @return The requested agent.
 	dtCrowdAgent* getAgent(const int idx);
 
+	const dtCrowdAgentEnvironment* getAgentsEnvironment() const;
+
 	/// The maximum number of agents that can be managed by the object.
 	/// @return The maximum number of agents.
 	const int getAgentCount() const;
@@ -312,36 +240,12 @@ public:
 
 	/// Adds a new agent to the crowd.
 	///  @param[in]		pos		The requested position of the agent. [(x, y, z)]
-	///  @param[in]		params	The configutation of the agent.
 	/// @return The index of the agent in the agent pool. Or -1 if the agent could not be added.
-	int addAgent(const float* pos, const dtCrowdAgentParams* params);
-
-	/// Updates the specified agent's configuration.
-	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
-	///  @param[in]		params	The new agent configuration.
-	void updateAgentParameters(const int idx, const dtCrowdAgentParams* params);
+	int addAgent(const float* pos);
 
 	/// Removes the agent from the crowd.
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	void removeAgent(const int idx);
-	
-	/// Submits a new move request for the specified agent.
-	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
-	///  @param[in]		ref		The position's polygon reference.
-	///  @param[in]		pos		The position within the polygon. [(x, y, z)]
-	/// @return True if the request was successfully submitted.
-	bool requestMoveTarget(const int idx, dtPolyRef ref, const float* pos);
-
-	/// Submits a new move request for the specified agent.
-	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
-	///  @param[in]		vel		The movement velocity. [(x, y, z)]
-	/// @return True if the request was successfully submitted.
-	bool requestMoveVelocity(const int idx, const float* vel);
-
-	/// Resets any request for the specified agent.
-	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
-	/// @return True if the request was successfully reseted.
-	bool resetMoveTarget(const int idx);
 
 	/// Gets the active agents into the agent pool.
 	///  @param[out]	agents		An array of agent pointers. [(#dtCrowdAgent *) * maxAgents]
@@ -356,18 +260,16 @@ public:
 	/// Updates the steering and positions of the agents whose indices may be given by the user.
 	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	///  @param[out]	debug		A debug object to load with debug information. [Opt]
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
 	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
-	void update(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIdx = 0);
+	void update(const float dt, int* agentsIdx = 0, int nbIdx = 0);
 
 	/// Updates the velocity of the agents whose indices may be given by the user (but not their position).
 	/// If no indices are given, then the method updates every agent.
 	///  @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	///  @param[out]	debug		A debug object to load with debug information. [Opt]
 	///  @param[in]		agentsIdx	The list of the indices of the agents we want to update. [Opt]
 	///  @param[in]		nbIdx		Size of the list of indices. [Opt]
-	void updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* agentsIdx = 0, int nbIdx = 0);
+	void updateVelocity(const float dt, int* agentsIdx = 0, int nbIdx = 0);
 
 	/// Updates the positions of the agents whose indices may be given by the user (but not their velocity).
 	/// If no indices are given, then the method updates every agent.
@@ -389,34 +291,10 @@ public:
 	/// @param[in]	position	The new desired position.
 	/// @return		False if the position is outside the navigation mesh or if the index is out of bound. True otherwise.
 	bool updateAgentPosition(int index, const float* position);
+
+	const dtCrowdQuery* getCrowdQuery() const { return m_crowdQuery; }
+	dtCrowdQuery* getCrowdQuery() { return m_crowdQuery; }
 	
-	/// Gets the filter used by the crowd.
-	/// @return The filter used by the crowd.
-	const dtQueryFilter* getFilter() const;
-
-	/// Gets the filter used by the crowd.
-	/// @return The filter used by the crowd.
-	dtQueryFilter* getEditableFilter();
-
-	/// Gets the search extents [(x, y, z)] used by the crowd for query operations. 
-	/// @return The search extents used by the crowd. [(x, y, z)]
-	const float* getQueryExtents() const;
-	
-	/// Gets the crowd's proximity grid.
-	/// @return The crowd's proximity grid.
-	const dtProximityGrid* getGrid() const { return m_grid; }
-
-	/// Gets the crowd's path request queue.
-	/// @return The crowd's path request queue.
-	const dtPathQueue* getPathQueue() const;
-	dtPathQueue* getPathQueue();
-
-	/// Gets the query object used by the crowd.
-	const dtNavMeshQuery* getNavMeshQuery() const;
-	dtNavMeshQuery* getNavMeshQuery();
-
-	dtCrowdAgentAnimation* getAnims() { return m_agentAnims; }
-	int getMaxPathResult() { return m_maxPathResult; }
 	int getNbMaxAgents() { return m_maxAgents; }
 };
 

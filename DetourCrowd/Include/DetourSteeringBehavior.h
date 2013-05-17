@@ -20,15 +20,20 @@
 #define DETOURSTEERINGBEHAVIOR_H
 
 #include "DetourBehavior.h"
+#include "DetourParametrizedBehavior.h"
 
-struct dtCrowdAgent;
+#include "DetourCommon.h"
+#include "DetourCrowd.h"
 
+
+static const float EPSILON = 0.0001f;
 
 /// Interface defining a steering behavior.
-class dtSteeringBehavior : public dtBehavior
+template <typename T = NoData>
+class dtSteeringBehavior : public dtParametrizedBehavior<T>
 {
 public:
-	dtSteeringBehavior();
+	dtSteeringBehavior(unsigned nbMaxAgent);
 	virtual ~dtSteeringBehavior();
 	
 	/// Computes the force that should be applied to the velocity of the given agent.
@@ -46,5 +51,37 @@ protected:
 	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
 };
+
+template<typename T>
+dtSteeringBehavior<T>::dtSteeringBehavior(unsigned nbMaxAgent)
+	: dtParametrizedBehavior<T>(nbMaxAgent)
+{
+}
+
+template<typename T>
+dtSteeringBehavior<T>::~dtSteeringBehavior()
+{
+}
+
+template<typename T>
+void dtSteeringBehavior<T>::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
+{
+	float acceleration[3];
+	dtVcopy(acceleration, force);
+	dtVclamp(acceleration, dtVlen(acceleration), oldAgent->maxAcceleration);
+
+	dtVmad(newAgent->dvel, oldAgent->vel, acceleration, dt);
+
+	// Nil velocity
+	if (dtVlen(newAgent->dvel) < EPSILON)
+	{
+		newAgent->desiredSpeed = 0.f;
+		return;
+	}
+
+	dtVclamp(newAgent->dvel, dtVlen(newAgent->dvel), newAgent->maxSpeed);
+
+	newAgent->desiredSpeed = dtVlen(newAgent->dvel);
+}
 
 #endif

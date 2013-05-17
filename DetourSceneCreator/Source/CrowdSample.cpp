@@ -22,12 +22,13 @@
 #include "NavMeshCreator.h"
 #include "JSON.h"
 
-#include "DetourSeekBehavior.h"
+#include "DetourParametrizedBehavior.h"
 #include "DetourAlignmentBehavior.h"
 #include "DetourCohesionBehavior.h"
 #include "DetourCollisionAvoidance.h"
 #include "DetourPathFollowing.h"
 #include "DetourPipelineBehavior.h"
+#include "DetourSeekBehavior.h"
 #include "DetourSeparationBehavior.h"
 
 #include <Recast.h>
@@ -42,6 +43,7 @@ CrowdSample::CrowdSample()
 , m_context(0)
 , m_maxRadius(0.f)
 , m_sceneFileName()
+, m_navMesh(0)
 {
     strcpy(m_sceneFileName,"");
 }
@@ -146,27 +148,23 @@ void CrowdSample::parseCrowd(dtCrowd* crowd)
 				{
 					JSONValue* maxSpeed = parameters->Child(L"maxSpeed");
 					if (maxSpeed && maxSpeed->IsNumber())
-						m_agentCfgs[iAgent].parameters.maxSpeed = (float)maxSpeed->AsNumber();
+						m_agentCfgs[iAgent].maxSpeed= (float)maxSpeed->AsNumber();
 
 					JSONValue* maxAcceleration = parameters->Child(L"maxAcceleration");
 					if (maxAcceleration && maxAcceleration->IsNumber())
-						m_agentCfgs[iAgent].parameters.maxAcceleration = (float)maxAcceleration->AsNumber();
+						m_agentCfgs[iAgent].maxAcceleration = (float)maxAcceleration->AsNumber();
 
 					JSONValue* radius = parameters->Child(L"radius");
 					if (radius && radius->IsNumber())
-						m_agentCfgs[iAgent].parameters.radius = (float)radius->AsNumber();
+						m_agentCfgs[iAgent].radius = (float)radius->AsNumber();
 
 					JSONValue* height = parameters->Child(L"height");
 					if (height && height->IsNumber())
-						m_agentCfgs[iAgent].parameters.height = (float)height->AsNumber();
+						m_agentCfgs[iAgent].height = (float)height->AsNumber();
 
 					JSONValue* collisionQueryRange = parameters->Child(L"collisionQueryRange");
 					if (collisionQueryRange && collisionQueryRange->IsNumber())
-						m_agentCfgs[iAgent].parameters.collisionQueryRange = (float)collisionQueryRange->AsNumber();
-
-					JSONValue* pathOptimizationRange = parameters->Child(L"pathOptimizationRange");
-					if (pathOptimizationRange && pathOptimizationRange->IsNumber())
-						m_agentCfgs[iAgent].parameters.pathOptimizationRange = (float)pathOptimizationRange->AsNumber();
+						m_agentCfgs[iAgent].collisionQueryRange = (float)collisionQueryRange->AsNumber();
 
 					JSONValue* pipeline = parameters->Child(L"pipeline");
 					if (pipeline && pipeline->IsArray())
@@ -188,15 +186,15 @@ void CrowdSample::parseCrowd(dtCrowd* crowd)
 								const std::wstring& updateFlagStr = updateFlag->AsString();
 
 								if (updateFlagStr==L"DT_CROWD_ANTICIPATE_TURNS")
-									m_agentCfgs[iAgent].parameters.updateFlags |= DT_CROWD_ANTICIPATE_TURNS;
+									m_agentCfgs[iAgent].updateFlags |= DT_CROWD_ANTICIPATE_TURNS;
 								else if (updateFlagStr==L"DT_CROWD_OBSTACLE_AVOIDANCE")
-									m_agentCfgs[iAgent].parameters.updateFlags |= DT_CROWD_OBSTACLE_AVOIDANCE;
+									m_agentCfgs[iAgent].updateFlags |= DT_CROWD_OBSTACLE_AVOIDANCE;
 								else if (updateFlagStr==L"DT_CROWD_SEPARATION")
-									m_agentCfgs[iAgent].parameters.updateFlags |= DT_CROWD_SEPARATION;
+									m_agentCfgs[iAgent].updateFlags |= DT_CROWD_SEPARATION;
 								else if (updateFlagStr==L"DT_CROWD_OPTIMIZE_VIS")
-									m_agentCfgs[iAgent].parameters.updateFlags |= DT_CROWD_OPTIMIZE_VIS;
+									m_agentCfgs[iAgent].updateFlags |= DT_CROWD_OPTIMIZE_VIS;
 								else if (updateFlagStr==L"DT_CROWD_OPTIMIZE_TOPO")
-									m_agentCfgs[iAgent].parameters.updateFlags |= DT_CROWD_OPTIMIZE_TOPO;
+									m_agentCfgs[iAgent].updateFlags |= DT_CROWD_OPTIMIZE_TOPO;
 							}
 						}
 					}
@@ -244,70 +242,122 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 	// Collision Avoidance behavior
 	if (type && type->IsString() && type->AsString() == L"collisionAvoidance")
 	{
-		dtCollisionAvoidance* ca = dtAllocBehavior<dtCollisionAvoidance>();
+		dtCollisionAvoidance* ca = new dtCollisionAvoidance(m_agentCount, crowd->getAgentsEnvironment());
 		ca->init();
-		m_agentCfgs[iAgent].parameters.caAgents = crowd->getAgents();
-		m_agentCfgs[iAgent].parameters.caDebug = 0;
-		m_agentCfgs[iAgent].parameters.steeringBehavior = ca;
+
+		dtObstacleAvoidanceParams* params = new dtObstacleAvoidanceParams;
+
+		params = ca->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (params)
+		{
+			params->caAgents = crowd->getAgents();
+			params->caDebug = 0;
+			params->velBias = 0.4f;
+			params->weightDesVel = 2.0f;
+			params->weightCurVel = 0.75f;
+			params->weightSide = 0.75f;
+			params->weightToi = 2.5f;
+			params->horizTime = 2.5f;
+			params->gridSize = 33;
+			params->adaptiveDivs = 7;
+			params->adaptiveRings = 2;
+			params->adaptiveDepth = 5;
+		}
+
+		m_agentCfgs[iAgent].steeringBehavior = ca;
 	}
 
 	// PathFollowing behavior
 	else if (type && type->IsString() && type->AsString() == L"pathFollowing")
 	{
-		dtPathFollowing* pf = dtAllocBehavior<dtPathFollowing>();
-		if (!pf->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
-				 crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims()))
+		dtPathFollowing* pf = dtPathFollowing::allocate(m_agentCount);
+		if (!pf->init(*crowd->getCrowdQuery(), m_navMesh, crowd->getAgents(), crowd->getNbMaxAgents()))
 			return;
 
-		m_agentCfgs[iAgent].parameters.steeringBehavior = pf;
+		m_agentCfgs[iAgent].steeringBehavior = pf;
 
-		m_agentCfgs[iAgent].parameters.pfAnims = crowd->getAnims();
-		m_agentCfgs[iAgent].parameters.pfDebug = 0;
-		m_agentCfgs[iAgent].parameters.pfDebugIbdex = iAgent;
+		dtPathFollowingParams* params = new dtPathFollowingParams;
 
+		params = pf->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (params)
+		{
+			params->debugInfos = 0;
+			params->debugIndex = iAgent;
+		}
+
+		dtPolyRef dest;
+		float nearest[3];
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(m_agentCfgs[iAgent].position, crowd->getCrowdQuery()->getQueryExtents(), 
+			crowd->getCrowdQuery()->getQueryFilter(), &dest, nearest);
+		params->corridor.reset(dest, nearest);
+
+		JSONValue* pathOpti = behavior->Child(L"pathOptimizationRange");
+		if (pathOpti && pathOpti->IsNumber())
+			params->pathOptimizationRange = (float)pathOpti->AsNumber();
+		
 		JSONValue* destination = behavior->Child(L"destination");
 		if (destination && destination->IsArray())
 		{
 			m_agentCfgs[iAgent].destination[0] = (float)destination->Child((size_t)0)->AsNumber();
 			m_agentCfgs[iAgent].destination[1] = (float)destination->Child(1)->AsNumber();
 			m_agentCfgs[iAgent].destination[2] = (float)destination->Child(2)->AsNumber();
+
+			crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(m_agentCfgs[iAgent].destination, crowd->getCrowdQuery()->getQueryExtents(), 
+				crowd->getCrowdQuery()->getQueryFilter(), 
+				&m_agentCfgs[iAgent].destinationPoly, 0);
+
+			pf->requestMoveTarget(iAgent, m_agentCfgs[iAgent].destinationPoly, m_agentCfgs[iAgent].destination);
 		}
 	}
 
 	// Seek behavior
 	else if (type && type->IsString() && type->AsString() == L"seek")
 	{
-		m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtSeekBehavior>();
-		m_agentsBehaviors[iAgent] = "seek";
+		dtSeekBehavior* seekBehavior = dtSeekBehavior::allocate(m_agentCount);
+		dtSeekBehaviorParams* params;
+
+		params = seekBehavior->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (!params)
+			return;
+		
+		m_agentCfgs[iAgent].steeringBehavior = seekBehavior;
 
 		JSONValue* target = behavior->Child(L"targetIdx");
 		if (target && target->IsNumber())
-			m_agentCfgs[iAgent].parameters.seekTarget = &crowd->getAgents()[(int) target->AsNumber()];
+			params->seekTarget = &crowd->getAgents()[(int) target->AsNumber()];
 
 		JSONValue* dist = behavior->Child(L"minimalDistance");
 		if (dist && dist->IsNumber())
-			m_agentCfgs[iAgent].parameters.seekDistance = (float) dist->AsNumber();
+			params->seekDistance = (float) dist->AsNumber();
 
 		JSONValue* predict = behavior->Child(L"predictionFactor");
 		if (predict && predict->IsNumber())
-			m_agentCfgs[iAgent].parameters.seekPredictionFactor = (float) predict->AsNumber();
+			params->seekPredictionFactor = (float) predict->AsNumber();
 	}
 
 	// Separation behavior
 	else if (type && type->IsString() && type->AsString() == L"separation")
 	{		
-		m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtSeparationBehavior>();
-		m_agentsBehaviors[iAgent] = "separation";
+		dtSeparationBehavior* separationBehavior = dtSeparationBehavior::allocate(m_agentCount);
+		dtSeparationBehaviorParams* params;
 
-		m_agentCfgs[iAgent].parameters.separationAgents = crowd->getAgents();
+		params = separationBehavior->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (!params)
+			return;
+
+		params->separationAgents = crowd->getAgents();
 
 		JSONValue* weight = behavior->Child(L"weight");
 		if (weight && weight->IsNumber())
-			m_agentCfgs[iAgent].parameters.separationWeight = (float) weight->AsNumber();
+			params->separationWeight = (float) weight->AsNumber();
 
 		JSONValue* dist = behavior->Child(L"distance");
 		if (dist && dist->IsNumber())
-			m_agentCfgs[iAgent].parameters.separationDistance = (float) weight->AsNumber();
+			params->separationDistance = (float) weight->AsNumber();
 
 		JSONValue* targets = behavior->Child(L"targets");
 		if (targets && targets->IsArray())
@@ -317,23 +367,31 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 				JSONValue* index = targets->Child(i);
 
 				if (index && index->IsNumber())
-					m_separationTargets.push_back(index->AsNumber());
+					m_separationTargets.push_back(static_cast<int>(index->AsNumber()));
 			}
 
 			int* targets = (int*) dtAlloc(sizeof(int) * m_separationTargets.size(), DT_ALLOC_PERM);
 			std::copy(m_separationTargets.begin(), m_separationTargets.end(), targets);
 
-			m_agentCfgs[iAgent].parameters.separationTargets = targets;
-			m_agentCfgs[iAgent].parameters.separationNbTargets = m_separationTargets.size();
+			params->separationTargets = targets;
+			params->separationNbTargets = m_separationTargets.size();
 		}
+
+		m_agentCfgs[iAgent].steeringBehavior = separationBehavior;
 	}
 
 	// Alignment behavior
 	else if (type && type->IsString() && type->AsString() == L"alignment")
 	{				
-		m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtAlignmentBehavior>();
-		m_agentsBehaviors[iAgent] = "alignment";
-		m_agentCfgs[iAgent].parameters.alignmentAgents = crowd->getAgents();
+		dtAlignmentBehavior* alignBehavior = dtAlignmentBehavior::allocate(m_agentCount);
+		dtAlignmentBehaviorParams* params = new dtAlignmentBehaviorParams;
+
+		params = alignBehavior->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (!params)
+			return;
+
+		params->alignmentAgents = crowd->getAgents();
 
 		JSONValue* targets = behavior->Child(L"targets");
 		if (targets && targets->IsArray())
@@ -343,23 +401,31 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 				JSONValue* index = targets->Child(i);
 
 				if (index && index->IsNumber())
-					m_alignmentTargets.push_back(index->AsNumber());
+					m_alignmentTargets.push_back(static_cast<int>(index->AsNumber()));
 			}
 
 			int* targets = (int*) dtAlloc(sizeof(int) * m_alignmentTargets.size(), DT_ALLOC_PERM);
 			std::copy(m_alignmentTargets.begin(), m_alignmentTargets.end(), targets);
 
-			m_agentCfgs[iAgent].parameters.alignmentTargets = targets;
-			m_agentCfgs[iAgent].parameters.alignmentNbTargets = m_alignmentTargets.size();
+			params->alignmentTargets = targets;
+			params->alignmentNbTargets = m_alignmentTargets.size();
 		}
+
+		m_agentCfgs[iAgent].steeringBehavior = alignBehavior;
 	}
 
 	// Cohesion behavior
 	else if (type && type->IsString() && type->AsString() == L"cohesion")
 	{				
-		m_agentCfgs[iAgent].parameters.steeringBehavior = dtAllocBehavior<dtCohesionBehavior>();
-		m_agentsBehaviors[iAgent] = "cohesion";
-		m_agentCfgs[iAgent].parameters.cohesionAgents = crowd->getAgents();
+		dtCohesionBehavior* cohesion = dtCohesionBehavior::allocate(m_agentCount);
+		dtCohesionAgentsParams* params;
+
+		params = cohesion->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (!params)
+			return;
+
+		params->cohesionAgents = crowd->getAgents();
 
 		JSONValue* targets = behavior->Child(L"targets");
 		if (targets && targets->IsArray())
@@ -369,33 +435,39 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 				JSONValue* index = targets->Child(i);
 
 				if (index && index->IsNumber())
-					m_cohesionTargets.push_back(index->AsNumber());
+					m_cohesionTargets.push_back(static_cast<int>(index->AsNumber()));
 			}
 
 			int* targets = (int*) dtAlloc(sizeof(int) * m_cohesionTargets.size(), DT_ALLOC_PERM);
 			std::copy(m_cohesionTargets.begin(), m_cohesionTargets.end(), targets);
 
-			m_agentCfgs[iAgent].parameters.cohesionTargets = targets;
-			m_agentCfgs[iAgent].parameters.cohesionNbTargets = m_cohesionTargets.size();
+			params->cohesionTargets = targets;
+			params->cohesionNbTargets = m_cohesionTargets.size();
 		}
+
+		m_agentCfgs[iAgent].steeringBehavior = cohesion;
 	}
 
 	// Flocking behavior
 	else if (type && type->IsString() && type->AsString() == L"flocking")
 	{				
-		dtFlockingBehavior* fb = dtAllocBehavior<dtFlockingBehavior>();
+		dtFlockingBehavior* fb = dtFlockingBehavior::allocate(m_agentCount, 1.f, 1.f, 1.f);
+		dtFlockingBehaviorParams* params;
+
+		params = fb->addBehaviorParams(*crowd->getAgent(iAgent));
+
+		if (!params)
+			return;
 
 		if (m_flockingsGroups.empty() == false)
 		{
-			fb->m_alignmentWeight = m_flockingsGroups.at(0).alignmentWeight;
-			fb->m_cohesionWeight = m_flockingsGroups.at(0).cohesionWeight;
-			fb->m_separationWeight = m_flockingsGroups.at(0).separationWeight;
-			m_agentCfgs[iAgent].parameters.flockingSeparationDistance = m_flockingsGroups.at(0).desiredSeparation;
+			fb->alignmentWeight = m_flockingsGroups.at(0).alignmentWeight;
+			fb->cohesionWeight = m_flockingsGroups.at(0).cohesionWeight;
+			fb->separationWeight = m_flockingsGroups.at(0).separationWeight;
+			params->separationDistance = m_flockingsGroups.at(0).desiredSeparation;
 		}
 
-		m_agentCfgs[iAgent].parameters.steeringBehavior = fb;
-		m_agentsBehaviors[iAgent] = "flocking";
-		m_agentCfgs[iAgent].parameters.flockingAgents = crowd->getAgents();
+		params->agents = crowd->getAgents();
 
 		JSONValue* targets = behavior->Child(L"targets");
 		if (targets && targets->IsArray())
@@ -405,23 +477,25 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 				JSONValue* index = targets->Child(i);
 
 				if (index && index->IsNumber())
-					m_agentsFlockingNeighbors[iAgent].push_back(index->AsNumber());
+					m_agentsFlockingNeighbors[iAgent].push_back(static_cast<int>(index->AsNumber()));
 
 				int* targets = (int*) dtAlloc(sizeof(int) * m_agentsFlockingNeighbors[iAgent].size(), DT_ALLOC_PERM);
 				std::copy(m_agentsFlockingNeighbors[iAgent].begin(), m_agentsFlockingNeighbors[iAgent].end(), targets);
 
-				m_agentCfgs[iAgent].parameters.toFlockWith = targets;
-				m_agentCfgs[iAgent].parameters.nbFlockingNeighbors = m_agentsFlockingNeighbors[iAgent].size();
+				params->toFlockWith = targets;
+				params->nbflockingTargets = m_agentsFlockingNeighbors[iAgent].size();
 			}
 		}
+
+		m_agentCfgs[iAgent].steeringBehavior = fb;
 	}
 
 	if (pipeline)
-		m_pipeline[iAgent].push_back(m_agentCfgs[iAgent].parameters.steeringBehavior);
+		m_pipeline[iAgent].push_back(m_agentCfgs[iAgent].steeringBehavior);
 }
 
 
-bool CrowdSample::loadFromFile( const char* fileName )
+bool CrowdSample::loadFromFile(const char* fileName)
 {
     char* buf = 0;
     FILE* fp = fopen(fileName, "rb");
@@ -444,38 +518,31 @@ bool CrowdSample::loadFromFile( const char* fileName )
 
 bool CrowdSample::initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMesh)
 {
+	m_navMesh = navMesh;
+
 	getSceneFile();
 	parseAgentsInfo();
     
     if (!initializeScene(scene))
-    {
         return false;
-    }
     else if (!initializeNavmesh(*scene, navMesh))
-    {
         return false;
-    }
 
 	crowd->init(m_agentCount, m_maxRadius, navMesh);
 	parseCrowd(crowd);
 
-    if (!initializeCrowd(*navMesh, crowd))
-    {
+    if (!initializeCrowd(crowd))
         return false;
-    }
     else
-    {
         return true;
-    }
 }
 
 void CrowdSample::computeMaximumRadius()
 {
     m_maxRadius = 0.f;
+
     for (int i(0) ; i < m_agentCount ; ++i)
-    {
-        m_maxRadius = rcMax(m_maxRadius,m_agentCfgs[i].parameters.radius);
-    }
+        m_maxRadius = rcMax(m_maxRadius,m_agentCfgs[i].radius);
 }
 
 bool CrowdSample::initializeScene(InputGeom* scene, float* vert, unsigned vertCount, int* tris, unsigned triCount)
@@ -526,7 +593,7 @@ bool CrowdSample::initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh)
     }
 }
 
-bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
+bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 {    
     dtStatus status;
 
@@ -535,26 +602,31 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
 		// Pipeline behavior
 		if (!m_pipeline[i].empty())
 		{
-			dtPipelineBehavior* pipeline = dtAllocBehavior<dtPipelineBehavior>();
+			dtPipelineBehavior* pipeline = dtPipelineBehavior::allocate();
 			dtBehavior** behaviors = (dtBehavior**) dtAlloc(sizeof(dtBehavior*) * m_pipeline[i].size(), DT_ALLOC_PERM);
 			std::copy(m_pipeline[i].begin(), m_pipeline[i].end(), behaviors);
 
 			pipeline->setBehaviors(behaviors, m_pipeline[i].size());
 
-			m_agentCfgs[i].parameters.steeringBehavior = pipeline;
+			m_agentCfgs[i].steeringBehavior = pipeline;
 		}
 
-        m_agentCfgs[i].index = crowd->addAgent(m_agentCfgs[i].position, &m_agentCfgs[i].parameters);
-        
-        status = crowd->getNavMeshQuery()->findNearestPoly(m_agentCfgs[i].destination,crowd->getQueryExtents(),crowd->getFilter(),&m_agentCfgs[i].destinationPoly,0);
-        
-        if (dtStatusFailed(status))
-            return false;
-        
-        status = crowd->requestMoveTarget(m_agentCfgs[i].index, m_agentCfgs[i].destinationPoly, m_agentCfgs[i].destination);
-        
-        if (dtStatusFailed(status))
-            return false;
+		// Adding the agent to the crowd
+        m_agentCfgs[i].index = crowd->addAgent(m_agentCfgs[i].position);
+
+		if (m_agentCfgs[i].index == -1)
+			continue;
+
+		crowd->getAgent(m_agentCfgs[i].index)->radius = m_agentCfgs[i].radius;
+		crowd->getAgent(m_agentCfgs[i].index)->maxSpeed = m_agentCfgs[i].maxSpeed;
+		crowd->getAgent(m_agentCfgs[i].index)->maxAcceleration = m_agentCfgs[i].maxAcceleration;
+		crowd->getAgent(m_agentCfgs[i].index)->collisionQueryRange = m_agentCfgs[i].collisionQueryRange;
+		crowd->getAgent(m_agentCfgs[i].index)->npos[0] = m_agentCfgs[i].position[0];
+		crowd->getAgent(m_agentCfgs[i].index)->npos[1] = m_agentCfgs[i].position[1];
+		crowd->getAgent(m_agentCfgs[i].index)->npos[2] = m_agentCfgs[i].position[2];
+		crowd->getAgent(m_agentCfgs[i].index)->height = m_agentCfgs[i].height;
+		crowd->getAgent(m_agentCfgs[i].index)->behavior = m_agentCfgs[i].steeringBehavior;
+		crowd->getAgent(m_agentCfgs[i].index)->updateFlags = m_agentCfgs[i].updateFlags;
     }
 	
     return true; 

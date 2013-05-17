@@ -14,14 +14,14 @@
                 "radius": 0.2,
                 "height": 1.7,
                 "collisionQueryRange": 4.0,
-                "pathOptimizationRange": 6,
                 "pipeline":
                 [
                     {
                         "behavior":
                         {
                             "type": "pathFollowing",
-                            "destination": [10, 0, 10]
+                            "destination": [10, 0, 10],
+                            "pathOptimizationRange": 6
                         }
                     },
                     {                       
@@ -42,14 +42,14 @@
                 "radius": 0.2,
                 "height": 1.7,
                 "collisionQueryRange": 4.0,
-                "pathOptimizationRange": 6,
                 "pipeline":
                 [
                     {
                         "behavior":
                         {
                             "type": "pathFollowing",
-                            "destination": [-10, 0, -10]
+                            "destination": [-10, 0, -10],
+                            "pathOptimizationRange": 6
                         }
                     },
                     {                       
@@ -70,14 +70,14 @@
                 "radius": 0.2,
                 "height": 1.7,
                 "collisionQueryRange": 4.0,
-                "pathOptimizationRange": 6,
                 "pipeline":
                 [
                     {
                         "behavior":
                         {
                             "type": "pathFollowing",
-                            "destination": [10, 0, -10]
+                            "destination": [10, 0, -10],
+                            "pathOptimizationRange": 6
                         }
                     },
                     {                       
@@ -98,14 +98,14 @@
                 "radius": 0.2,
                 "height": 1.7,
                 "collisionQueryRange": 4,
-                "pathOptimizationRange": 6,
                 "pipeline":
                 [
                     {
                         "behavior":
                         {
                             "type": "pathFollowing",
-                            "destination": [-10, 0, 10]
+                            "destination": [-10, 0, 10],
+                            "pathOptimizationRange": 6
                         }
                     },
                     {                       

@@ -30,6 +30,7 @@
 
 #include "DetourCrowdTestUtils.h"
 
+#include "DetourParametrizedBehavior.h"
 #include "DetourAlignmentBehavior.h"
 #include "DetourCohesionBehavior.h"
 #include "DetourCommon.h"
@@ -43,42 +44,24 @@
 
 TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 {
-	float vert[12];
-	int tri[6];
-
-	vert[0] = 20.0; vert[1] = 0.0; vert[2] = 20.0;
-	vert[3] = 20.0; vert[4] = 0.0; vert[5] = -20.0;
-	vert[6] = -20.0; vert[7] = 0.0; vert[8] = -20.0;
-	vert[9] = -20.0; vert[10] = 0.0; vert[11] = 20.0;
-
-	tri[0] = 0; tri[1] = 1; tri[2] = 2;
-	tri[3] = 2; tri[4] = 3; tri[5] = 0;
-
-	dtCrowdAgentParams param1, param2;
 	TestScene ts;
-	dtCrowd* crowd = ts.createScene(param1, vert, tri);
+	dtCrowd* crowd = ts.createSquareScene();
 
 	REQUIRE(crowd != 0);
 
-	memcpy(&param2, &param1, sizeof(dtCrowdAgentParams));
-
 	SECTION("Adding and Removing behaviors to the pipeline", "Trying to add and remove behaviors into the pipeline, should not crash")
 	{
-		dtPipelineBehavior* pipeline = dtAllocBehavior<dtPipelineBehavior>();
-		param1.steeringBehavior = pipeline;
+		dtPipelineBehavior* pipeline = dtPipelineBehavior::allocate();
 
 		float posAgt1[] = {0, 0.2f, 0};
 		float destAgt1[] = {15, 0, 0};
 
 		// Adding the agents to the crowd
-		int indexAgent1 = crowd->addAgent(posAgt1, &param1);
+		int indexAgent1 = crowd->addAgent(posAgt1);
 		REQUIRE_FALSE(indexAgent1 == -1);
+		ts.defaultInitializeAgent(*crowd, indexAgent1);
 
-		// Set the destination
-		dtPolyRef dest;
-		crowd->getNavMeshQuery()->findNearestPoly(destAgt1, crowd->getQueryExtents(), crowd->getFilter(), &dest, 0);
-		REQUIRE(crowd->requestMoveTarget(indexAgent1, dest, destAgt1));
-
+		crowd->getAgent(indexAgent1)->behavior = pipeline;
 		crowd->update(0.5, 0);
 
 		float agt1NewPos[3];
@@ -87,14 +70,21 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		// Since no behavior is affected to the pipeline, the agent must not have moved
 		CHECK(dtVequal(agt1NewPos, posAgt1));
 
-		dtPathFollowing* pf = dtAllocBehavior<dtPathFollowing>();
-		REQUIRE(pf->init(crowd->getPathQueue(), crowd->getNavMeshQuery(), crowd->getQueryExtents(), crowd->getEditableFilter(), crowd->getMaxPathResult(), 
-				crowd->getAgents(), crowd->getNbMaxAgents(), crowd->getAnims()));
+		dtPathFollowing* pf = dtPathFollowing::allocate(5);
+		dtPathFollowingParams* pfParams = pf->addBehaviorParams(*crowd->getAgent(0));
+
+		// Set the destination
+		dtPolyRef dest, firstPoly;
+		float nearest[3], firstPos[3];
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest, nearest);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &firstPoly, firstPos);
+		pfParams->corridor.reset(firstPoly, firstPos);
+
+		REQUIRE(dest != 0);		
+		REQUIRE(pf->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents()));
+		REQUIRE(pf->requestMoveTarget(indexAgent1, dest, destAgt1));
 
 		pipeline->setBehaviors(0, 1);
-		param1.steeringBehavior = pipeline;
-
-		crowd->updateAgentParameters(indexAgent1, &param1);
 
 		// Still no behavior was given (null pointer), so nothing should have moved.
 		crowd->update(0.5, 0);
@@ -108,9 +98,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 
 		// This time we affect the right behavior but with a size of 0
 		pipeline->setBehaviors(&behavior, 0);
-		param1.steeringBehavior = pipeline;
 
-		crowd->updateAgentParameters(indexAgent1, &param1);
 		crowd->update(0.5, 0);
 
 		// The agent should not have moved
@@ -119,9 +107,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 
 		// This time we affect the behavior with the right size
 		pipeline->setBehaviors(&behavior, 1);
-		param1.steeringBehavior = pipeline;
 
-		crowd->updateAgentParameters(indexAgent1, &param1);
 		crowd->update(0.5, 0);
 
 		dtVcopy(agt1NewPos, crowd->getAgent(indexAgent1)->npos);	
@@ -129,8 +115,8 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		// A behavior has been affected to the pipeline, the agent should have moved
 		CHECK(!dtVequal(agt1NewPos, posAgt1));
 
-		dtFreeBehavior<dtPathFollowing>(pf);
-		dtFreeBehavior<dtPipelineBehavior>(pipeline);
+		dtPathFollowing::free(pf);
+		dtPipelineBehavior::free(pipeline);
 	}
 }
 

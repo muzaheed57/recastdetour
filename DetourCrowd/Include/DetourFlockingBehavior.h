@@ -25,7 +25,16 @@ struct dtCrowdAgent;
 class dtSeparationBehavior;
 class dtCohesionBehavior;
 class dtAlignmentBehavior;
+struct dtCrowdAgentEnvironment;
 
+
+struct dtFlockingBehaviorParams
+{
+	int* toFlockWith;			///< Indices of the agents to flock with.
+	int nbflockingTargets;		///< Number of agents to flock with.
+	dtCrowdAgent* agents;		///< The list of agents the indices are refering to.
+	float separationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
+};
 
 /// @defgroup Getters_Accessors
 /// Getters and accessors for the flocking behavior class
@@ -34,24 +43,28 @@ class dtAlignmentBehavior;
 /// Agents behaving that way will behave like a flock, or a herd. This basically means that 
 /// they will try to stick together as they move, heading in the same direction, and without 
 /// bumping into each other.
-class dtFlockingBehavior : public dtSteeringBehavior
+class dtFlockingBehavior : public dtSteeringBehavior<dtFlockingBehaviorParams>
 {
 public:
-	dtFlockingBehavior();
-	dtFlockingBehavior(float separationWeight, float cohesionWeight, float alignmentWeight);
+	dtFlockingBehavior(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight);
 	~dtFlockingBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtFlockingBehavior* allocate(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight);
+	static void free(dtFlockingBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
 
-	float m_separationWeight;		///< The strength of the separation velocity.
-	float m_cohesionWeight;			///< The strength of the cohesion velocity.
-	float m_alignmentWeight;		///< The strength of the alignment velocity.
+	float separationWeight;		///< The strength of the separation velocity.
+	float cohesionWeight;		///< The strength of the cohesion velocity.
+	float alignmentWeight;		///< The strength of the alignment velocity.
 	
 private:	
 	dtSeparationBehavior* m_separationBehavior;	///< The separation behavior
 	dtCohesionBehavior* m_cohesionBehavior;		///< The cohesion behavior
 	dtAlignmentBehavior* m_alignmentBehavior;	///< The alignment behavior
+
+	const dtCrowdAgentEnvironment* m_env;
 };
 
 #endif

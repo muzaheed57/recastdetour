@@ -21,15 +21,19 @@
 #include "DetourCrowd.h"
 #include "DetourCommon.h"
 
+#include <new>
 
-static const float EPSILON = 0.0001f;
 
-dtAlignmentBehavior::dtAlignmentBehavior()
-	: dtSteeringBehavior()
+dtAlignmentBehavior::dtAlignmentBehavior(unsigned nbMaxAgents)
+	: dtSteeringBehavior<dtAlignmentBehaviorParams>(nbMaxAgents)
 {
 }
 
-void dtAlignmentBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+dtAlignmentBehavior::~dtAlignmentBehavior()
+{
+}
+
+void dtAlignmentBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
 	if (!oldAgent || !newAgent)
 		return;
@@ -45,9 +49,9 @@ void dtAlignmentBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 	if (!ag)
 		return;
 
-	const dtCrowdAgent* agents = ag->params.alignmentAgents;
-	const int* targets = ag->params.alignmentTargets;
-	const int nbTargets = ag->params.alignmentNbTargets;
+	const dtCrowdAgent* agents = getBehaviorParams(*ag)->alignmentAgents;
+	const int* targets = getBehaviorParams(*ag)->alignmentTargets;
+	const int nbTargets = getBehaviorParams(*ag)->alignmentNbTargets;
 
 	if (!agents || !targets || !nbTargets)
 		return;
@@ -63,4 +67,24 @@ void dtAlignmentBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 
 	dtVscale(force, force, 1.f / (float) count);
 	dtVsub(force, force, ag->vel);
+}
+
+dtAlignmentBehavior* dtAlignmentBehavior::allocate(unsigned nbMaxAgents)
+{
+	void* mem = dtAlloc(sizeof(dtAlignmentBehavior), DT_ALLOC_PERM);
+
+	if (mem)
+		return new(mem) dtAlignmentBehavior(nbMaxAgents);
+
+	return 0;
+}
+
+void dtAlignmentBehavior::free(dtAlignmentBehavior* ptr)
+{
+	if (!ptr)
+		return;
+
+	ptr->~dtAlignmentBehavior();
+	dtFree(ptr);
+	ptr = 0;
 }

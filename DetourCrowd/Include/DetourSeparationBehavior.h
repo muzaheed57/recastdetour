@@ -22,21 +22,37 @@
 #include "DetourSteeringBehavior.h"
 
 struct dtCrowdAgent;
+class dtCrowdAgentEnvironment;
 class dtCrowd;
 
+
+struct dtSeparationBehaviorParams
+{
+	int* separationTargets;				///< The others agents we want to keep our distances from.
+	int separationNbTargets;			///< The number of targets.
+	dtCrowdAgent* separationAgents;		///< The list of agents the indices are refering to.
+	float separationDistance;			///< From distance from which the agent considers the targets that must be avoided.
+	float separationWeight;				///< A coefficient defining how agressively the agent should avoid the targets.
+};
 
 /// Implementation of the separation behavior.
 ///
 /// An agent using this behavior will try to keep its distance from one or more targets.
 /// The minimum distance to keep from the targets can be specified.
-class dtSeparationBehavior : public dtSteeringBehavior
+class dtSeparationBehavior : public dtSteeringBehavior<dtSeparationBehaviorParams>
 {
 public:
-	dtSeparationBehavior();
+	dtSeparationBehavior(unsigned nbMaxAgents);
 	~dtSeparationBehavior();
 
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	static dtSeparationBehavior* allocate(unsigned nbMaxAgents);
+	static void free(dtSeparationBehavior* ptr);
+
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
 	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+
+private:
+	const dtCrowdAgentEnvironment* m_env;
 };
 
 #endif // DETOURSEPARATIONBEHAVIOR_H

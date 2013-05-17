@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013 MASA Group recastdetour@masagroup.net
+// Copyright (c) 2013 MASA Group jeremy.chanut@masagroup.net
 //
 // This software is provided 'as-is', without any express or implied
 // warranty.  In no event will the authors be held liable for any damages
@@ -16,84 +16,72 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "DetourGoToBehavior.h"
+#include "DetourSeekBehavior.h"
 
 #include "DetourCommon.h"
 #include "DetourCrowd.h"
 
-#include <new>
 
-dtGoToBehavior::dtGoToBehavior(unsigned nbMaxAgents)
-	: dtSteeringBehavior<dtGoToBehaviorParams>(nbMaxAgents)
+static const float EPSILON = 0.0001f;
+
+dtSeekBehavior::dtSeekBehavior(unsigned maxAgents)
+	: dtSteeringBehavior()
 {
 }
 
-dtGoToBehavior::~dtGoToBehavior()
+dtSeekBehavior::~dtSeekBehavior()
 {
 }
 
-dtGoToBehavior* dtGoToBehavior::allocate(unsigned nbMaxAgents)
-{
-	void* mem = dtAlloc(sizeof(dtGoToBehavior), DT_ALLOC_PERM);
-
-	if (mem)
-		return new(mem) dtGoToBehavior(nbMaxAgents);
-
-	return 0;
-}
-
-void dtGoToBehavior::free(dtGoToBehavior* ptr)
-{
-	if (!ptr)
-		return;
-
-	ptr->~dtGoToBehavior();
-	dtFree(ptr);
-	ptr = 0;
-}
-
-void dtGoToBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtSeekBehavior::update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
 	if (!oldAgent || !newAgent)
 		return;
-	
-	float desiredForce[3] = {0, 0, 0};
-	
+
+	const dtCrowdAgent* target = m_agentParams[oldAgent->id]->seekTarget;
+
+	if (!target || !target->active)
+		return;
+
+	float desiredForce[] = {0, 0, 0};
+
 	computeForce(oldAgent, desiredForce);
 	applyForce(oldAgent, newAgent, desiredForce, dt);
 }
 
-void dtGoToBehavior::computeForce(const dtCrowdAgent* ag, float* force)
+void dtSeekBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 {
-	if (!ag)
-		return;
+	const dtCrowdAgent* target = m_agentParams[ag->id]->seekTarget;
+	const float predictionFactor = m_agentParams[ag->id]->seekPredictionFactor;
 
-	const float* target = getBehaviorParams(*ag)->gotoTarget;
+	// Required force in order to reach the target
+	dtVsub(force, target->npos, ag->npos);
 
-	// Required velocity in order to reach the target
-	dtVsub(force, target, ag->npos);
+	// We take into account the prediction factor
+	float scaledVelocity[3] = {0, 0, 0};
+
+	dtVscale(scaledVelocity, target->vel, predictionFactor);
+	dtVadd(force, force, scaledVelocity);
+
+	// Set the force according to the maximum acceleration
+	dtVclamp(force, dtVlen(force), ag->params.maxAcceleration);
 }
 
-void dtGoToBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
+void dtSeekBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
 {
-	const float* target = getBehaviorParams(*oldAgent)->gotoTarget;
-	const float distance = getBehaviorParams(*oldAgent)->gotoDistance;
-
-	float tmpForce[3] = {0, 0, 0};
+	float tmpForce[] = {0, 0, 0};
 	float newVelocity[] = {0, 0, 0};
+	const dtCrowdAgent* target = m_agentParams[oldAgent->id]->seekTarget;
+	const float distance = m_agentParams[oldAgent->id]->seekDistance;
 
-	// Set the velocity according to the maximum acceleration
-	dtVnormalize(force);
-	dtVscale(force, force, oldAgent->maxAcceleration);
-
-	// Adapting the velocity to the dt and the previous velocity
+	// Adapting the force to the dt and the previous velocity
 	dtVscale(tmpForce, force, dt);
 	dtVadd(newVelocity, oldAgent->vel, tmpForce);
 
 	float currentSpeed = dtVlen(oldAgent->vel);
 	// Required distance to reach nil speed according to the acceleration and current speed
-	float slowDist = currentSpeed * (currentSpeed - 0) / oldAgent->maxAcceleration;
-	float distToObj = dtVdist(oldAgent->npos, target) - distance;
+	float slowDist = currentSpeed * (currentSpeed - 0) / oldAgent->params.maxAcceleration;
+	float distToObj = dtVdist(oldAgent->npos, target->npos) - oldAgent->params.radius - target->params.radius - distance;
 
 	// If we have reached the target, we stop
 	if (distToObj <= EPSILON)
@@ -110,10 +98,10 @@ void dtGoToBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newA
 	}
 	// Else, we move as fast as possible
 	else
-		newAgent->desiredSpeed = oldAgent->maxSpeed;
+		newAgent->desiredSpeed = oldAgent->params.maxSpeed;
 
 	// Check for maximal speed
-	dtVclamp(newVelocity, dtVlen(newVelocity), oldAgent->maxSpeed);
+	dtVclamp(newVelocity, dtVlen(newVelocity), oldAgent->params.maxSpeed);
 
 	dtVcopy(newAgent->dvel, newVelocity);
 }

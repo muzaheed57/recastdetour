@@ -41,7 +41,16 @@ struct AgentConfiguration
     float position[3];
     float destination[3];
     dtPolyRef destinationPoly;
-    dtCrowdAgentParams parameters;
+
+	float radius;			
+	float height;			
+	float maxAcceleration;	
+	float maxSpeed;			
+
+	dtBehavior* steeringBehavior;
+
+	float collisionQueryRange;
+	unsigned char updateFlags;
 };
 
 class CrowdSample
@@ -64,7 +73,7 @@ public:
 	bool initializeScene(InputGeom* scene, float* vert, unsigned vertCount, int* tris, unsigned triCount);
 
 	bool initializeScene(InputGeom* scene);
-	bool initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd);
+	bool initializeCrowd(dtCrowd* crowd);
 	bool initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh);
     
     AgentConfiguration m_agentCfgs[maxAgentCount];
@@ -96,8 +105,8 @@ private:
 	std::vector<int> m_separationTargets;
 	std::vector<int> m_alignmentTargets;
 	std::vector<int> m_cohesionTargets;
-	std::map<int, std::string> m_agentsBehaviors;
 	std::map<int, std::vector<dtBehavior*> > m_pipeline;
+	dtNavMesh* m_navMesh;
 };
 
 #endif

@@ -21,10 +21,8 @@
 
 dtBehavior::dtBehavior()
 {
-
 }
 
 dtBehavior::~dtBehavior()
 {
-
 }

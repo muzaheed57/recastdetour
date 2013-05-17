@@ -24,6 +24,7 @@
 #include "imguiRenderGL.h"
 #include "DebugInfo.h"
 #include "DetourSeekBehavior.h"
+#include "DetourCollisionAvoidance.h"
 
 #include <DetourCrowd.h>
 
@@ -409,7 +410,7 @@ bool Visualization::update()
             m_paused = true;
             m_debugInfo->startUpdate();
 
-			m_crowd->update(m_crowdDt,&m_debugInfo->m_debuggedAgentInfo);
+			m_crowd->update(m_crowdDt);
 
             m_debugInfo->endUpdate(m_crowdDt);
             m_crowdAvailableDt = 0.f;
@@ -421,7 +422,7 @@ bool Visualization::update()
             {
 				m_debugInfo->startUpdate();
 
-				m_crowd->update(m_crowdDt, &m_debugInfo->m_debuggedAgentInfo);
+				m_crowd->update(m_crowdDt);
 
                 m_debugInfo->endUpdate(m_crowdDt);
                 m_crowdAvailableDt -= m_crowdDt;
@@ -517,12 +518,12 @@ bool Visualization::pick(float* position, int* agentIdx)
                     const dtCrowdAgent* ag = m_crowd->getAgent(i);
                     if (ag->active)
 					{  
-                        bmin[0] = ag->npos[0] - ag->params.radius;
+                        bmin[0] = ag->npos[0] - ag->radius;
                         bmin[1] = ag->npos[1];
-                        bmin[2] = ag->npos[2] - ag->params.radius;
-                        bmax[0] = ag->npos[0] + ag->params.radius;
-                        bmax[1] = ag->npos[1] + ag->params.height;
-                        bmax[2] = ag->npos[2] + ag->params.radius;
+                        bmin[2] = ag->npos[2] - ag->radius;
+                        bmax[0] = ag->npos[0] + ag->radius;
+                        bmax[1] = ag->npos[1] + ag->height;
+                        bmax[2] = ag->npos[2] + ag->radius;
                         
                         float tmin, tmax;
                         if (isectSegAABB(rays, raye, bmin, bmax, tmin, tmax))
@@ -670,8 +671,8 @@ void Visualization::renderCrowd()
             const dtCrowdAgent* ag = m_crowd->getAgent(i);
             if (ag->active)
             {
-                const float height = ag->params.height;
-                const float radius = ag->params.radius;
+                const float height = ag->height;
+                const float radius = ag->radius;
                 const float* pos = ag->npos;
                 
                 unsigned int col = duRGBA(220,220,220,128);
@@ -719,8 +720,8 @@ void Visualization::renderCrowd()
             const dtCrowdAgent* ag = m_crowd->getAgent(i);
             if (ag->active)
             {
-                const float radius = ag->params.radius;
-                const float height = ag->params.height;
+                const float radius = ag->radius;
+                const float height = ag->height;
                 const float* pos = ag->npos;
                 const float* vel = ag->vel;
                 const float* dvel = ag->dvel;
@@ -749,14 +750,14 @@ void Visualization::renderCrowd()
             const dtCrowdAgent* ag = m_crowd->getAgent(i);
             if (ag->active)
             {
-                const float* pos = ag->corridor.getPos();
+                const float* pos = ag->npos;
                 gridy = dtMax(gridy, pos[1]);
             }
         }
         gridy += 1.0f;
         
         dd.begin(DU_DRAW_QUADS);
-        const dtProximityGrid* grid = m_crowd->getGrid();
+        const dtProximityGrid* grid = m_crowd->getCrowdQuery()->getProximityGrid();
         const int* bounds = grid->getBounds();
         const float cs = grid->getCellSize();
         for (int y = bounds[1]; y <= bounds[3]; ++y)
@@ -775,12 +776,9 @@ void Visualization::renderCrowd()
         dd.end();
         
         // Nodes
-        if (m_crowd->getPathQueue())
-        {
-            const dtNavMeshQuery* navquery = m_crowd->getPathQueue()->getNavQuery();
-            if (navquery)
-                duDebugDrawNavMeshNodes(&dd, *navquery);
-        }
+        const dtNavMeshQuery* navquery = m_crowd->getCrowdQuery()->getNavMeshQuery();
+        if (navquery)
+            duDebugDrawNavMeshNodes(&dd, *navquery);
         
         dd.depthMask(false);
         
@@ -789,47 +787,22 @@ void Visualization::renderCrowd()
         {
             const dtCrowdAgent* ag = m_crowd->getAgent(m_debugInfo->m_debuggedAgentInfo.idx);
             if (ag->active)
-            {
-                // Path
-                const dtPolyRef* path = ag->corridor.getPath();
-                const int npath = ag->corridor.getPathCount();			
-                for (int i = 0; i < npath; ++i)
-                    duDebugDrawNavMeshPoly(&dd, *m_navmesh, path[i], duRGBA(0,0,0,16));
-                
-                const float radius = ag->params.radius;
+            {                
+                const float radius = ag->radius;
                 const float* pos = ag->npos;
-                
-                // Corners
-                if (ag->ncorners)
-                {
-                    dd.begin(DU_DRAW_LINES, 2.0f);
-                    for (int j = 0; j < ag->ncorners; ++j)
-                    {
-                        const float* va = j == 0 ? pos : &ag->cornerVerts[(j-1)*3];
-                        const float* vb = &ag->cornerVerts[j*3];
-                        dd.vertex(va[0],va[1]+radius,va[2], duRGBA(128,0,0,192));
-                        dd.vertex(vb[0],vb[1]+radius,vb[2], duRGBA(128,0,0,192));
-                    }
-                    if (ag->ncorners && ag->cornerFlags[ag->ncorners-1] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
-                    {
-                        const float* v = &ag->cornerVerts[(ag->ncorners-1)*3];
-                        dd.vertex(v[0],v[1],v[2], duRGBA(192,0,0,192));
-                        dd.vertex(v[0],v[1]+radius*2,v[2], duRGBA(192,0,0,192));
-                    }
-                    
-                    dd.end();
-                }
+
+				const dtCrowdAgentEnvironment* env = m_crowd->getAgentsEnvironment();
                 
                 // Collisions segments
-                const float* center = ag->boundary.getCenter();
+                const float* center = env[ag->id].boundary.getCenter();
                 duDebugDrawCross(&dd, center[0],center[1]+radius,center[2], 0.2f, duRGBA(192,0,128,255), 2.0f);
-                duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], ag->params.collisionQueryRange,
+                duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], ag->collisionQueryRange,
                                   duRGBA(192,0,128,128), 2.0f);
                 
                 dd.begin(DU_DRAW_LINES, 3.0f);
-                for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
+                for (int j = 0; j < env[ag->id].boundary.getSegmentCount(); ++j)
                 {
-                    const float* s = ag->boundary.getSegment(j);
+                    const float* s = env[ag->id].boundary.getSegment(j);
                     unsigned int col = duRGBA(192,0,128,192);
                     if (dtTriArea2D(pos, s, s+3) < 0.0f)
                         col = duDarkenCol(col);
@@ -839,15 +812,15 @@ void Visualization::renderCrowd()
                 dd.end();
                 
                 //Neighbors
-                duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], ag->params.collisionQueryRange,
+                duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], ag->collisionQueryRange,
                                   duRGBA(0,192,128,128), 2.0f);
                 
                 dd.begin(DU_DRAW_LINES, 2.0f);
-                for (int j = 0; j < ag->nneis; ++j)
+                for (int j = 0; j < env[ag->id].nbNeighbors; ++j)
                 {
                     // Get 'n'th active agent.
                     // TODO: fix this properly.
-                    int n = ag->neis[j].idx;
+                    int n = env[ag->id].neighbors[j].idx;
                     const dtCrowdAgent* nei = 0;
                     for (int i = 0, size(m_crowd->getAgentCount()); i < size; ++i)
                     {
@@ -880,10 +853,10 @@ void Visualization::renderCrowd()
 				const dtObstacleAvoidanceDebugData* vod = m_debugInfo->m_debuggedAgentInfo.vod;
 				
 				const float dx = ag->npos[0];
-				const float dy = ag->npos[1]+ag->params.height;
+				const float dy = ag->npos[1]+ag->height;
 				const float dz = ag->npos[2];
 				
-				duDebugDrawCircle(&dd, dx,dy,dz, ag->params.maxSpeed, duRGBA(255,255,255,64), 2.0f);
+				duDebugDrawCircle(&dd, dx,dy,dz, ag->maxSpeed, duRGBA(255,255,255,64), 2.0f);
 				
 				dd.begin(DU_DRAW_QUADS);
 				for (int i = 0; i < vod->getSampleCount(); ++i)

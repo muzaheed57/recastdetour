@@ -145,10 +145,10 @@ bool rcMeshLoaderObj::load(float* vert, unsigned vertCount, int* tris, unsigned 
 	int vcap = 0;
 	int tcap = 0;
 
-	for (int i = 0; i < vertCount * 3; i += 3)
+	for (unsigned i = 0; i < vertCount * 3; i += 3)
 		addVertex(vert[i], vert[i + 1], vert[i + 2], vcap);
 
-	for (int i = 0; i < triCount * 3; i += 3)
+	for (unsigned i = 0; i < triCount * 3; i += 3)
 		addTriangle(tris[i], tris[i + 1], tris[i + 2], tcap);
 
 	// Calculate normals.

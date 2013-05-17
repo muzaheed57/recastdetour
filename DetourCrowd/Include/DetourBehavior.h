@@ -21,6 +21,7 @@
 
 struct dtCrowdAgent;
 
+struct dtBehaviorData;
 
 /// Interface defining a behavior.
 class dtBehavior
@@ -34,7 +35,7 @@ public:
 	/// @param[in]	oldAgent	The agent we want to update.
 	/// @param[out]	newAgent	The agent storing the updated version of the oldAgent.
 	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	virtual void update(dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt) = 0;
+	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt) = 0;
 };
 
 #endif
