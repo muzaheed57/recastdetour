@@ -26,9 +26,9 @@ struct dtCrowdAgent;
 
 struct dtAlignmentBehaviorParams
 {
-	dtCrowdAgent* alignmentAgents;	///< The list of agents the indices are refering to.
-	const int* alignmentTargets;	///< The indices of the targets
-	int alignmentNbTargets;			///< The number of target
+	const dtCrowd* crowd;					///< The crowd used to access agents
+	const int* alignmentTargets;			///< The indices of the targets
+	int alignmentNbTargets;					///< The number of target
 };
 
 /// Defines the alignment behavior.

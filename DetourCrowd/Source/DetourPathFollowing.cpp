@@ -31,7 +31,7 @@
 
 dtPathFollowing::dtPathFollowing(unsigned nbMaxAgents) :
 	dtParametrizedBehavior<dtPathFollowingParams>(nbMaxAgents),
-	m_agents(0),
+	m_crowd(0),
 	m_pathResult(0),
 	m_maxAgents(0),
 	m_maxPathRes(0),
@@ -46,16 +46,16 @@ dtPathFollowing::~dtPathFollowing()
 	purge();
 }
 
-bool dtPathFollowing::init(dtCrowdQuery& crowdQuery, dtNavMesh* navMesh, dtCrowdAgent* agents, int maxAgents)
+bool dtPathFollowing::init(dtCrowdQuery& crowdQuery, dtNavMesh* navMesh, const dtCrowd* crowd, int maxAgents, int maxPathRes)
 {
 	purge();
 
 	m_navMeshQuery = crowdQuery.getNavMeshQuery();
-	m_pathResult = (dtPolyRef*) dtAlloc(sizeof(dtPolyRef) * MAX_PATH_RES, DT_ALLOC_PERM);
+	m_pathResult = (dtPolyRef*) dtAlloc(sizeof(dtPolyRef) * maxPathRes, DT_ALLOC_PERM);
 
-	m_agents = agents;
+	m_crowd = crowd;
 	m_maxAgents = maxAgents;
-	m_maxPathRes = MAX_PATH_RES;
+	m_maxPathRes = maxPathRes;
 	m_agentAnims = crowdQuery.getAgentsAnims();
 	m_filter = crowdQuery.getQueryFilter();
 
@@ -75,6 +75,17 @@ bool dtPathFollowing::init(dtCrowdQuery& crowdQuery, dtNavMesh* navMesh, dtCrowd
 
 void dtPathFollowing::purge()
 {
+	if (m_pathResult)
+	{
+		dtFree(m_pathResult);
+		m_pathResult = 0;
+	}
+
+	m_maxPathRes = 0;
+	m_crowd = 0;
+	m_maxAgents = 0;
+	m_agentAnims = 0;
+	m_filter = 0;
 }
 
 void dtPathFollowing::prepare(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, const float dt, dtPathFollowingParams* agParams)
@@ -187,7 +198,7 @@ void dtPathFollowing::triggerOffMeshConnections(const dtCrowdAgent* oldAgent, dt
 	if (overOffmeshConnection(oldAgent, triggerRadius, agParams))
 	{
 		// Prepare to off-mesh connection.
-		const int idx = oldAgent - m_agents;
+		const int idx = oldAgent->id;
 		dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
 
 		// Adjust the path over the off-mesh connection.
@@ -214,7 +225,7 @@ void dtPathFollowing::triggerOffMeshConnections(const dtCrowdAgent* oldAgent, dt
 
 void dtPathFollowing::getNextCorner(const dtCrowdAgent* ag, dtPathFollowingParams* agParams)
 {
-	dtCrowdAgentDebugInfo* debug = getBehaviorParams(*ag)->debugInfos;
+	dtCrowdAgentDebugInfo* debug = getBehaviorParams(ag->id)->debugInfos;
 	const int debugIdx = debug ? debug->idx : -1;
 
 	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
@@ -231,14 +242,14 @@ void dtPathFollowing::getNextCorner(const dtCrowdAgent* ag, dtPathFollowingParam
 	// and short cut to there.
 	if ((ag->updateFlags & DT_CROWD_OPTIMIZE_VIS) && agParams->ncorners > 0)
 	{
-		dtPathFollowingParams* params = this->getBehaviorParams(*ag);
+		dtPathFollowingParams* params = this->getBehaviorParams(ag->id);
 		float pathOptRange = (params) ? params->pathOptimizationRange : 0.f;
 
 		const float* target = &agParams->cornerVerts[dtMin(1,agParams->ncorners-1)*3];
 		agParams->corridor.optimizePathVisibility(target, pathOptRange, m_navMeshQuery, m_filter);
 
 		// Copy data for debug purposes.
-		if (debugIdx == this->getBehaviorParams(*ag)->debugIndex)
+		if (debugIdx == this->getBehaviorParams(ag->id)->debugIndex)
 		{
 			dtVcopy(debug->optStart, agParams->corridor.getPos());
 			dtVcopy(debug->optEnd, target);
@@ -247,7 +258,7 @@ void dtPathFollowing::getNextCorner(const dtCrowdAgent* ag, dtPathFollowingParam
 	else
 	{
 		// Copy data for debug purposes.
-		if (debugIdx == getBehaviorParams(*ag)->debugIndex)
+		if (debugIdx == getBehaviorParams(ag->id)->debugIndex)
 		{
 			dtVset(debug->optStart, 0,0,0);
 			dtVset(debug->optEnd, 0,0,0);
@@ -283,11 +294,11 @@ void dtPathFollowing::updateTopologyOptimization(const dtCrowdAgent* ag, const f
 
 int dtPathFollowing::addToOptQueue(const dtCrowdAgent* newag, dtCrowdAgent** agents, const int nagents, const int maxAgents)
 {
-	dtPathFollowingParams* newAgParams = getBehaviorParams(*newag);
+	dtPathFollowingParams* newAgParams = getBehaviorParams(newag->id);
 	if (!newAgParams)
 		return 0;
 
-	dtPathFollowingParams* agParams = getBehaviorParams(*agents[nagents-1]);
+	dtPathFollowingParams* agParams = getBehaviorParams(agents[nagents-1]->id);
 	if (!agParams)
 		return 0;
 
@@ -308,7 +319,7 @@ int dtPathFollowing::addToOptQueue(const dtCrowdAgent* newag, dtCrowdAgent** age
 		int i;
 		for (i = 0; i < nagents; ++i)
 		{
-			dtPathFollowingParams* pfParams = getBehaviorParams(*agents[i]);
+			dtPathFollowingParams* pfParams = getBehaviorParams(agents[i]->id);
 			if (!pfParams)
 				continue;
 
@@ -347,7 +358,7 @@ void dtPathFollowing::checkPathValidity(const dtCrowdAgent* oldAgent, dtCrowdAge
 
 	bool replan = false;
 	// First check that the current location is valid.
-	const int idx = oldAgent - m_agents;
+	const int idx = oldAgent->id;
 	float agentPos[3];
 	dtPolyRef agentRef = agParams->corridor.getFirstPoly();
 	dtVcopy(agentPos, oldAgent->npos);
@@ -438,9 +449,9 @@ bool dtPathFollowing::requestMoveTarget(const int idx, dtPolyRef ref, const floa
 	if (!ref)
 		return false;
 
-	dtCrowdAgent* ag = &m_agents[idx];
+	const dtCrowdAgent& ag = *m_crowd->getAgent(idx);
 
-	dtPathFollowingParams* agParams = getBehaviorParams(*ag);
+	dtPathFollowingParams* agParams = getBehaviorParams(ag.id);
 	if (!agParams)
 		return false;
 
@@ -462,9 +473,9 @@ bool dtPathFollowing::requestMoveVelocity(const int idx, const float* vel)
 	if (idx < 0 || idx > m_maxAgents)
 		return false;
 
-	dtCrowdAgent* ag = &m_agents[idx];
+	const dtCrowdAgent& ag = *m_crowd->getAgent(idx);
 
-	dtPathFollowingParams* agParams = getBehaviorParams(*ag);
+	dtPathFollowingParams* agParams = getBehaviorParams(ag.id);
 	if (!agParams)
 		return false;
 
@@ -483,9 +494,9 @@ bool dtPathFollowing::resetMoveTarget(const int idx)
 	if (idx < 0 || idx > m_maxAgents)
 		return false;
 
-	dtCrowdAgent* ag = &m_agents[idx];
+	const dtCrowdAgent& ag = *m_crowd->getAgent(idx);
 
-	dtPathFollowingParams* agParams = getBehaviorParams(*ag);
+	dtPathFollowingParams* agParams = getBehaviorParams(ag.id);
 	if (!agParams)
 		return false;
 
@@ -504,9 +515,9 @@ bool dtPathFollowing::requestMoveTargetReplan(const int idx, dtPolyRef ref, cons
 	if (idx < 0 || idx > m_maxAgents)
 		return false;
 
-	dtCrowdAgent* ag = &m_agents[idx];
+	const dtCrowdAgent& ag = *m_crowd->getAgent(idx);
 
-	dtPathFollowingParams* agParams = getBehaviorParams(*ag);
+	dtPathFollowingParams* agParams = getBehaviorParams(ag.id);
 	if (!agParams)
 		return false;
 
@@ -515,6 +526,7 @@ bool dtPathFollowing::requestMoveTargetReplan(const int idx, dtPolyRef ref, cons
 	dtVcopy(agParams->targetPos, pos);
 	agParams->targetPathqRef = DT_PATHQ_INVALID;
 	agParams->targetReplan = true;
+
 	if (agParams->targetRef)
 		agParams->targetState = DT_CROWDAGENT_TARGET_REQUESTING;
 	else
@@ -532,15 +544,15 @@ void dtPathFollowing::updateMoveRequest()
 	// Fire off new requests.
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
-		dtCrowdAgent* ag = &m_agents[i];
-		if (!ag->active)
+		const dtCrowdAgent& ag = *m_crowd->getAgent(i);
+		if (!ag.active)
 			continue;
 
-		dtPathFollowingParams* pfParams = getBehaviorParams(*ag);
+		dtPathFollowingParams* pfParams = getBehaviorParams(ag.id);
 		if (!pfParams)
 			continue;
 
-		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
+		if (ag.state == DT_CROWDAGENT_STATE_INVALID)
 			continue;
 		if (pfParams->targetState == DT_CROWDAGENT_TARGET_NONE || pfParams->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
@@ -558,7 +570,7 @@ void dtPathFollowing::updateMoveRequest()
 
 			// Quick seach towards the goal.
 			static const int MAX_ITER = 20;
-			m_navMeshQuery->initSlicedFindPath(path[0], pfParams->targetRef, ag->npos, pfParams->targetPos, m_filter);
+			m_navMeshQuery->initSlicedFindPath(path[0], pfParams->targetRef, ag.npos, pfParams->targetPos, m_filter);
 			m_navMeshQuery->updateSlicedFindPath(MAX_ITER, 0);
 			dtStatus status = 0;
 			if (pfParams->targetReplan) // && npath > 10)
@@ -595,7 +607,7 @@ void dtPathFollowing::updateMoveRequest()
 			if (!reqPathCount)
 			{
 				// Could not find path, start the request from current location.
-				dtVcopy(reqPos, ag->npos);
+				dtVcopy(reqPos, ag.npos);
 				reqPath[0] = path[0];
 				reqPathCount = 1;
 			}
@@ -616,7 +628,7 @@ void dtPathFollowing::updateMoveRequest()
 
 		if (pfParams->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE)
 		{
-			nqueue = addToPathQueue(ag, queue, nqueue, PATH_MAX_AGENTS);
+			nqueue = addToPathQueue(&ag, queue, nqueue, PATH_MAX_AGENTS);
 		}
 	}
 
@@ -624,7 +636,7 @@ void dtPathFollowing::updateMoveRequest()
 	{
 		dtCrowdAgent* ag = queue[i];
 
-		dtPathFollowingParams* pfParams = getBehaviorParams(*ag);
+		dtPathFollowingParams* pfParams = getBehaviorParams(ag->id);
 		if (!pfParams)
 			continue;
 
@@ -643,11 +655,11 @@ void dtPathFollowing::updateMoveRequest()
 	// Process path results.
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
-		dtCrowdAgent* ag = &m_agents[i];
-		if (!ag->active)
+		const dtCrowdAgent& ag = *m_crowd->getAgent(i);
+		if (!ag.active)
 			continue;
 
-		dtPathFollowingParams* pfParams = getBehaviorParams(*ag);
+		dtPathFollowingParams* pfParams = getBehaviorParams(ag.id);
 		if (!pfParams)
 			continue;
 
@@ -763,7 +775,7 @@ void dtPathFollowing::updateMoveRequest()
 
 int dtPathFollowing::addToPathQueue(const dtCrowdAgent* newag, dtCrowdAgent** agents, const int nagents, const int maxAgents)
 {
-	dtPathFollowingParams* pfParams = getBehaviorParams(*newag);
+	dtPathFollowingParams* pfParams = getBehaviorParams(newag->id);
 	if (!pfParams)
 		return 0;
 
@@ -773,7 +785,7 @@ int dtPathFollowing::addToPathQueue(const dtCrowdAgent* newag, dtCrowdAgent** ag
 	{
 		slot = nagents;
 	}
-	else if (pfParams->targetReplanTime <= getBehaviorParams(*agents[nagents-1])->targetReplanTime)
+	else if (pfParams->targetReplanTime <= getBehaviorParams(agents[nagents-1]->id)->targetReplanTime)
 	{
 		if (nagents >= maxAgents)
 			return nagents;
@@ -783,7 +795,7 @@ int dtPathFollowing::addToPathQueue(const dtCrowdAgent* newag, dtCrowdAgent** ag
 	{
 		int i;
 		for (i = 0; i < nagents; ++i)
-			if (pfParams->targetReplanTime >= getBehaviorParams(*agents[i])->targetReplanTime)
+			if (pfParams->targetReplanTime >= getBehaviorParams(agents[i]->id)->targetReplanTime)
 				break;
 
 		const int tgt = i+1;
@@ -819,10 +831,10 @@ bool dtPathFollowing::overOffmeshConnection(const dtCrowdAgent* ag, const float 
 
 void dtPathFollowing::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
 {
-	dtPathFollowingParams* agParams = getBehaviorParams(*oldAgent);
+	dtPathFollowingParams* agParams = getBehaviorParams(oldAgent->id);
 	if (!agParams)
 		return;
-
+	
 	prepare(oldAgent, newAgent, dt, agParams);
 	getNextCorner(oldAgent, agParams);
 	triggerOffMeshConnections(oldAgent, newAgent, agParams);
@@ -856,5 +868,9 @@ dtPathFollowingParams::dtPathFollowingParams()
 	, ncorners(0)
 	, topologyOptTime(0)
 {
-	corridor.init(MAX_PATH_RES);
+}
+
+void dtPathFollowingParams::init( int maxPathResults )
+{
+	corridor.init(maxPathResults);
 }

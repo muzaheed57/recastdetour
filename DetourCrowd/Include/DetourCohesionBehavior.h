@@ -27,9 +27,9 @@ class dtGoToBehavior;
 
 struct dtCohesionAgentsParams
 {
-	dtCrowdAgent* cohesionAgents;	///< The list of agents the indices are refering to.
-	const int* cohesionTargets;		///< The indices of the targets
-	int cohesionNbTargets;			///< The number of target
+	const dtCrowd* crowd;					///< The crowd used to access agents
+	const int* cohesionTargets;				///< The indices of the targets
+	int cohesionNbTargets;					///< The number of target
 };
 
 

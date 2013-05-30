@@ -43,6 +43,7 @@ void dtPathQueue::purge()
 {
 	dtFreeNavMeshQuery(m_navquery);
 	m_navquery = 0;
+
 	for (int i = 0; i < MAX_QUEUE; ++i)
 	{
 		dtFree(m_queue[i].path);
@@ -50,21 +51,25 @@ void dtPathQueue::purge()
 	}
 }
 
-bool dtPathQueue::init(const int maxPathSize, const int maxSearchNodeCount, dtNavMesh* nav)
+bool dtPathQueue::init(const int maxPathSize, const int maxSearchNodeCount, const dtNavMesh* nav)
 {
 	purge();
 
 	m_navquery = dtAllocNavMeshQuery();
+
 	if (!m_navquery)
 		return false;
+
 	if (dtStatusFailed(m_navquery->init(nav, maxSearchNodeCount)))
 		return false;
 	
 	m_maxPathSize = maxPathSize;
+
 	for (int i = 0; i < MAX_QUEUE; ++i)
 	{
 		m_queue[i].ref = DT_PATHQ_INVALID;
 		m_queue[i].path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef)*m_maxPathSize, DT_ALLOC_PERM);
+
 		if (!m_queue[i].path)
 			return false;
 	}
@@ -77,9 +82,6 @@ bool dtPathQueue::init(const int maxPathSize, const int maxSearchNodeCount, dtNa
 void dtPathQueue::update(const int maxIters)
 {
 	static const int MAX_KEEP_ALIVE = 2; // in update ticks.
-
-	// Update path request until there is nothing to update
-	// or upto maxIters pathfinder iterations has been consumed.
 	int iterCount = maxIters;
 	
 	for (int i = 0; i < MAX_QUEUE; ++i)

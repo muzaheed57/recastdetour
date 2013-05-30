@@ -23,9 +23,9 @@
 
 
 struct dtCrowdAgent;
-struct dtCrowdAgentDebugInfo;
 struct dtCrowdAgentEnvironment;
 
+/// Obstacle represented as a circle
 struct dtObstacleCircle
 {
 	float p[3];				///< Position of the obstacle
@@ -96,7 +96,7 @@ struct dtObstacleAvoidanceParams
 	unsigned char adaptiveDepth;	///< adaptive
 
 	dtObstacleAvoidanceDebugData* caDebug;	///< A debug object to load with debug information. [Opt]
-	dtCrowdAgent* caAgents;					///< The agents in the crowd.
+	const dtCrowd* crowd;					///< The agents in the crowd.
 };
 
 
@@ -107,10 +107,15 @@ struct dtObstacleAvoidanceParams
 class dtCollisionAvoidance : public dtParametrizedBehavior<dtObstacleAvoidanceParams>
 {
 public:
-	dtCollisionAvoidance(unsigned nbMaxAgents, const dtCrowdAgentEnvironment* env);
+	dtCollisionAvoidance(unsigned nbMaxAgents);
 	~dtCollisionAvoidance();
 
-	static dtCollisionAvoidance* allocate(unsigned nbMaxAgents, const dtCrowdAgentEnvironment* env);
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
+	static dtCollisionAvoidance* allocate(unsigned nbMaxAgents);
 	static void free(dtCollisionAvoidance* ptr);
 
 	/// Initializes the behavior.
@@ -129,8 +134,6 @@ public:
 	
 	/// Returns the number of velocity samples.
 	int getVelocitySamplesCount() const { return m_velocitySamplesCount; }
-	
-	dtCrowdAgent* m_activeAgts;				///< The active agents of the crowd.
 
 private:
 	/// Registers all the neighbors of the given agent as obstacles.

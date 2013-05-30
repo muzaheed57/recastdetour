@@ -152,35 +152,22 @@ static int getNeighbours(const float* pos, const float height, const float range
 @class dtCrowd
 @par
 
-This is the core class of the @ref crowd module.  See the @ref crowd documentation for a summary
-of the crowd features.
+A crowd handles every agent it contains. 
+You can think of it as a big container for agents.
 
-A common method for setting up the crowd is as follows:
+You can see `dtCrowd` as an interface between you and the agents it contains.
+You cannot modify the agents inside the crowd directly, 
+the interface will only grant you a constant access to the data.
 
--# Allocate the crowd using #dtAllocCrowd.
--# Initialize the crowd using #init().
--# Set the avoidance configurations using #setObstacleAvoidanceParams().
--# Add agents using #addAgent() and make an initial movement request using #requestMoveTarget().
+Through `dtCrowd` you can do several things:
 
-A common process for managing the crowd is as follows:
+- Have access to the agents (although not directly)
+- Have access to the data the crowd uses to update the agents (navigation mesh, proximity grid, etc.)
+- Add / Remove / Edit agents inside the crowd
+- Update the crowd. This will update every agents using their behaviors. When updating an agent you can 
+update its position, velocity, environment or all of those.
 
--# Call #update() to allow the crowd to manage its agents.
--# Retrieve agent information using #getActiveAgents().
--# Make movement requests using #requestMoveTarget() when movement goal changes.
--# Repeat every frame.
-
-Some agent configuration settings can be updated using #updateAgentParameters().  But the crowd owns the
-agent position.  So it is not possible to update an active agent's position.  If agent position
-must be fed back into the crowd, the agent must be removed and re-added.
-
-Notes: 
-
-- Path related information is available for newly added agents only after an #update() has been
-  performed.
-- Agent objects are kept in a pool and re-used.  So it is important when using agent objects to check the value of
-  #dtCrowdAgent::active to determine if the agent is actually in use or not.
-- This class is meant to provide 'local' movement. There is a limit of 256 polygons in the path corridor.  
-  So it is not meant to provide automatic pathfinding services over long distances.
+For a more complete documentation, check the @ref crowd module.
 
 @see dtAllocCrowd(), dtFreeCrowd(), init(), dtCrowdAgent
 
@@ -197,7 +184,6 @@ dtCrowd::dtCrowd() :
 	m_activeAgents(0),
 	m_agentsToUpdate(0),
 	m_maxAgentRadius(0),
-	m_maxPathQueueNodes(4096),
 	m_maxCommonNodes(512)
 {
 }
@@ -311,31 +297,30 @@ const int dtCrowd::getAgentCount() const
 /// @par
 /// 
 /// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
-const dtCrowdAgent* dtCrowd::getAgent(const int idx) const
+const dtCrowdAgent* dtCrowd::getAgent(const int id) const
 {
-	if (idx >= 0 && idx < m_maxAgents)
-		return &m_agents[idx];
+	if (id >= 0 && id < m_maxAgents)
+		return &m_agents[id];
 
 	return 0;
 }
 
-const dtCrowdAgentEnvironment* dtCrowd::getAgentsEnvironment() const
+void dtCrowd::fetchAgent(dtCrowdAgent& ag, int id) const
 {
-	return m_agentsEnv;
+	if (id >= 0 && id < m_maxAgents)
+		ag = m_agents[id];
 }
 
-/// @par
-/// 
-/// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
-dtCrowdAgent* dtCrowd::getAgent(const int idx)
+const dtCrowdAgentEnvironment* dtCrowd::getAgentEnvironment(int id) const
 {
-	return &m_agents[idx];
+	if (id >= 0 && id < m_maxAgents)
+		return &m_agentsEnv[id];
 }
 
 /// @par
 ///
 /// The agent's position will be constrained to the surface of the navigation mesh.
-int dtCrowd::addAgent(const float* pos)
+bool dtCrowd::addAgent(dtCrowdAgent& agent, const float* pos)
 {
 	// Find empty slot.
 	int idx = -1;
@@ -347,8 +332,9 @@ int dtCrowd::addAgent(const float* pos)
 			break;
 		}
 	}
+
 	if (idx == -1)
-		return -1;
+		return false;
 	
 	dtCrowdAgent* ag = &m_agents[idx];
 
@@ -360,8 +346,8 @@ int dtCrowd::addAgent(const float* pos)
 	
 	ag->desiredSpeed = 0;
 
-	dtVset(ag->dvel, 0,0,0);
-	dtVset(ag->vel, 0,0,0);
+	dtVset(ag->dvel, 0, 0, 0);
+	dtVset(ag->vel, 0, 0, 0);
 	dtVcopy(ag->npos, nearest);
 	if (ref)
 		ag->state = DT_CROWDAGENT_STATE_WALKING;
@@ -369,21 +355,24 @@ int dtCrowd::addAgent(const float* pos)
 		ag->state = DT_CROWDAGENT_STATE_INVALID;
 		
 	ag->active = 1;
+
+	agent = *ag;
 	
-	return idx;
+
+	return true;
 }
 
 /// @par
 ///
 /// The agent is deactivated and will no longer be processed. Its #dtCrowdAgent object
 /// is not removed from the pool.  It is marked as inactive so that it is available for reuse.
-void dtCrowd::removeAgent(const int idx)
+void dtCrowd::removeAgent(int id)
 {
-	if (idx >= 0 && idx < m_maxAgents)
+	if (id >= 0 && id < m_maxAgents)
 	{
-		if (m_agents[idx].active != 0)
+		if (m_agents[id].active != 0)
 		{
-			m_agents[idx].active = 0;
+			m_agents[id].active = 0;
 			--m_nbActiveAgents;
 		}
 	}
@@ -401,16 +390,22 @@ int dtCrowd::getActiveAgents(dtCrowdAgent** agents, const int maxAgents)
 	return n;
 }
 
-void dtCrowd::getAllAgents(dtCrowdAgent** agents)
+bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
 {
-	for (int i = 0; i < m_maxAgents; ++i)
-		agents[i] = &m_agents[i];
+	if (id >= 0 && id < m_maxAgents)
+	{
+		if (m_agents[id].active)
+		{
+			*ag = &m_agents[id];
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void dtCrowd::updateVelocity(const float dt, int* agentsIdx, int nbIdx)
 {
-	dtCrowdAgent** agents = m_activeAgents;
-	getAllAgents(agents);
 	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
 	
 	// If we want to update every agent
@@ -509,7 +504,7 @@ void dtCrowd::updatePosition(const float dt, int* agentsIdx, int nbIdx)
 			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
 
-			dtVset(ag->disp, 0,0,0);
+			dtVset(ag->disp, 0, 0, 0);
 
 			float w = 0;
 
@@ -728,23 +723,70 @@ bool dtCrowd::updateAgentPosition(int index, const float* position)
 	return false;
 }
 
-bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
+bool dtCrowd::agentIsMoving(const dtCrowdAgent& ag) const
 {
-	if (id >= 0 && id < m_maxAgents)
+	if (ag.id < 0 || ag.id >= m_maxAgents)
+		return false;
+
+	return (m_agents[ag.id].desiredSpeed > EPSILON && dtVlen(m_agents[ag.id].vel) > EPSILON);
+}
+
+bool dtCrowd::applyAgent(const dtCrowdAgent& ag)
+{
+	if (ag.id < 0 || ag.id >= m_maxAgents)
+		return false;
+
+	// Find nearest position on navmesh and place the agent there.
+	float nearest[3];
+	dtPolyRef ref;
+	m_crowdQuery->getNavMeshQuery()->findNearestPoly(ag.npos, m_crowdQuery->getQueryExtents(), 
+		m_crowdQuery->getQueryFilter(), &ref, nearest);
+
+	// If a position could not be found on the navigation mesh, then we do not apply the changes
+	if (!ref)
+		return false;
+
+	m_agents[ag.id] = ag;
+
+	// Checking out of bound limits
+	m_agents[ag.id].radius = (m_agents[ag.id].radius < 0) ? 0 : m_agents[ag.id].radius;
+	m_agents[ag.id].height = (m_agents[ag.id].height <= 0) ? 0.01f : m_agents[ag.id].height;
+	m_agents[ag.id].maxAcceleration = (m_agents[ag.id].maxAcceleration < 0) ? 0 : m_agents[ag.id].maxAcceleration;
+	m_agents[ag.id].maxSpeed = (m_agents[ag.id].maxSpeed < 0) ? 0 : m_agents[ag.id].maxSpeed;
+
+	return true;
+}
+
+bool dtCrowd::setAgentBehavior(int id, dtBehavior* behavior)
+{
+	if (id >= 0 || id < m_maxAgents)
 	{
-		if (m_agents[id].active)
-		{
-			*ag = &m_agents[id];
-			return true;
-		}
+		m_agents[id].behavior = behavior;
+		return true;
 	}
 
 	return false;
 }
 
-bool dtCrowd::agentIsMoving( int index ) const
+int dtCrowd::getAgents(const int* ids, int size, const dtCrowdAgent** agents) const
 {
-	return (m_agents[index].desiredSpeed > EPSILON && dtVlen(m_agents[index].vel) > EPSILON);
+	if (!ids || !agents)
+		return 0;
+
+	int nbFound = 0;
+
+	for (int i = 0; i < size; ++i)
+	{
+		int id = ids[i];
+
+		if (id < 0 || id > m_maxAgents)
+			continue;
+
+		++nbFound;
+		agents[i] = &m_agents[id];
+	}
+
+	return nbFound;
 }
 
 dtCrowdQuery::~dtCrowdQuery()
@@ -760,7 +802,6 @@ dtCrowdQuery::~dtCrowdQuery()
 }
 
 dtCrowdQuery::dtCrowdQuery(int maxAgents)
-	: m_maxAgents(maxAgents)
 {
 	m_navMeshQuery = dtAllocNavMeshQuery();
 	m_grid = dtAllocProximityGrid();

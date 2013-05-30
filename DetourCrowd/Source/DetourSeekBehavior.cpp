@@ -58,7 +58,7 @@ void dtSeekBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent
 	if (!oldAgent || !newAgent)
 		return;
 
-	const dtCrowdAgent* target = getBehaviorParams(*oldAgent)->seekTarget;
+	const dtCrowdAgent* target = getBehaviorParams(oldAgent->id)->seekTarget;
 
 	if (!target || !target->active)
 		return;
@@ -71,8 +71,8 @@ void dtSeekBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent
 
 void dtSeekBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 {
-	const dtCrowdAgent* target = getBehaviorParams(*ag)->seekTarget;
-	const float predictionFactor = getBehaviorParams(*ag)->seekPredictionFactor;
+	const dtCrowdAgent* target = getBehaviorParams(ag->id)->seekTarget;
+	const float predictionFactor = getBehaviorParams(ag->id)->seekPredictionFactor;
 
 	// Required force in order to reach the target
 	dtVsub(force, target->npos, ag->npos);
@@ -91,8 +91,8 @@ void dtSeekBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newA
 {
 	float tmpForce[] = {0, 0, 0};
 	float newVelocity[] = {0, 0, 0};
-	const dtCrowdAgent* target = getBehaviorParams(*oldAgent)->seekTarget;
-	const float distance = getBehaviorParams(*oldAgent)->seekDistance;
+	const dtCrowdAgent* target = getBehaviorParams(oldAgent->id)->seekTarget;
+	const float distance = getBehaviorParams(oldAgent->id)->seekDistance;
 
 	// Adapting the force to the dt and the previous velocity
 	dtVscale(tmpForce, force, dt);

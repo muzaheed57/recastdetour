@@ -63,7 +63,6 @@ class CrowdToolState : public SampleToolState
 	float m_targetPos[3];
 	dtPolyRef m_targetRef;
 
-	dtCrowdAgentDebugInfo m_agentDebug;
 	dtObstacleAvoidanceDebugData* m_vod;
 	
 	static const int AGENT_MAX_TRAIL = 64;

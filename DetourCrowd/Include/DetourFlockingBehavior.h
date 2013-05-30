@@ -30,10 +30,10 @@ struct dtCrowdAgentEnvironment;
 
 struct dtFlockingBehaviorParams
 {
-	int* toFlockWith;			///< Indices of the agents to flock with.
-	int nbflockingTargets;		///< Number of agents to flock with.
-	dtCrowdAgent* agents;		///< The list of agents the indices are refering to.
-	float separationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
+	int* toFlockWith;				///< Indices of the agents to flock with.
+	int nbflockingTargets;			///< Number of agents to flock with.
+	const dtCrowd* crowd;			///< The crowd used to access agents.
+	float separationDistance;		///< If the distance between two agents is less than this value, we try to separate them.
 };
 
 /// @defgroup Getters_Accessors

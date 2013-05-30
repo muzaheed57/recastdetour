@@ -42,7 +42,6 @@ public:
     
     dtCrowd* m_crowd;
     
-    dtCrowdAgentDebugInfo m_debuggedAgentInfo;
     ValueHistory m_crowdTotalTime;
     ValueHistory m_crowdSampleCount;
 	

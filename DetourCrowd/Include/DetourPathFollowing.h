@@ -35,8 +35,25 @@ template <typename T>
 class dtParametrizedBehavior;
 
 
-static const int MAX_PATH_RES = 256;
+/// The state in which the move request of an agent is.
+enum MoveRequestState
+{
+	DT_CROWDAGENT_TARGET_NONE = 0,
+	DT_CROWDAGENT_TARGET_FAILED,
+	DT_CROWDAGENT_TARGET_VALID,
+	DT_CROWDAGENT_TARGET_REQUESTING,
+	DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE,
+	DT_CROWDAGENT_TARGET_WAITING_FOR_PATH,
+	DT_CROWDAGENT_TARGET_VELOCITY,
+};
 
+/// This class gives informations about the current path of the agent
+struct dtCrowdAgentDebugInfo
+{
+	int idx;							///< Index of  the agent
+	float optStart[3], optEnd[3];		///< Begin and end of the path
+	dtObstacleAvoidanceDebugData* vod;	///< Informations about how the agent avoids obstacles
+};
 struct dtPathFollowingParams
 {
 	dtPathFollowingParams();
@@ -73,6 +90,8 @@ struct dtPathFollowingParams
 
 	/// The path corridor the agent is using.
 	dtPathCorridor corridor;
+
+	void init(int maxPathResults);
 };
 
 /// Defines a behavior for pathfollowing.
@@ -92,15 +111,13 @@ public:
 	/// Initializes the behavior.
 	///
 	/// Must be called before using the behavior.
+	/// @param[in]		crowdQuery	An object granting access to several elements of the crowd (animations, navigation mesh queries, etc.)
 	/// @param[in]		navMesh		The navigation mesh representing the navigation search space for the agents.
-	/// @param[in]		ext			The search distance along each axis. [(x, y, z)]
-	/// @param[in]		maxPathRes	Max number of path results.
-	/// @param[in]		agents		The list of agents (active or not) inside the crowd.
+	/// @param[in]		crowd		The crowd used to access agents
 	/// @param[in]		maxAgents	Size of the list of agents.
-	/// @param[in]		anims		Animations of the agents.
 	///
-	/// @return True if the initialization succeeded.
-	bool init(dtCrowdQuery& crowdQuery, dtNavMesh* navMesh, dtCrowdAgent* agents, int maxAgents);
+	/// @return True if the initialization succeeded, false otherwise.
+	bool init(dtCrowdQuery& crowdQuery, dtNavMesh* navMesh, const dtCrowd* crowd, int maxAgents, int maxPathRes = 256);
 
 	/// Submits a new move request for the specified agent.
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
@@ -225,7 +242,7 @@ private:
 	dtNavMeshQuery* m_navMeshQuery;			///< Used to perform queries on the navigation mesh.
 	float m_ext[3];							///< The search distance along each axis.
 
-	dtCrowdAgent* m_agents;					///< the list of agents (active of not) dealt with.
+	const dtCrowd* m_crowd;					///< The crowd used to access agents
 	dtPolyRef* m_pathResult;				///< The path results
 	dtCrowdAgentAnimation* m_agentAnims;	///< Animations of the agents
 	int m_maxAgents;						///< Maximal number of agents.
@@ -234,8 +251,6 @@ private:
 	const int m_maxCommonNodes;				///< Maximal number of common nodes.
 	const int m_maxPathQueueNodes;			///< Maximal number of nodes in the path queue.
 	const int m_maxIterPerUpdate;			///< Maximal number of iterations per update.
-	
-	const dtCrowdAgentEnvironment* m_env;
 };
 
 #endif

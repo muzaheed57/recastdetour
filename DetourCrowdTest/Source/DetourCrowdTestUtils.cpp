@@ -63,15 +63,18 @@ bool TestScene::defaultInitializeAgent(dtCrowd& crowd, int index) const
 	if (index == -1)
 		return false;
 
-	dtCrowdAgent* ag = crowd.getAgent(index);
+	dtCrowdAgent ag;
+	crowd.fetchAgent(ag, index);
 
-	ag->radius = 0.2;
-	ag->height = 1.7;
-	ag->maxSpeed = 2.0;
-	ag->maxAcceleration = 10.0;
-	ag->collisionQueryRange = 4.0;
-	ag->updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
-	ag->behavior = 0;
+	ag.radius = 0.2;
+	ag.height = 1.7;
+	ag.maxSpeed = 2.0;
+	ag.maxAcceleration = 10.0;
+	ag.collisionQueryRange = 4.0;
+	ag.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
+	ag.behavior = 0;
+
+	crowd.applyAgent(ag);
 
 	return true;
 }

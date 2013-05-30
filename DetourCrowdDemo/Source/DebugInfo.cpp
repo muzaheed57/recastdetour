@@ -25,24 +25,16 @@
 
 DebugInfo::DebugInfo()
 : m_crowd(0)
-, m_debuggedAgentInfo()
 , m_crowdTotalTime()
 , m_crowdSampleCount()
 , m_initialized(false)
 , m_lastStart()
-{
-    memset(&m_debuggedAgentInfo, 0, sizeof(m_debuggedAgentInfo));
-	m_debuggedAgentInfo.idx = -1;
-    
-	m_debuggedAgentInfo.vod = dtAllocObstacleAvoidanceDebugData();
-    m_debuggedAgentInfo.vod->init(2048);
-	
+{	
     memset(m_agentTrails, 0, sizeof(m_agentTrails));
 }
 
 DebugInfo::~DebugInfo()
 {
-    dtFreeObstacleAvoidanceDebugData(m_debuggedAgentInfo.vod);
 }
 
 bool DebugInfo::initialize()
@@ -83,8 +75,6 @@ bool DebugInfo::endUpdate(float dt)
     
     //m_crowdSampleCount.addSample((float)m_crowd->getVelocitySampleCount());
     m_crowdTotalTime.addSample(getPerfDeltaTimeUsec(m_lastStart, end) / 1000.0f);
-    
-    m_debuggedAgentInfo.vod->normalizeSamples();
     
     // Update agent trails
     for (int i = 0, size(m_crowd->getAgentCount()); i < size; ++i)

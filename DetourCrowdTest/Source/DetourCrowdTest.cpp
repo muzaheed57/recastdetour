@@ -27,16 +27,17 @@ TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update 
 
 	float posAgt1[] = {0, 0, 0};
 	float destAgt1[] = {15, 0, 0};
+	dtCrowdAgent ag;
 
 	// Adding the agent to the crowd
-	int indexAgent1 = crowd->addAgent(posAgt1);
-	ts.defaultInitializeAgent(*crowd, indexAgent1);
+	REQUIRE(crowd->addAgent(ag, posAgt1));
+	ts.defaultInitializeAgent(*crowd, ag.id);
 
 	float correctPosition[] = {19, 0, 0};
 	float wrongPosition[] = {100, 0, 10};
 
-	CHECK(crowd->updateAgentPosition(indexAgent1, correctPosition));
-	CHECK_FALSE(crowd->updateAgentPosition(indexAgent1, wrongPosition));
+	CHECK(crowd->updateAgentPosition(ag.id, correctPosition));
+	CHECK_FALSE(crowd->updateAgentPosition(ag.id, wrongPosition));
 }
 
 TEST_CASE("DetourCrowdTest/HashTable", "Testing the hash table containing the pairs <agentID, AgentBehaviorData>")
@@ -51,58 +52,58 @@ TEST_CASE("DetourCrowdTest/HashTable", "Testing the hash table containing the pa
 	dtAlignmentBehavior* align = dtAlignmentBehavior::allocate(0);
 
 	// Adding an element to the HT
-	dtAlignmentBehaviorParams* param = align->addBehaviorParams(*crowd->getAgent(0));
+	dtAlignmentBehaviorParams* param = align->addBehaviorParams(crowd->getAgent(0)->id);
 	CHECK(param == 0);
 	
 	// Adding another element
-	param = align->addBehaviorParams(*crowd->getAgent(1));
+	param = align->addBehaviorParams(crowd->getAgent(1)->id);
 	CHECK(param == 0);
 	
 	// Adding another element (id is greater or equal to the size of the HT)
-	param = align->addBehaviorParams(*crowd->getAgent(2));
+	param = align->addBehaviorParams(crowd->getAgent(2)->id);
 	CHECK(param == 0);
 
 	// Trying to access elements from an empty HT
-	param = align->getBehaviorParams(*crowd->getAgent(0));
+	param = align->getBehaviorParams(crowd->getAgent(0)->id);
 	CHECK_FALSE(param != 0);
 
 	// Getting a none existing parameter
-	param = align->getBehaviorParams(*crowd->getAgent(1));
+	param = align->getBehaviorParams(crowd->getAgent(1)->id);
 	CHECK_FALSE(param != 0);
 
 	// This the HT is not empty
 	dtSeekBehavior* seek = dtSeekBehavior::allocate(2);
 
 	// Adding an element to the HT
-	dtSeekBehaviorParams* params = seek->addBehaviorParams(*crowd->getAgent(0));
+	dtSeekBehaviorParams* params = seek->addBehaviorParams(crowd->getAgent(0)->id);
 	CHECK(params != 0);
 
 	// Adding an already existing elements
-	params = seek->addBehaviorParams(*crowd->getAgent(0));
+	params = seek->addBehaviorParams(crowd->getAgent(0)->id);
 	CHECK(params == 0);
 
 	// Adding another element
-	params = seek->addBehaviorParams(*crowd->getAgent(1));
+	params = seek->addBehaviorParams(crowd->getAgent(1)->id);
 	CHECK(params != 0);
 
 	// Adding another element (id is greater or equal to the size of the HT)
-	params = seek->addBehaviorParams(*crowd->getAgent(2));
+	params = seek->addBehaviorParams(crowd->getAgent(2)->id);
 	CHECK(params != 0);
 
 	// Adding new parameters to an already existing element
-	dtSeekBehaviorParams* params2 = seek->addBehaviorParams(*crowd->getAgent(0));
+	dtSeekBehaviorParams* params2 = seek->addBehaviorParams(crowd->getAgent(0)->id);
 	CHECK(params2 == 0);
 
 	// Adding another element (id greater than HT size)
-	params = seek->addBehaviorParams(*crowd->getAgent(9));
+	params = seek->addBehaviorParams(crowd->getAgent(9)->id);
 	CHECK(params != 0);
 
 	dtSeekBehaviorParams* p;
 	// Getting an existing parameter
-	p = seek->getBehaviorParams(*crowd->getAgent(0));
+	p = seek->getBehaviorParams(crowd->getAgent(0)->id);
 	CHECK(p != 0);
 	// Getting a none existing parameter
-	p = seek->getBehaviorParams(*crowd->getAgent(5));
+	p = seek->getBehaviorParams(crowd->getAgent(5)->id);
 	CHECK_FALSE(p != 0);
 
 	dtSeekBehavior::free(seek);
@@ -117,99 +118,134 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 
 	REQUIRE(crowd != 0);
 
-	float a1ReferencePosition[3] = {-18, 0, -18};
-	float a2ReferencePosition[3] = {18, 0, 18};
-	float a3ReferencePosition[3] = {19, 0, -18};
-	float a4ReferencePosition[3] = {18, 0, -18};
-	float a1Destination[3] = {18, 0, 18};
-	float a2Destination[3] = {-18, 0, -18};
-	float a3Destination[3] = {1, 0, 0};
-	float a4Destination[3] = {0, 0, 0};
+	float posAgt1[] = {-18, 0, -18};
+	float posAgt2[] = {18, 0, 18};
+	float posAgt3[] = {-18, 0, 18};
+	float posAgt4[] = {18, 0, -18};
+	float destAgt1[] = {18, 0, 18};
+	float destAgt2[] = {-18, 0, -18};
+	float destAgt3[] = {18, 0, -18};
+	float destAgt4[] = {-18, 0, 18};
+	dtCrowdAgent ag1, ag2;
 
 	// Adding the agents to the crowd
-	int indexAgent1 = crowd->addAgent(a1ReferencePosition);
-	int indexAgent2 = crowd->addAgent(a2ReferencePosition);
+	REQUIRE(crowd->addAgent(ag1, posAgt1));
+	REQUIRE(crowd->addAgent(ag2, posAgt2));
 
-	REQUIRE_FALSE(indexAgent1 == -1);
-	REQUIRE_FALSE(indexAgent2 == -1);
-
-	ts.defaultInitializeAgent(*crowd, indexAgent1);
-	ts.defaultInitializeAgent(*crowd, indexAgent2);
+	ts.defaultInitializeAgent(*crowd, ag1.id);
+	ts.defaultInitializeAgent(*crowd, ag2.id);
 
 	dtPathFollowing* pf1 = dtPathFollowing::allocate(5);
-	dtPathFollowingParams* 	params = pf1->addBehaviorParams(*crowd->getAgent(0));
-	dtPathFollowingParams* params2 = pf1->addBehaviorParams(*crowd->getAgent(1));
+	dtPathFollowingParams* 	params = pf1->addBehaviorParams(crowd->getAgent(0)->id);
+	dtPathFollowingParams* params2 = pf1->addBehaviorParams(crowd->getAgent(1)->id);
+	params->init(256);
+	params2->init(256);
 
 	dtPolyRef poly1, poly2;
 	float pos1NavMesh[3], pos2NavMesh[3];
-	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a1ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
-	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a2ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
+	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
+	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
 	params->corridor.reset(poly1, pos1NavMesh);
 	params2->corridor.reset(poly2, pos2NavMesh);
 
-	pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents());
+	pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd, crowd->getAgentCount());
 
-	crowd->getAgent(indexAgent1)->behavior = pf1;
-	crowd->getAgent(indexAgent2)->behavior = pf1;
+	crowd->setAgentBehavior(ag1.id, pf1);
+	crowd->setAgentBehavior(ag2.id, pf1);
 		
 	// Set the destination
 	dtPolyRef dest1, dest2;
-	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a1Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest1, 0);
-	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a2Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest2, 0);
+	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest1, 0);
+	crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest2, 0);
 
-	REQUIRE(pf1->requestMoveTarget(indexAgent1, dest1, a1Destination));
-	REQUIRE(pf1->requestMoveTarget(indexAgent2, dest2, a2Destination));
+	pf1->requestMoveTarget(ag1.id, dest1, destAgt1);
+	pf1->requestMoveTarget(ag2.id, dest2, destAgt2);
+
+	SECTION("Edit Agents", "Acessing and modifying agents through the dtCrowd interface")
+	{
+		dtCrowdAgent ag;
+		ag.maxAcceleration = 999;
+
+		// Index is invalid, the agent should not have been updated
+		crowd->fetchAgent(ag, -1);
+		CHECK(ag.maxAcceleration == 999);
+
+		// Index is valid, the agent should have been updated
+		crowd->fetchAgent(ag, ag1.id);
+		CHECK(ag.maxAcceleration == 10.f);
+
+		// Modifying the agent's radius
+		ag.radius = 9.f;
+		ag.id = -1;
+
+		// Applying modifications should not work since the id is invalid
+		CHECK_FALSE(crowd->applyAgent(ag));
+
+		ag.id = ag1.id;
+
+		// Applying modifications should work since the id is valid
+		CHECK(crowd->applyAgent(ag));
+
+		// Now the property of the modified agent should have changed
+		CHECK(crowd->getAgent(ag1.id)->radius == 9.f);
+	}
 
 	SECTION("Update all agents", "We update every agent at the time")
 	{
 		crowd->update(1.0, 0);
 
-        CHECK(!dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
-		CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		float agt1NewPos[3], agt2NewPos[3];
+
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);		
+
+		CHECK((!dtVequal(posAgt1, agt1NewPos) && !dtVequal(posAgt2, agt2NewPos)));
 	}
 
 	SECTION("Update specific agents", "We just want to update some specific agents")
 	{
 		// We just update the first agent
-        dtVcopy(a1ReferencePosition, crowd->getAgent(indexAgent1)->npos);
-        dtVcopy(a2ReferencePosition, crowd->getAgent(indexAgent2)->npos);
-		int list[] = {indexAgent1, indexAgent2};
+		int list[] = {ag1.id, ag2.id};
 		unsigned listSize = 1;
 		float agt1NewPos[3], agt2NewPos[3];
 
-		crowd->update(1.0, &indexAgent1, 1);
+		dtVcopy(posAgt1, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(posAgt2, crowd->getAgent(ag2.id)->npos);
 
-        // a1Idx has moved.
-        CHECK(!dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
+		crowd->update(1.0, list, 1);
 
-        // a2Idx hasn't
-		CHECK(dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+
+		CHECK((!dtVequal(posAgt1, agt1NewPos) && dtVequal(posAgt2, agt2NewPos)));
 
 		// We just update the second agent
-		dtVcopy(a1ReferencePosition, crowd->getAgent(indexAgent1)->npos);
+		dtVcopy(posAgt1, agt1NewPos);
 
-		crowd->update(1.0, &indexAgent2, 1);
+		list[0] = ag2.id;
 
-        // a1Idx hasn't moved.
-        CHECK(dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
+        crowd->update(1.0, list, listSize);
 
-        // a2Idx has
-		CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+
+		CHECK((dtVequal(posAgt1, agt1NewPos) && !dtVequal(posAgt2, agt2NewPos)));
 		
-		// We update every agents using the index indices
-		dtVcopy(a2ReferencePosition, crowd->getAgent(indexAgent2)->npos);
-
-		crowd->update(1.0, list, 2);
+		// We update every agent using the index list
+		dtVcopy(posAgt2, agt2NewPos);
 		
-		// a1Idx has moved.
-        CHECK(!dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
-		list[0] = indexAgent1;
+		listSize = 2;
+		list[0] = ag1.id;
 
-        // a2Idx too
-		CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		crowd->update(1.0, list, listSize);
 
-		dtVcopy(a1ReferencePosition, crowd->getAgent(indexAgent1)->npos);
-		dtVcopy(a2ReferencePosition, crowd->getAgent(indexAgent2)->npos);
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+		
+		CHECK((!dtVequal(posAgt1, agt1NewPos) && !dtVequal(posAgt2, agt2NewPos)));
+
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
 
 		SECTION("Error cases", "Error cases when updating specific agents")
 		{
@@ -220,88 +256,89 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 			crowd->update(1.0, errorList, 3);
 
 			// a1Idx has moved.
-			CHECK(!dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
+			CHECK(!dtVequal(crowd->getAgent(ag1.id)->npos, agt1NewPos));
 
 			// a2Idx too
-			CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+			CHECK(!dtVequal(crowd->getAgent(ag2.id)->npos, agt2NewPos));
 
 			// Error Case: the user gives invalid values in the list
 			errorList[0] = 999; errorList[1] = -1;
-			dtVcopy(a1ReferencePosition, crowd->getAgent(indexAgent1)->npos);
-			dtVcopy(a2ReferencePosition, crowd->getAgent(indexAgent2)->npos);
+			dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+			dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
 
 			crowd->update(0.5, errorList, 2);
 
 			// a1Idx hasn't moved.
-			CHECK(dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
+			CHECK(dtVequal(crowd->getAgent(ag1.id)->npos, agt1NewPos));
 
 			// a2Idx neither
-			CHECK(dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+			CHECK(dtVequal(crowd->getAgent(ag2.id)->npos, agt2NewPos));
 		}
 
 		// Adding the agents to the crowd
-		int indexAgent3 = crowd->addAgent(a3ReferencePosition);
-		int indexAgent4 = crowd->addAgent(a4ReferencePosition);
+		dtCrowdAgent ag3, ag4;
 
-		REQUIRE(indexAgent4 != -1);
-		REQUIRE(indexAgent3 != -1);
+		REQUIRE(crowd->addAgent(ag3, posAgt3));
+		REQUIRE(crowd->addAgent(ag4, posAgt4));
 
-		ts.defaultInitializeAgent(*crowd, indexAgent3);
-		ts.defaultInitializeAgent(*crowd, indexAgent4);
+		ts.defaultInitializeAgent(*crowd, ag3.id);
+		ts.defaultInitializeAgent(*crowd, ag4.id);
 
 		// Set the destinations
 		dtPolyRef a3TargetRef;
 		dtPolyRef a4TargetRef;
 		dtCrowdQuery* query = crowd->getCrowdQuery();
-		query->getNavMeshQuery()->findNearestPoly(a3Destination, query->getQueryExtents(), query->getQueryFilter(), &a3TargetRef, a3Destination);
-		query->getNavMeshQuery()->findNearestPoly(a4Destination, query->getQueryExtents(), query->getQueryFilter(), &a4TargetRef, a4Destination);
+		query->getNavMeshQuery()->findNearestPoly(destAgt3, query->getQueryExtents(), query->getQueryFilter(), &a3TargetRef, destAgt3);
+		query->getNavMeshQuery()->findNearestPoly(destAgt4, query->getQueryExtents(), query->getQueryFilter(), &a4TargetRef, destAgt4);
 
-		dtVcopy(a1ReferencePosition, crowd->getAgent(indexAgent1)->npos);
-		dtVcopy(a2ReferencePosition, crowd->getAgent(indexAgent2)->npos);
-		dtVcopy(a3ReferencePosition, crowd->getAgent(indexAgent3)->npos);
-		dtVcopy(a4ReferencePosition, crowd->getAgent(indexAgent4)->npos);
+		dtVcopy(posAgt1, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(posAgt2, crowd->getAgent(ag2.id)->npos);
+		dtVcopy(posAgt3, crowd->getAgent(ag3.id)->npos);
+		dtVcopy(posAgt4, crowd->getAgent(ag4.id)->npos);
 
-		pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd->getAgents(), crowd->getNbMaxAgents());
-		dtPathFollowingParams* params3 = pf1->addBehaviorParams(*crowd->getAgent(indexAgent3));
-		dtPathFollowingParams* params4 = pf1->addBehaviorParams(*crowd->getAgent(indexAgent4));
+		pf1->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd, crowd->getAgentCount());
+		dtPathFollowingParams* params3 = pf1->addBehaviorParams(ag3.id);
+		dtPathFollowingParams* params4 = pf1->addBehaviorParams(ag4.id);
+		params3->init(256);
+		params4->init(256);
 
-		crowd->getAgent(indexAgent3)->behavior = pf1;
-		crowd->getAgent(indexAgent4)->behavior = pf1;
+		crowd->setAgentBehavior(ag3.id, pf1);
+		crowd->setAgentBehavior(ag4.id, pf1);
 		
 		// Set the corridor
 		dtPolyRef poly1, poly2, poly3, poly4;
 		float pos1NavMesh[3], pos2NavMesh[3], pos3NavMesh[3], pos4NavMesh[3];
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a1ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a2ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a3ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly3, pos3NavMesh);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a4ReferencePosition, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly4, pos4NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt3, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly3, pos3NavMesh);
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt4, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly4, pos4NavMesh);
 		params->corridor.reset(poly1, pos1NavMesh);
 		params2->corridor.reset(poly2, pos2NavMesh);
 		params3->corridor.reset(poly3, pos3NavMesh);
 		params4->corridor.reset(poly4, pos4NavMesh);
 
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a1Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
 			&params->targetRef, 0);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a2Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
 			&params2->targetRef, 0);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a3Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt3, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
 			&params3->targetRef, 0);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(a4Destination, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
+		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt4, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), 
 			&params4->targetRef, 0);
 
-		REQUIRE(pf1->requestMoveTarget(indexAgent1, params->targetRef, a1Destination));
-		REQUIRE(pf1->requestMoveTarget(indexAgent2, params2->targetRef, a2Destination));
-		REQUIRE(pf1->requestMoveTarget(indexAgent3, params3->targetRef, a3Destination));
-		REQUIRE(pf1->requestMoveTarget(indexAgent4, params4->targetRef, a4Destination));
+		REQUIRE(pf1->requestMoveTarget(ag1.id, params->targetRef, destAgt1));
+		REQUIRE(pf1->requestMoveTarget(ag2.id, params2->targetRef, destAgt2));
+		REQUIRE(pf1->requestMoveTarget(ag3.id, params3->targetRef, destAgt3));
+		REQUIRE(pf1->requestMoveTarget(ag4.id, params4->targetRef, destAgt4));
 		
-		crowd->removeAgent(indexAgent1);
+		crowd->removeAgent(ag1.id);
 		crowd->update(0.5);
 
 		// Every agent has moved but the removed one
-		CHECK(dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
-		CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
-		CHECK(!dtVequal(crowd->getAgent(indexAgent3)->npos, a3ReferencePosition));
-		CHECK(!dtVequal(crowd->getAgent(indexAgent4)->npos, a4ReferencePosition));		
+		CHECK(dtVequal(crowd->getAgent(ag1.id)->npos, posAgt1));
+		CHECK(!dtVequal(crowd->getAgent(ag2.id)->npos, posAgt2));
+		CHECK(!dtVequal(crowd->getAgent(ag3.id)->npos, posAgt3));
+		CHECK(!dtVequal(crowd->getAgent(ag4.id)->npos, posAgt4));		
 	}
 
 	SECTION("Separate velocity and position", "We want to be able to update the velocity and the position of the agents separatly")
@@ -310,77 +347,79 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		// The velocity and the position must not be changed.
 
 		float agt1NewPos[3], agt2NewPos[3], agt1NewVel[3], agt2NewVel[3];
-		float a1ReferenceVelocity[3], a2ReferenceVelocity[3];
-		dtVcopy(a1ReferencePosition,crowd->getAgent(indexAgent1)->npos);
-		dtVcopy(a2ReferencePosition,crowd->getAgent(indexAgent2)->npos);
-		dtVcopy(a1ReferenceVelocity, crowd->getAgent(indexAgent1)->vel);
-		dtVcopy(a2ReferenceVelocity, crowd->getAgent(indexAgent2)->vel);
+		float velAgt1[3], velAgt2[3];
+		
+		dtVcopy(posAgt1, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(posAgt2, crowd->getAgent(ag2.id)->npos);
+		dtVcopy(velAgt1, crowd->getAgent(ag1.id)->vel);
+		dtVcopy(velAgt2, crowd->getAgent(ag2.id)->vel);
 
 		crowd->updateEnvironment();
 
-		dtVcopy(agt1NewPos, crowd->getAgent(indexAgent1)->npos);
-		dtVcopy(agt2NewPos, crowd->getAgent(indexAgent2)->npos);
-		dtVcopy(agt1NewVel, crowd->getAgent(indexAgent1)->vel);
-		dtVcopy(agt2NewVel, crowd->getAgent(indexAgent2)->vel);
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+		dtVcopy(agt1NewVel, crowd->getAgent(ag1.id)->vel);
+		dtVcopy(agt2NewVel, crowd->getAgent(ag2.id)->vel);
 
-		REQUIRE((dtVequal(a1ReferencePosition, agt1NewPos) && dtVequal(a2ReferencePosition, agt2NewPos) && 
-			     dtVequal(a1ReferenceVelocity, agt1NewVel) && dtVequal(a2ReferenceVelocity, agt2NewVel)));
+		REQUIRE((dtVequal(posAgt1, agt1NewPos) && dtVequal(posAgt2, agt2NewPos) && 
+			     dtVequal(velAgt1, agt1NewVel) && dtVequal(velAgt2, agt2NewVel)));
 
 		// Checking if the neighbourhood of an agent is correctly updated
 		// For that we create another agent next to an already existing agent.
-		float posAgt3[3] = {crowd->getAgent(indexAgent1)->npos[0] + 1, 
+		float posAgt3[3] = {crowd->getAgent(ag1.id)->npos[0] + 1, 
 							0, 
-							crowd->getAgent(indexAgent1)->npos[2] + 1};
-		float destAgt3[3] = {posAgt3[0], posAgt3[1], posAgt3[2]};
+							crowd->getAgent(ag1.id)->npos[2] + 1};
+		float destAgt3[] = {posAgt3[0], posAgt3[1], posAgt3[2]};
+		dtCrowdAgent ag3;
 
-		int indexAgent3 = crowd->addAgent(posAgt3);
+		REQUIRE(crowd->addAgent(ag3, posAgt3));
 
-		REQUIRE_FALSE(indexAgent3 == -1);
+		ts.defaultInitializeAgent(*crowd, ag3.id);
 
-		ts.defaultInitializeAgent(*crowd, indexAgent3);
-		crowd->getAgent(indexAgent3)->behavior = pf1;
+		crowd->setAgentBehavior(ag3.id, pf1);
 
 		// We update the environment only for the third agent
 		int index = 2;
 		crowd->updateEnvironment(&index, 1);
-		const dtCrowdAgentEnvironment* env = crowd->getAgentsEnvironment();
 
 		// The third agent has been placed next to another agent, and therefore it should have one neighbor
-		CHECK(env[indexAgent3].nbNeighbors == 1);
+		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 1);
 		// The other agents on the other hand haven't updated their environment, and therefore should have no neighbors
-		CHECK(env[indexAgent1].nbNeighbors == 0);
+		CHECK(crowd->getAgentEnvironment(ag1.id)->nbNeighbors == 0);
 
 		// Now we update everyone's environment, thus every agent has one neighbor
 		crowd->updateEnvironment();
-		CHECK(env[indexAgent3].nbNeighbors == 1);
-		CHECK(env[indexAgent1].nbNeighbors == 1);
+		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 1);
+		CHECK(crowd->getAgentEnvironment(ag1.id)->nbNeighbors == 1);
 
-		crowd->removeAgent(indexAgent3);
+		crowd->removeAgent(ag3.id);
 
 		// Update velocity only
 		crowd->updateVelocity(0.2f, 0);
 
-        // positions should be the same.
-        CHECK(dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
-        CHECK(dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+		dtVcopy(agt1NewVel, crowd->getAgent(ag1.id)->vel);
+		dtVcopy(agt2NewVel, crowd->getAgent(ag2.id)->vel);
 
         // velocities should have changed
-        CHECK(!dtVequal(crowd->getAgent(indexAgent1)->vel, a1ReferenceVelocity));
-        CHECK(!dtVequal(crowd->getAgent(indexAgent2)->vel, a2ReferenceVelocity));
+        CHECK(!dtVequal(crowd->getAgent(ag1.id)->vel, velAgt1));
+        CHECK(!dtVequal(crowd->getAgent(ag2.id)->vel, velAgt2));
 
 		// Update position only
-		dtVcopy(a1ReferenceVelocity, crowd->getAgent(indexAgent1)->vel);
-		dtVcopy(a2ReferenceVelocity, crowd->getAgent(indexAgent2)->vel);
+		dtVcopy(velAgt1, crowd->getAgent(ag1.id)->vel);
+		dtVcopy(velAgt2, crowd->getAgent(ag2.id)->vel);
 
 		crowd->updatePosition(0.2f);
 
-		// positions should have changed.
-        CHECK(!dtVequal(crowd->getAgent(indexAgent1)->npos, a1ReferencePosition));
-        CHECK(!dtVequal(crowd->getAgent(indexAgent2)->npos, a2ReferencePosition));
+		dtVcopy(agt1NewPos, crowd->getAgent(ag1.id)->npos);
+		dtVcopy(agt2NewPos, crowd->getAgent(ag2.id)->npos);
+		dtVcopy(agt1NewVel, crowd->getAgent(ag1.id)->vel);
+		dtVcopy(agt2NewVel, crowd->getAgent(ag2.id)->vel);
 
         // velocities should be the same changed
-        CHECK(dtVequal(crowd->getAgent(indexAgent1)->vel, a1ReferenceVelocity));
-        CHECK(dtVequal(crowd->getAgent(indexAgent2)->vel, a2ReferenceVelocity));	
+        CHECK(dtVequal(crowd->getAgent(ag1.id)->vel, velAgt1));
+        CHECK(dtVequal(crowd->getAgent(ag2.id)->vel, velAgt2));	
 	}
 
 	dtPathFollowing::free(pf1);

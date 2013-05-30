@@ -26,13 +26,17 @@
 #include "DetourCrowd.h"
 
 
-static const float EPSILON = 0.0001f;
+static const float EPSILON = 0.01f;
 
 /// Interface defining a steering behavior.
+/// @ingroup behavior
 template <typename T = NoData>
 class dtSteeringBehavior : public dtParametrizedBehavior<T>
 {
 public:
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
 	dtSteeringBehavior(unsigned nbMaxAgent);
 	virtual ~dtSteeringBehavior();
 	

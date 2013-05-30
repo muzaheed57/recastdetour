@@ -21,24 +21,26 @@
 
 class dtProximityGrid
 {
-	int m_maxItems;
-	float m_cellSize;
-	float m_invCellSize;
+	int m_maxItems;				///< The max number of item in the pool
+	float m_cellSize;			///< The size of a cell
+	float m_invCellSize;		///< The inverse of the size of a cell
 	
+	/// Represents an item in the proximity grid
 	struct Item
 	{
-		unsigned short id;
-		short x,y;
+		unsigned short id;		///< The id of the item
+		short x, y;				///< The position of the item
 		unsigned short next;
 	};
-	Item* m_pool;
-	int m_poolHead;
-	int m_poolSize;
 	
-	unsigned short* m_buckets;
-	int m_bucketsSize;
+	Item* m_pool;				///< A pool of item
+	int m_poolHead;				///< The position in the pool (used to know whether we have reached the end or not)
+	int m_poolSize;				///< The size of the pool
 	
-	int m_bounds[4];
+	unsigned short* m_buckets;	///< Hash buckets
+	int m_bucketsSize;			///< Number of buckets for the hash table
+	
+	int m_bounds[4];			///< The bounds of the proximity grid (minX, minY, maxX, maxY)
 	
 public:
 	dtProximityGrid();

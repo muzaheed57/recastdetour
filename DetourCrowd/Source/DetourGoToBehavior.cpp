@@ -68,7 +68,7 @@ void dtGoToBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 	if (!ag)
 		return;
 
-	const float* target = getBehaviorParams(*ag)->gotoTarget;
+	const float* target = getBehaviorParams(ag->id)->gotoTarget;
 
 	// Required velocity in order to reach the target
 	dtVsub(force, target, ag->npos);
@@ -76,8 +76,8 @@ void dtGoToBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 
 void dtGoToBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
 {
-	const float* target = getBehaviorParams(*oldAgent)->gotoTarget;
-	const float distance = getBehaviorParams(*oldAgent)->gotoDistance;
+	const float* target = getBehaviorParams(oldAgent->id)->gotoTarget;
+	const float distance = getBehaviorParams(oldAgent->id)->gotoDistance;
 
 	float tmpForce[3] = {0, 0, 0};
 	float newVelocity[] = {0, 0, 0};

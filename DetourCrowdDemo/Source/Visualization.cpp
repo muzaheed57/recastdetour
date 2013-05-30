@@ -296,35 +296,55 @@ bool Visualization::update()
 					float pos[3] = {-19, 0, -19};
 					dtVnormalize(pos);
 					dtVscale(pos, pos, 2.f);
-					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+
+					dtCrowdAgent ag;
+					m_crowd->getAgent(0);
+					dtVcopy(ag.vel, pos);
+					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP9)
 				{
 					float pos[] = {19, 0, -19};
 					dtVnormalize(pos);
 					dtVscale(pos, pos, 2.f);
-					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+
+					dtCrowdAgent ag;
+					m_crowd->getAgent(0);
+					dtVcopy(ag.vel, pos);
+					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP3)
 				{
 					float pos[3] = {19, 0, 19};
 					dtVnormalize(pos);
 					dtVscale(pos, pos, 2.f);
-					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+
+					dtCrowdAgent ag;
+					m_crowd->getAgent(0);
+					dtVcopy(ag.vel, pos);
+					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP1)
 				{
 					float pos[3] = {-19, 0, 19};
 					dtVnormalize(pos);
 					dtVscale(pos, pos, 2.f);
-					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+
+					dtCrowdAgent ag;
+					m_crowd->getAgent(0);
+					dtVcopy(ag.vel, pos);
+					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP5)
 				{
 					float pos[3] = {0, 0, 0};
 					dtVnormalize(pos);
 					dtVscale(pos, pos, 2.f);
-					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+
+					dtCrowdAgent ag;
+					m_crowd->getAgent(0);
+					dtVcopy(ag.vel, pos);
+					m_crowd->applyAgent(ag);
 				}
                 break;
                 
@@ -357,7 +377,8 @@ bool Visualization::update()
                 else if (event.button.button == SDL_BUTTON_LEFT)
                 {
                     float pickedPosition[3];
-                    pick(pickedPosition,&m_debugInfo->m_debuggedAgentInfo.idx);
+					int index = 0;
+                    pick(pickedPosition, &index);
                 }
                 break;
                 
@@ -740,139 +761,6 @@ void Visualization::renderCrowd()
                 duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
                                  pos[0]+vel[0],pos[1]+height+vel[1] + 0.01f,pos[2]+vel[2],
                                  0.0f, 0.4f, duRGBA(0,0,0,160), 2.0f);
-            }
-        }
-        
-        // Occupancy grid.
-        float gridy = -FLT_MAX;
-        for (int i = 0, size(m_crowd->getAgentCount()); i < size; ++i)
-        {
-            const dtCrowdAgent* ag = m_crowd->getAgent(i);
-            if (ag->active)
-            {
-                const float* pos = ag->npos;
-                gridy = dtMax(gridy, pos[1]);
-            }
-        }
-        gridy += 1.0f;
-        
-        dd.begin(DU_DRAW_QUADS);
-        const dtProximityGrid* grid = m_crowd->getCrowdQuery()->getProximityGrid();
-        const int* bounds = grid->getBounds();
-        const float cs = grid->getCellSize();
-        for (int y = bounds[1]; y <= bounds[3]; ++y)
-        {
-            for (int x = bounds[0]; x <= bounds[2]; ++x)
-            {
-                const int count = grid->getItemCountAt(x,y); 
-                if (!count) continue;
-                unsigned int col = duRGBA(128,0,0,dtMin(count*40,255));
-                dd.vertex(x*cs, gridy, y*cs, col);
-                dd.vertex(x*cs, gridy, y*cs+cs, col);
-                dd.vertex(x*cs+cs, gridy, y*cs+cs, col);
-                dd.vertex(x*cs+cs, gridy, y*cs, col);
-            }
-        }
-        dd.end();
-        
-        // Nodes
-        const dtNavMeshQuery* navquery = m_crowd->getCrowdQuery()->getNavMeshQuery();
-        if (navquery)
-            duDebugDrawNavMeshNodes(&dd, *navquery);
-        
-        dd.depthMask(false);
-        
-        // Selected agent
-        if (m_debugInfo->m_debuggedAgentInfo.idx != -1)
-        {
-            const dtCrowdAgent* ag = m_crowd->getAgent(m_debugInfo->m_debuggedAgentInfo.idx);
-            if (ag->active)
-            {                
-                const float radius = ag->radius;
-                const float* pos = ag->npos;
-
-				const dtCrowdAgentEnvironment* env = m_crowd->getAgentsEnvironment();
-                
-                // Collisions segments
-                const float* center = env[ag->id].boundary.getCenter();
-                duDebugDrawCross(&dd, center[0],center[1]+radius,center[2], 0.2f, duRGBA(192,0,128,255), 2.0f);
-                duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], ag->collisionQueryRange,
-                                  duRGBA(192,0,128,128), 2.0f);
-                
-                dd.begin(DU_DRAW_LINES, 3.0f);
-                for (int j = 0; j < env[ag->id].boundary.getSegmentCount(); ++j)
-                {
-                    const float* s = env[ag->id].boundary.getSegment(j);
-                    unsigned int col = duRGBA(192,0,128,192);
-                    if (dtTriArea2D(pos, s, s+3) < 0.0f)
-                        col = duDarkenCol(col);
-                    
-                    duAppendArrow(&dd, s[0],s[1]+0.2f,s[2], s[3],s[4]+0.2f,s[5], 0.0f, 0.3f, col);
-                }
-                dd.end();
-                
-                //Neighbors
-                duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], ag->collisionQueryRange,
-                                  duRGBA(0,192,128,128), 2.0f);
-                
-                dd.begin(DU_DRAW_LINES, 2.0f);
-                for (int j = 0; j < env[ag->id].nbNeighbors; ++j)
-                {
-                    // Get 'n'th active agent.
-                    // TODO: fix this properly.
-                    int n = env[ag->id].neighbors[j].idx;
-                    const dtCrowdAgent* nei = 0;
-                    for (int i = 0, size(m_crowd->getAgentCount()); i < size; ++i)
-                    {
-                        const dtCrowdAgent* nag = m_crowd->getAgent(i);
-                        if (ag->active)
-                        {
-                            if (n == 0)
-                            {
-                                nei = nag;
-                                break;
-                            }
-                            n--;
-                        }
-                    }
-                    if (nei)
-                    {
-                        dd.vertex(pos[0],pos[1]+radius,pos[2], duRGBA(0,192,128,128));
-                        dd.vertex(nei->npos[0],nei->npos[1]+radius,nei->npos[2], duRGBA(0,192,128,128));
-                    }
-                }
-                dd.end();
-                
-                //Opt??
-                dd.begin(DU_DRAW_LINES, 2.0f);
-                dd.vertex(m_debugInfo->m_debuggedAgentInfo.optStart[0],m_debugInfo->m_debuggedAgentInfo.optStart[1]+0.3f,m_debugInfo->m_debuggedAgentInfo.optStart[2], duRGBA(0,128,0,192));
-                dd.vertex(m_debugInfo->m_debuggedAgentInfo.optEnd[0],m_debugInfo->m_debuggedAgentInfo.optEnd[1]+0.3f,m_debugInfo->m_debuggedAgentInfo.optEnd[2], duRGBA(0,128,0,192));
-                dd.end();
-                
-                // VO
-				const dtObstacleAvoidanceDebugData* vod = m_debugInfo->m_debuggedAgentInfo.vod;
-				
-				const float dx = ag->npos[0];
-				const float dy = ag->npos[1]+ag->height;
-				const float dz = ag->npos[2];
-				
-				duDebugDrawCircle(&dd, dx,dy,dz, ag->maxSpeed, duRGBA(255,255,255,64), 2.0f);
-				
-				dd.begin(DU_DRAW_QUADS);
-				for (int i = 0; i < vod->getSampleCount(); ++i)
-				{
-					const float* p = vod->getSampleVelocity(i);
-					const float sr = vod->getSampleSize(i);
-					const float pen = vod->getSamplePenalty(i);
-					const float pen2 = vod->getSamplePreferredSidePenalty(i);
-					unsigned int col = duLerpCol(duRGBA(255,255,255,220), duRGBA(128,96,0,220), (int)(pen*255));
-					col = duLerpCol(col, duRGBA(128,0,0,220), (int)(pen2*128));
-					dd.vertex(dx+p[0]-sr, dy, dz+p[2]-sr, col);
-					dd.vertex(dx+p[0]-sr, dy, dz+p[2]+sr, col);
-					dd.vertex(dx+p[0]+sr, dy, dz+p[2]+sr, col);
-					dd.vertex(dx+p[0]+sr, dy, dz+p[2]-sr, col);
-				}
-				dd.end();
             }
         }
         

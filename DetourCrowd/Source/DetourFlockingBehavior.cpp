@@ -75,17 +75,22 @@ void dtFlockingBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newA
 	if (!oldAgent || !newAgent)
 		return;
 
-	dtFlockingBehaviorParams* params = getBehaviorParams(*oldAgent);
+	dtFlockingBehaviorParams* params = getBehaviorParams(oldAgent->id);
 
 	if (params == 0)
 		return;
 
-	dtCrowdAgent* agents = params->agents;
 	int* neighborsList = params->toFlockWith;
 	int nbNeighbors = params->nbflockingTargets;
+
+	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbNeighbors, DT_ALLOC_TEMP);
+	params->crowd->getAgents(neighborsList, nbNeighbors, agents);
 	
 	if (!agents || nbNeighbors == 0 || !neighborsList || !m_separationBehavior)
+	{
+		dtFree(agents);
 		return;
+	}
 
 	float totalForce[] = {0, 0, 0};
 
@@ -93,36 +98,41 @@ void dtFlockingBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newA
 	dtCohesionAgentsParams* cohesionParams;
 	dtAlignmentBehaviorParams* alignmentParams;
 
-	separationParams = m_separationBehavior->addBehaviorParams(*oldAgent);
-	cohesionParams = m_cohesionBehavior->addBehaviorParams(*oldAgent);
-	alignmentParams = m_alignmentBehavior->addBehaviorParams(*oldAgent);
+	separationParams = m_separationBehavior->addBehaviorParams(oldAgent->id);
+	cohesionParams = m_cohesionBehavior->addBehaviorParams(oldAgent->id);
+	alignmentParams = m_alignmentBehavior->addBehaviorParams(oldAgent->id);
 
 	if (!separationParams)
-		separationParams = m_separationBehavior->getBehaviorParams(*oldAgent);
+		separationParams = m_separationBehavior->getBehaviorParams(oldAgent->id);
 	if (!cohesionParams)
-		cohesionParams = m_cohesionBehavior->getBehaviorParams(*oldAgent);
+		cohesionParams = m_cohesionBehavior->getBehaviorParams(oldAgent->id);
 	if (!alignmentParams)
-		alignmentParams = m_alignmentBehavior->getBehaviorParams(*oldAgent);
+		alignmentParams = m_alignmentBehavior->getBehaviorParams(oldAgent->id);
 
 	if (!separationParams || !cohesionParams || !alignmentParams)
+	{
+		dtFree(agents);
 		return;
+	}
 
-	separationParams->separationAgents = agents;
+	separationParams->crowd = params->crowd;
 	separationParams->separationTargets = neighborsList;
 	separationParams->separationNbTargets = nbNeighbors;
 	separationParams->separationDistance = params->separationDistance;
 	separationParams->separationWeight = separationWeight;
 
-	cohesionParams->cohesionAgents = agents;
+	cohesionParams->crowd = params->crowd;
 	cohesionParams->cohesionTargets = neighborsList;
 	cohesionParams->cohesionNbTargets = nbNeighbors;
 
-	alignmentParams->alignmentAgents = agents;
+	alignmentParams->crowd = params->crowd;
 	alignmentParams->alignmentTargets = neighborsList;
 	alignmentParams->alignmentNbTargets = nbNeighbors;
 	
 	computeForce(oldAgent, totalForce);
 	applyForce(oldAgent, newAgent, totalForce, dt);
+
+	dtFree(agents);
 }
 
 void dtFlockingBehavior::computeForce(const dtCrowdAgent* ag, float* force)

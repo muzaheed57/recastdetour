@@ -56,7 +56,14 @@ public:
 	dtPathQueue();
 	~dtPathQueue();
 	
-	bool init(const int maxPathSize, const int maxSearchNodeCount, dtNavMesh* nav);
+	/// Initializes the path queue (queries and navigation mesh)
+	///
+	/// @param[in]	maxPathSize				Maximum size for a path
+	/// @param[in]	maxSearchNodeCount		Maximum number of search nodes
+	/// @param[in]	nav						The navigation mesh
+	///
+	/// @return True if the initialization succeeded, false otherwise
+	bool init(const int maxPathSize, const int maxSearchNodeCount, const dtNavMesh* nav);
 	
 	void update(const int maxIters);
 	

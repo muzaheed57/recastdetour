@@ -37,8 +37,13 @@ public:
 
 	virtual ~dtParametrizedBehavior();
 
-	T* addBehaviorParams(const dtCrowdAgent& ag);
-	T* getBehaviorParams(const dtCrowdAgent& ag) const;
+	/// Adds a behavior parameters structure for the given agent and returns a pointer to it.
+	/// If either the id of the agent is invalid or a parameter already exists for this agent, it return a NULL pointer.
+	/// @param[in]	id 	The id of the agent we must add a parameter for
+	T* addBehaviorParams(int id);
+
+	/// Returns the behavior parameter for the given agent. NULL if it doesn't exist.
+	T* getBehaviorParams(int id) const;
 
 protected:
 	struct Node
@@ -92,26 +97,26 @@ dtParametrizedBehavior<T>::~dtParametrizedBehavior()
 }
 
 template <typename T>
-T* dtParametrizedBehavior<T>::getBehaviorParams(const dtCrowdAgent& ag) const
+T* dtParametrizedBehavior<T>::getBehaviorParams(int id) const
 {
-	if (ag.id < 0 || m_size == 0)
+	if (id < 0 || m_size == 0)
 		return 0;
 
-	unsigned index = ag.id % m_size;
+	unsigned index = id % m_size;
 
 	if (index >= m_size)
 		return 0;
 
 	Node* head = &m_agentsParams[index];
 
-	if (head->id == ag.id)
+	if (head->id == id)
 		return &head->value;
 	
 	while (head->next)
 	{
 		head = head->next;
 
-		if (head->id == ag.id)
+		if (head->id == id)
 			return &head->value;
 	}
 
@@ -119,24 +124,24 @@ T* dtParametrizedBehavior<T>::getBehaviorParams(const dtCrowdAgent& ag) const
 }
 
 template <typename T>
-T* dtParametrizedBehavior<T>::addBehaviorParams(const dtCrowdAgent& ag)
+T* dtParametrizedBehavior<T>::addBehaviorParams(int id)
 {
-	if (ag.id < 0 || m_size == 0)
+	if (id < 0 || m_size == 0)
 		return 0;
 
-	unsigned index = ag.id % m_size;
+	unsigned index = id % m_size;
 
 	if (index >= m_size)
 		return 0;
 
 	Node* head = &m_agentsParams[index];
 
-	if (head->id == ag.id)
+	if (head->id == id)
 		return 0;
 
 	if (head->id == -1)
 	{
-		head->id = ag.id;
+		head->id = id;
 		return &head->value;
 	}
 
@@ -144,7 +149,7 @@ T* dtParametrizedBehavior<T>::addBehaviorParams(const dtCrowdAgent& ag)
 	{
 		head = head->next;
 
-		if (head->id == ag.id)
+		if (head->id == id)
 			return 0;
 	}
 
@@ -156,7 +161,7 @@ T* dtParametrizedBehavior<T>::addBehaviorParams(const dtCrowdAgent& ag)
 	Node* newNode = new(mem) Node;
 	
 	newNode->next = 0;
-	newNode->id = ag.id;
+	newNode->id = id;
 	head->next = newNode;
 
 	return &newNode->value;
