@@ -28,43 +28,48 @@ class dtAlignmentBehavior;
 struct dtCrowdAgentEnvironment;
 
 
+/// Parameters for the flocking behavior.
+/// @ingroup behavior
 struct dtFlockingBehaviorParams
 {
-	int* toFlockWith;				///< Indices of the agents to flock with.
-	int nbflockingTargets;			///< Number of agents to flock with.
-	const dtCrowd* crowd;			///< The crowd used to access agents.
-	float separationDistance;		///< If the distance between two agents is less than this value, we try to separate them.
+	unsigned* toFlockWith;			///< Indices of the agents to flock with.
+	unsigned nbflockingTargets;		///< Number of agents to flock with.
 };
-
-/// @defgroup Getters_Accessors
-/// Getters and accessors for the flocking behavior class
 
 /// Flocking behavior.
 /// Agents behaving that way will behave like a flock, or a herd. This basically means that 
 /// they will try to stick together as they move, heading in the same direction, and without 
 /// bumping into each other.
+/// @ingroup behavior
 class dtFlockingBehavior : public dtSteeringBehavior<dtFlockingBehaviorParams>
 {
 public:
-	dtFlockingBehavior(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight);
+	dtFlockingBehavior(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight, float separationDistance);
 	~dtFlockingBehavior();
 
-	static dtFlockingBehavior* allocate(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight);
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
+	static dtFlockingBehavior* allocate(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight, float separationDistance);
+
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtFlockingBehavior* ptr);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 
 	float separationWeight;		///< The strength of the separation velocity.
 	float cohesionWeight;		///< The strength of the cohesion velocity.
 	float alignmentWeight;		///< The strength of the alignment velocity.
+	float separationDistance;	///< If the distance between two agents is less than this value, we try to separate them.
 	
-private:	
+private:
 	dtSeparationBehavior* m_separationBehavior;	///< The separation behavior
 	dtCohesionBehavior* m_cohesionBehavior;		///< The cohesion behavior
 	dtAlignmentBehavior* m_alignmentBehavior;	///< The alignment behavior
-
-	const dtCrowdAgentEnvironment* m_env;
 };
 
 #endif

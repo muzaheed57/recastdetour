@@ -22,17 +22,18 @@
 #include "DetourSteeringBehavior.h"
 
 struct dtCrowdAgent;
-class dtCrowdAgentEnvironment;
+struct dtCrowdAgentEnvironment;
 class dtCrowd;
 
 
+/// Parameters for the separation behavior
+/// @ingroup behavior
 struct dtSeparationBehaviorParams
 {
-	int* separationTargets;					///< The others agents we want to keep our distances from.
-	int separationNbTargets;				///< The number of targets.
-	const dtCrowd* crowd;					///< The crowd used to access agents.
-	float separationDistance;				///< From distance from which the agent considers the targets that must be avoided.
-	float separationWeight;					///< A coefficient defining how agressively the agent should avoid the targets.
+	unsigned* targetsID;			///< The others agents we want to keep our distances from.
+	unsigned nbTargets;				///< The number of targets.
+	float separationDistance;		///< From distance from which the agent considers the targets that must be avoided.
+	float separationWeight;			///< A coefficient defining how agressively the agent should avoid the targets.
 };
 
 /// Implementation of the separation behavior.
@@ -61,8 +62,7 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtSeparationBehavior* ptr);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 };
 
 #endif // DETOURSEPARATIONBEHAVIOR_H

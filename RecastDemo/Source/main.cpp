@@ -35,6 +35,7 @@
 #include "Sample_TempObstacles.h"
 #include "Sample_Debug.h"
 
+
 #ifdef WIN32
 #	define snprintf _snprintf
 #	define putenv _putenv
@@ -66,7 +67,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// Init SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
-		printf("Could not initialise SDL\n");
+		printf("Could not initialize SDL\n");
 		return -1;
 	}
 	
@@ -371,7 +372,6 @@ int main(int /*argc*/, char** /*argv*/)
 		
 		t += dt;
 
-
 		// Hit test mesh.
 		if (processHitTest && geom && sample)
 		{
@@ -394,6 +394,7 @@ int main(int /*argc*/, char** /*argv*/)
 					pos[0] = rays[0] + (raye[0] - rays[0])*hitt;
 					pos[1] = rays[1] + (raye[1] - rays[1])*hitt;
 					pos[2] = rays[2] + (raye[2] - rays[2])*hitt;
+
 					sample->handleClick(rays, pos, processHitTestShift);
 				}
 			}
@@ -928,7 +929,7 @@ int main(int /*argc*/, char** /*argv*/)
 	imguiRenderGLDestroy();
 	
 	SDL_Quit();
-	
+
 	delete sample;
 	delete geom;
 	

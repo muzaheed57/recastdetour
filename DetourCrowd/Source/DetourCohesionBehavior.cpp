@@ -25,16 +25,12 @@
 #include <new>
 
 dtCohesionBehavior::dtCohesionBehavior(unsigned nbMaxAgents)
-	: dtSteeringBehavior<dtCohesionAgentsParams>(nbMaxAgents)
-	, m_gotoBehabior(0)
+	: dtSteeringBehavior<dtCohesionBehaviorParams>(nbMaxAgents)
 {
-	m_gotoBehabior = dtGoToBehavior::allocate(nbMaxAgents);
 }
 
 dtCohesionBehavior::~dtCohesionBehavior()
 {
-	dtGoToBehavior::free(m_gotoBehabior);
-	m_gotoBehabior = 0;
 }
 
 dtCohesionBehavior* dtCohesionBehavior::allocate(unsigned nbMaxAgents)
@@ -57,63 +53,31 @@ void dtCohesionBehavior::free(dtCohesionBehavior* ptr)
 	ptr = 0;
 }
 
-void dtCohesionBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtCohesionBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	if (!oldAgent || !newAgent)
-		return;
-	
-	float center[] = {0, 0, 0};
-	const int* targets = getBehaviorParams(oldAgent->id)->cohesionTargets;
-	const int nbTargets = getBehaviorParams(oldAgent->id)->cohesionNbTargets;
-	
-	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
-	getBehaviorParams(oldAgent->id)->crowd->getAgents(targets, nbTargets, agents);
-
-	getGravityCenter(*agents, targets, nbTargets, center);
-
-	dtGoToBehaviorParams* gotoParams;
-
-	gotoParams = m_gotoBehabior->addBehaviorParams(oldAgent->id);
-
-	if (!gotoParams)
-		gotoParams = m_gotoBehabior->getBehaviorParams(oldAgent->id);
-
-	if (!gotoParams)
-		return;
-
-	gotoParams->gotoTarget = center;
-	gotoParams->gotoDistance = 0.f;
-
-	m_gotoBehabior->update(oldAgent, newAgent, dt);
-}
-
-void dtCohesionBehavior::computeForce(const dtCrowdAgent* ag, float* force)
-{
-	const int* targets = getBehaviorParams(ag->id)->cohesionTargets;
-	const int nbTargets = getBehaviorParams(ag->id)->cohesionNbTargets;
-
-	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
-	getBehaviorParams(ag->id)->crowd->getAgents(targets, nbTargets, agents);
+	const unsigned* targets = getBehaviorParams(ag.id)->cohesionTargets;
+	const unsigned nbTargets = getBehaviorParams(ag.id)->cohesionNbTargets;
 
 	float center[] = {0, 0, 0};
 
-	getGravityCenter(*agents, targets, nbTargets, center);
+	getGravityCenter(query, targets, nbTargets, center);
+	dtVsub(force, center, ag.position);
 
-	dtVsub(force, center, ag->npos);
+	force[1] = 0;
 }
 
-void dtCohesionBehavior::getGravityCenter(const dtCrowdAgent* agents, const int* targets, int nbTargets, float* center)
+void dtCohesionBehavior::getGravityCenter(const dtCrowdQuery& query, const unsigned* targets, int nbTargets, float* center)
 {
 	int count = 0;
 
 	for (int i = 0; i < nbTargets; ++i)
 	{
-		const dtCrowdAgent& target = agents[i];
+		const dtCrowdAgent& target = *query.getAgent(targets[i]);
 
 		if (!target.active)
 			continue;
 
-		dtVadd(center, center, target.npos);
+		dtVadd(center, center, target.position);
 		++count;
 	}
 

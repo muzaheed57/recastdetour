@@ -152,7 +152,7 @@ bool rcMeshLoaderObj::load(float* vert, unsigned vertCount, int* tris, unsigned 
 		addTriangle(tris[i], tris[i + 1], tris[i + 2], tcap);
 
 	// Calculate normals.
-	m_vertCount = m_vertCount;
+	m_vertCount = vertCount;
 	m_normals = new float[m_triCount*3];
 	for (int i = 0; i < m_triCount*3; i += 3)
 	{

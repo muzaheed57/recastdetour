@@ -25,9 +25,10 @@ struct dtCrowdAgent;
 
 
 /// Parameters for the seek behavior
+/// @ingroup behavior
 struct dtSeekBehaviorParams
 {
-	const dtCrowdAgent* seekTarget;	///< The agent we seek.
+	unsigned targetID;			///< The id of the agent we seek.
 	float seekDistance;				///< Minimal distance to keep between the agent and its target.
 	float seekPredictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
 									///  Nonetheless a big value is not realistic when agents are close to each other.
@@ -40,20 +41,32 @@ struct dtSeekBehaviorParams
 /// (the agent will never get any closer than this distance).
 /// Also the agent can have a prediction factor, which means that it will predict the next
 /// position of its target (according to its velocity) and head to it.
+/// @ingroup behavior
 class dtSeekBehavior : public dtSteeringBehavior<dtSeekBehaviorParams>
 {
 public:
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
 	dtSeekBehavior(unsigned maxAgents);
 	~dtSeekBehavior();
 
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
 	static dtSeekBehavior* allocate(unsigned nbMaxAgents);
+
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtSeekBehavior* ptr);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 
 private:
-	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
+	virtual void applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt);
 };
 
 

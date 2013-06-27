@@ -21,7 +21,7 @@
 
 #include <cstring>
 
-const size_t maxAgentCount = 100;
+const size_t maxAgentCount = 200;
 const size_t maxPathLen = 260;
 const size_t maxAgentTrailLen = 64;
 

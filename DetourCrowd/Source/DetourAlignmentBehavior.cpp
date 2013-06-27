@@ -33,27 +33,13 @@ dtAlignmentBehavior::~dtAlignmentBehavior()
 {
 }
 
-void dtAlignmentBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtAlignmentBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	if (!oldAgent || !newAgent)
-		return;
-
-	float force[] = {0, 0, 0};
-
-	computeForce(oldAgent, force);
-	applyForce(oldAgent, newAgent, force, dt);
-}
-
-void dtAlignmentBehavior::computeForce(const dtCrowdAgent* ag, float* force)
-{
-	if (!ag)
-		return;
-
-	const int* targets = getBehaviorParams(ag->id)->alignmentTargets;
-	const int nbTargets = getBehaviorParams(ag->id)->alignmentNbTargets;
+	const unsigned* targets = getBehaviorParams(ag.id)->alignmentTargets;
+	const unsigned nbTargets = getBehaviorParams(ag.id)->alignmentNbTargets;
 
 	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
-	getBehaviorParams(ag->id)->crowd->getAgents(targets, nbTargets, agents);
+	query.getAgents(targets, nbTargets, agents);
 
 	if (!agents || !targets || !nbTargets)
 	{
@@ -67,13 +53,15 @@ void dtAlignmentBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 		if (agents[i]->active)
 		{
 			++ count;
-			dtVadd(force, force, agents[i]->vel);
+			dtVadd(force, force, agents[i]->velocity);
 		}
 
 	dtVscale(force, force, 1.f / (float) count);
-	dtVsub(force, force, ag->vel);
+	dtVsub(force, force, ag.velocity);
 
 	dtFree(agents);
+
+	force[1] = 0;
 }
 
 dtAlignmentBehavior* dtAlignmentBehavior::allocate(unsigned nbMaxAgents)

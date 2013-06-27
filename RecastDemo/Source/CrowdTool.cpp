@@ -31,6 +31,7 @@
 #include "DetourDebugDraw.h"
 #include "DetourCommon.h"
 #include "DetourNode.h"
+#include "DetourPathFollowing.h"
 #include "SampleInterfaces.h"
 
 #ifdef WIN32
@@ -79,7 +80,7 @@ static bool isectSegAABB(const float* sp, const float* sq,
 
 static void getAgentBounds(const dtCrowdAgent* ag, float* bmin, float* bmax)
 {
-	const float* p = ag->npos;
+	const float* p = ag->position;
 	const float r = ag->radius;
 	const float h = ag->height;
 	bmin[0] = p[0] - r;
@@ -95,7 +96,8 @@ CrowdToolState::CrowdToolState() :
 	m_nav(0),
 	m_crowd(0),
 	m_targetRef(0),
-	m_run(true)
+	m_run(true),
+	m_pf(0)
 {
 	m_toolParams.m_expandSelectedDebugDraw = true;
 	m_toolParams.m_showCorners = false;
@@ -151,6 +153,9 @@ void CrowdToolState::init(class Sample* sample)
 		
 		// Make polygons with 'disabled' flag invalid.
 		crowd->getCrowdQuery()->getQueryFilter()->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
+
+		m_pf = dtPathFollowing::allocate(m_crowd->getAgentCount());
+		m_pf->init(*crowd->getCrowdQuery());
 		
 		//// Setup local avoidance params to different qualities.
 		//dtObstacleAvoidanceParams params;
@@ -240,7 +245,7 @@ void CrowdToolState::handleRender()
 		{
 			const dtCrowdAgent* ag = crowd->getAgent(i);
 			if (!ag->active) continue;
-			const float* pos = ag->npos;
+			const float* pos = ag->position;
 			gridy = dtMax(gridy, pos[1]);
 		}
 		gridy += 1.0f;
@@ -272,7 +277,7 @@ void CrowdToolState::handleRender()
 		if (!ag->active) continue;
 		
 		const AgentTrail* trail = &m_trails[i];
-		const float* pos = ag->npos;
+		const float* pos = ag->position;
 		
 		dd.begin(DU_DRAW_LINES,3.0f);
 		float prev[3], preva = 1;
@@ -300,7 +305,7 @@ void CrowdToolState::handleRender()
 			continue;
 			
 		const float radius = ag->radius;
-		const float* pos = ag->npos;
+		const float* pos = ag->position;
 		
 		//if (m_toolParams.m_showCorners)
 		//{
@@ -383,7 +388,7 @@ void CrowdToolState::handleRender()
 				if (nei)
 				{
 					dd.vertex(pos[0],pos[1]+radius,pos[2], duRGBA(0,192,128,128));
-					dd.vertex(nei->npos[0],nei->npos[1]+radius,nei->npos[2], duRGBA(0,192,128,128));
+					dd.vertex(nei->position[0],nei->position[1]+radius,nei->position[2], duRGBA(0,192,128,128));
 				}
 			}
 			dd.end();
@@ -397,7 +402,7 @@ void CrowdToolState::handleRender()
 		if (!ag->active) continue;
 		
 		const float radius = ag->radius;
-		const float* pos = ag->npos;
+		const float* pos = ag->position;
 		
 		unsigned int col = duRGBA(0,0,0,32);
 		//if (m_agentDebug.idx == i)
@@ -413,7 +418,7 @@ void CrowdToolState::handleRender()
 		
 		const float height = ag->height;
 		const float radius = ag->radius;
-		const float* pos = ag->npos;
+		const float* pos = ag->position;
 		
 		unsigned int col = duRGBA(220,220,220,128);
 		
@@ -435,9 +440,9 @@ void CrowdToolState::handleRender()
 			// Draw detail about agent sela
 			//const dtObstacleAvoidanceDebugData* vod = m_agentDebug.vod;
 			
-			const float dx = ag->npos[0];
-			const float dy = ag->npos[1]+ag->height;
-			const float dz = ag->npos[2];
+			const float dx = ag->position[0];
+			const float dy = ag->position[1]+ag->height;
+			const float dz = ag->position[2];
 			
 			duDebugDrawCircle(&dd, dx,dy,dz, ag->maxSpeed, duRGBA(255,255,255,64), 2.0f);
 		}
@@ -451,9 +456,9 @@ void CrowdToolState::handleRender()
 		
 		const float radius = ag->radius;
 		const float height = ag->height;
-		const float* pos = ag->npos;
-		const float* vel = ag->vel;
-		const float* dvel = ag->dvel;
+		const float* pos = ag->position;
+		const float* vel = ag->velocity;
+		const float* dvel = ag->desiredVelocity;
 		
 		unsigned int col = duRGBA(220,220,220,192);
 		
@@ -524,7 +529,7 @@ void CrowdToolState::handleRenderOverlay(double* proj, double* model, int* view)
 			{
 				const dtCrowdAgent* ag = crowd->getAgent(i);
 				if (!ag->active) continue;
-				const float* pos = ag->npos;
+				const float* pos = ag->position;
 				const float h = ag->height;
 				if (gluProject((GLdouble)pos[0], (GLdouble)pos[1]+h, (GLdouble)pos[2],
 							   model, proj, view, &x, &y, &z))
@@ -570,7 +575,7 @@ void CrowdToolState::addAgent(const float* p)
 		ag.height = m_sample->getAgentHeight();
 		ag.maxAcceleration = 8.0f;
 		ag.maxSpeed = 3.5f;
-		ag.collisionQueryRange = ag.radius * 12.0f;
+		ag.collisionQueryRange = 4.0f;
 		ag.updateFlags = 0; 
 
 		if (m_toolParams.m_anticipateTurns)
@@ -629,6 +634,30 @@ void CrowdToolState::setMoveTarget(const float* p, bool adjust)
 	dtCrowd* crowd = m_sample->getCrowd();
 	const dtQueryFilter* filter = crowd->getCrowdQuery()->getQueryFilter();
 	const float* ext = crowd->getCrowdQuery()->getQueryExtents();
+
+	if (adjust)
+	{
+		float vel[3];
+
+		for (int i = 0; i < crowd->getAgentCount(); ++i)
+		{
+			const dtCrowdAgent* ag = crowd->getAgent(i);
+			if (!ag->active) continue;
+			calcVel(vel, ag->position, p, ag->maxSpeed);
+			//m_pf->requestMoveVelocity(ag->id, vel);
+		}
+	}
+	else
+	{
+		navquery->findNearestPoly(p, ext, filter, &m_targetRef, m_targetPos);
+
+		for (int i = 0; i < crowd->getAgentCount(); ++i)
+		{
+			const dtCrowdAgent* ag = crowd->getAgent(i);
+			if (!ag->active) continue;
+			m_pf->requestMoveTarget(ag->id, m_targetRef, m_targetPos);
+		}
+	}
 }
 
 int CrowdToolState::hitTestAgents(const float* s, const float* p)
@@ -718,7 +747,7 @@ void CrowdToolState::updateTick(const float dt)
 			continue;
 		// Update agent movement trail.
 		trail->htrail = (trail->htrail + 1) % AGENT_MAX_TRAIL;
-		dtVcopy(&trail->trail[trail->htrail*3], ag->npos);
+		dtVcopy(&trail->trail[trail->htrail*3], ag->position);
 	}
 	
 	//m_agentDebug.vod->normalizeSamples();

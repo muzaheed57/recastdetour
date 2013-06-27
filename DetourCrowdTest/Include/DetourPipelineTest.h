@@ -67,13 +67,13 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		crowd->update(0.5, 0);
 
 		float agt1NewPos[3];
-		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->npos);
+		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->position);
 
 		// Since no behavior is affected to the pipeline, the agent must not have moved
 		CHECK(dtVequal(agt1NewPos, posAgt1));
 
 		dtPathFollowing* pf = dtPathFollowing::allocate(5);
-		dtPathFollowingParams* pfParams = pf->addBehaviorParams(ag.id);
+		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(0)->id);
 		pfParams->init(256);
 
 		// Set the destination
@@ -84,7 +84,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		pfParams->corridor.reset(firstPoly, firstPos);
 
 		REQUIRE(dest != 0);		
-		REQUIRE(pf->init(*crowd->getCrowdQuery(), ts.getNavMesh(), crowd, crowd->getAgentCount()));
+		REQUIRE(pf->init(*crowd->getCrowdQuery()));
 		REQUIRE(pf->requestMoveTarget(ag.id, dest, destAgt1));
 
 		pipeline->setBehaviors(0, 1);
@@ -92,7 +92,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		// Still no behavior was given (null pointer), so nothing should have moved.
 		crowd->update(0.5, 0);
 
-		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->npos);	
+		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->position);	
 
 		// Since no behavior is affected to the pipeline, the agent must not have moved
 		CHECK(dtVequal(agt1NewPos, posAgt1));
@@ -105,7 +105,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		crowd->update(0.5, 0);
 
 		// The agent should not have moved
-		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->npos);	
+		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->position);	
 		CHECK(dtVequal(agt1NewPos, posAgt1));
 
 		// This time we affect the behavior with the right size
@@ -113,7 +113,7 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 
 		crowd->update(0.5, 0);
 
-		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->npos);	
+		dtVcopy(agt1NewPos, crowd->getAgent(ag.id)->position);	
 
 		// A behavior has been affected to the pipeline, the agent should have moved
 		CHECK(!dtVequal(agt1NewPos, posAgt1));

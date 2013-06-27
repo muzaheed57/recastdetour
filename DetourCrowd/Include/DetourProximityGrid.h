@@ -19,9 +19,11 @@
 #ifndef DETOURPROXIMITYGRID_H
 #define DETOURPROXIMITYGRID_H
 
+
+/// A proximity grid represents a grid where the user can add obstacles and agents.
+/// These data can then be accessed and used for things like path following or collision avoidance
 class dtProximityGrid
 {
-	int m_maxItems;				///< The max number of item in the pool
 	float m_cellSize;			///< The size of a cell
 	float m_invCellSize;		///< The inverse of the size of a cell
 	
@@ -32,7 +34,7 @@ class dtProximityGrid
 		short x, y;				///< The position of the item
 		unsigned short next;
 	};
-	
+
 	Item* m_pool;				///< A pool of item
 	int m_poolHead;				///< The position in the pool (used to know whether we have reached the end or not)
 	int m_poolSize;				///< The size of the pool
@@ -46,22 +48,58 @@ public:
 	dtProximityGrid();
 	~dtProximityGrid();
 	
+	/// Initializes the proximity grid.
+	///
+	/// @param[in]	maxItems	The maximum number of item
+	/// @param[in]	cellSize	The maximum size of a cell
+	///
+	/// @return True if the initialization was successful, false otherwise.
 	bool init(const int maxItems, const float cellSize);
 	
+	/// Clears the proximity grid.
+	/// Every items the grid contained is deleted.
 	void clear();
 	
+	/// Adds an item to the proximity grid
+	/// The id and the size of the item is provided.
+	///
+	/// @param[in]	id		The id of the new item
+	/// @param[in]	minx	Minimum X point
+	/// @param[in]	miny	Minimum Y point
+	/// @param[in]	maxx	Maximum X point
+	/// @param[in]	maxy	Maximum Y point
 	void addItem(const unsigned short id,
 				 const float minx, const float miny,
 				 const float maxx, const float maxy);
 	
+	/// Gets the items contained within the given range
+	///
+	/// @param[in]	minx	Minimum X point
+	/// @param[in]	miny	Minimum Y point
+	/// @param[in]	maxx	Maximum X point
+	/// @param[in]	maxy	Maximum Y point
+	/// @param[out]	ids		The ids of the items found
+	/// @param[in]	maxIds	The maximum number of item that can be found
+	///
+	/// @return Returns the number of item found
 	int queryItems(const float minx, const float miny,
 				   const float maxx, const float maxy,
 				   unsigned short* ids, const int maxIds) const;
 	
+	/// @name Data access
+	/// @{
+
+	/// Return the number of items located at the given position
+	///
+	/// @param[in]	x	The X position
+	/// @param[in]	y	The Y position
+	///
+	/// @return The number of item found
 	int getItemCountAt(const int x, const int y) const;
 	
 	inline const int* getBounds() const { return m_bounds; }
 	inline const float getCellSize() const { return m_cellSize; }
+	/// @}
 };
 
 dtProximityGrid* dtAllocProximityGrid();

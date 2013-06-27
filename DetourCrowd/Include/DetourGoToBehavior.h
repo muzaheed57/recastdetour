@@ -24,29 +24,40 @@
 struct dtCrowdAgent;
 
 
-struct dtGoToBehaviorParams
+/// Parameters for the Arrive behavior
+/// @ingroup behavior
+struct dtArriveBehaviorParams
 {
-	float gotoDistance;		///< Minimal distance to keep between the agent and its target.
-	float* gotoTarget;		///< The position we want to reach.
+	float distance;		///< Minimal distance to keep between the agent and its target.
+	float* target;		///< The position we want to reach.
 };
 
 /// Defines the GoTo behavior.
 ///
-/// This behavior allows the user to set a target, and the agent will try to reach it.
-class dtGoToBehavior : public dtSteeringBehavior<dtGoToBehaviorParams>
+/// This behavior allows the user to set a target (a position [x, y, z]), and the agent will try to reach it.
+/// @ingroup behavior
+class dtArriveBehavior : public dtSteeringBehavior<dtArriveBehaviorParams>
 {
 public:
-	dtGoToBehavior(unsigned nbMaxAgents);
-	~dtGoToBehavior();
+	dtArriveBehavior(unsigned nbMaxAgents);
+	~dtArriveBehavior();
 
-	static dtGoToBehavior* allocate(unsigned nbMaxAgents);
-	static void free(dtGoToBehavior* ptr);
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
+	static dtArriveBehavior* allocate(unsigned nbMaxAgents);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
+	static void free(dtArriveBehavior* ptr);
+
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 
 private:
-	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
+	virtual void applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt);
 };
 
 #endif

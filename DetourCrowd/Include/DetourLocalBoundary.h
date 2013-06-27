@@ -22,40 +22,58 @@
 #include "DetourNavMeshQuery.h"
 
 
+/// Set of segments representing the obstacles around an agent
 class dtLocalBoundary
 {
 	static const int MAX_LOCAL_SEGS = 8;
 	static const int MAX_LOCAL_POLYS = 16;
 	
+	/// A segment
 	struct Segment
 	{
 		float s[6];	///< Segment start/end
 		float d;	///< Distance for pruning.
 	};
 	
-	float m_center[3];
-	Segment m_segs[MAX_LOCAL_SEGS];
+	float m_center[3];					///< The position of the agent
+	Segment m_segs[MAX_LOCAL_SEGS];		///< The segments representing the obstacles
 	int m_nsegs;
 	
-	dtPolyRef m_polys[MAX_LOCAL_POLYS];
-	int m_npolys;
+	dtPolyRef m_polys[MAX_LOCAL_POLYS];	///< The polygons over-lapping the boundary area
+	int m_npolys;						///< The number of polygons over-lapping the boundary area
 
+	/// Adds a segment to the boundary
+	/// @param[in]	dist	Distance for pruning
+	/// @param[in]	seg		Segment start/end
 	void addSegment(const float dist, const float* seg);
 	
 public:
 	dtLocalBoundary();
 	~dtLocalBoundary();
 	
+	/// Cleans the segments, center and polygons of the boundary
 	void reset();
 	
+	/// Updates the boundary for the given agent.
+	/// Check the area arround the given location for obstacles
+	///
+	/// @param[in]	ref						The polygon on the navigation mesh where the given position is located
+	/// @param[in]	pos						The polygon on the navigation mesh where the given position is located
+	/// @param[in]	collisionQueryRange		The polygon on the navigation mesh where the given position is located
+	/// @param[in]	navquery				The polygon on the navigation mesh where the given position is located
+	/// @param[in]	filter					The polygon on the navigation mesh where the given position is located
 	void update(dtPolyRef ref, const float* pos, const float collisionQueryRange,
 				dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 	
+	/// Checks that all polygons still pass query filter and are still valid.
 	bool isValid(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 	
+	/// @name Data access
+	/// @{
 	inline const float* getCenter() const { return m_center; }
 	inline int getSegmentCount() const { return m_nsegs; }
 	inline const float* getSegment(int i) const { return m_segs[i].s; }
+	/// @}
 };
 
 #endif // DETOURLOCALBOUNDARY_H

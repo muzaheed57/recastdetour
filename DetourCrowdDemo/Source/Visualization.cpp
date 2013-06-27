@@ -298,8 +298,8 @@ bool Visualization::update()
 					dtVscale(pos, pos, 2.f);
 
 					dtCrowdAgent ag;
-					m_crowd->getAgent(0);
-					dtVcopy(ag.vel, pos);
+					m_crowd->fetchAgent(ag, 0);
+					dtVcopy(ag.velocity, pos);
 					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP9)
@@ -309,8 +309,8 @@ bool Visualization::update()
 					dtVscale(pos, pos, 2.f);
 
 					dtCrowdAgent ag;
-					m_crowd->getAgent(0);
-					dtVcopy(ag.vel, pos);
+					m_crowd->fetchAgent(ag, 0);
+					dtVcopy(ag.velocity, pos);
 					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP3)
@@ -320,8 +320,8 @@ bool Visualization::update()
 					dtVscale(pos, pos, 2.f);
 
 					dtCrowdAgent ag;
-					m_crowd->getAgent(0);
-					dtVcopy(ag.vel, pos);
+					m_crowd->fetchAgent(ag, 0);
+					dtVcopy(ag.velocity, pos);
 					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP1)
@@ -331,8 +331,8 @@ bool Visualization::update()
 					dtVscale(pos, pos, 2.f);
 
 					dtCrowdAgent ag;
-					m_crowd->getAgent(0);
-					dtVcopy(ag.vel, pos);
+					m_crowd->fetchAgent(ag, 0);
+					dtVcopy(ag.velocity, pos);
 					m_crowd->applyAgent(ag);
 				}
 				else if (event.key.keysym.sym == SDLK_KP5)
@@ -342,8 +342,8 @@ bool Visualization::update()
 					dtVscale(pos, pos, 2.f);
 
 					dtCrowdAgent ag;
-					m_crowd->getAgent(0);
-					dtVcopy(ag.vel, pos);
+					m_crowd->fetchAgent(ag, 0);
+					dtVcopy(ag.velocity, pos);
 					m_crowd->applyAgent(ag);
 				}
                 break;
@@ -539,12 +539,12 @@ bool Visualization::pick(float* position, int* agentIdx)
                     const dtCrowdAgent* ag = m_crowd->getAgent(i);
                     if (ag->active)
 					{  
-                        bmin[0] = ag->npos[0] - ag->radius;
-                        bmin[1] = ag->npos[1];
-                        bmin[2] = ag->npos[2] - ag->radius;
-                        bmax[0] = ag->npos[0] + ag->radius;
-                        bmax[1] = ag->npos[1] + ag->height;
-                        bmax[2] = ag->npos[2] + ag->radius;
+                        bmin[0] = ag->position[0] - ag->radius;
+                        bmin[1] = ag->position[1];
+                        bmin[2] = ag->position[2] - ag->radius;
+                        bmax[0] = ag->position[0] + ag->radius;
+                        bmax[1] = ag->position[1] + ag->height;
+                        bmax[2] = ag->position[2] + ag->radius;
                         
                         float tmin, tmax;
                         if (isectSegAABB(rays, raye, bmin, bmax, tmin, tmax))
@@ -553,7 +553,7 @@ bool Visualization::pick(float* position, int* agentIdx)
 							{
 								*agentIdx = i;
 								tsel = tmin;
-                                dtVcopy(position, ag->npos);
+                                dtVcopy(position, ag->position);
                             } 
                         }
                     }
@@ -694,12 +694,16 @@ void Visualization::renderCrowd()
             {
                 const float height = ag->height;
                 const float radius = ag->radius;
-                const float* pos = ag->npos;
+                const float* pos = ag->position;
                 
                 unsigned int col = duRGBA(220,220,220,128);
 
-				if (i == 0)
+				if (i >= 0 && i < 8) // Red
+					col = duRGBA(220,0,0,128);
+				else if (i >= 8 && i < 74) // Green
 					col = duRGBA(0,220,0,128);
+				else // Blue
+					col = duRGBA(0,0,220,128);
                 
                 duDebugDrawCircle(&dd, pos[0], pos[1], pos[2], radius, duRGBA(0,0,0,32), 2.0f);
                 duDebugDrawCircle(&dd, pos[0], pos[1]+height, pos[2], radius, duRGBA(0,0,0,32), 2.0f);
@@ -715,7 +719,7 @@ void Visualization::renderCrowd()
             if (ag->active)
             {
                 const DebugInfo::AgentTrail* trail = &m_debugInfo->m_agentTrails[i];
-                const float* pos = ag->npos;
+                const float* pos = ag->position;
                 
                 dd.begin(DU_DRAW_LINES,3.0f);
                 float prev[3];
@@ -743,27 +747,34 @@ void Visualization::renderCrowd()
             {
                 const float radius = ag->radius;
                 const float height = ag->height;
-                const float* pos = ag->npos;
-                const float* vel = ag->vel;
-                const float* dvel = ag->dvel;
+                const float* pos = ag->position;
+                const float* vel = ag->velocity;
+                const float* dvel = ag->desiredVelocity;
                 
                 unsigned int col = duRGBA(220,220,220,192);
-
-				if (i == 0)
+				
+				if (i >= 0 && i < 8) // Red
+					col = duRGBA(220,0,0,192);
+				else if (i >= 8 && i < 74) // Green
 					col = duRGBA(0,220,0,192);
+				else // Blue
+					col = duRGBA(0,0,220,192);
                 
                 duDebugDrawCircle(&dd, pos[0], pos[1]+height, pos[2], radius, col, 2.0f);
                 
-                duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
-                                 pos[0]+dvel[0],pos[1]+height+dvel[1] + 0.01f,pos[2]+dvel[2],
-                                 0.0f, 0.4f, duRGBA(0,192,255,192), 1.0f);
+				if (dtVlen(ag->desiredVelocity) > 0.1f)
+				{
+					duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
+						pos[0]+dvel[0],pos[1]+height+dvel[1] + 0.01f,pos[2]+dvel[2],
+						0.0f, 0.4f, duRGBA(0,192,255,192), 1.0f);
+				}
                 
                 duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
                                  pos[0]+vel[0],pos[1]+height+vel[1] + 0.01f,pos[2]+vel[2],
                                  0.0f, 0.4f, duRGBA(0,0,0,160), 2.0f);
             }
         }
-        
+       
         dd.depthMask(true);
     }
 }

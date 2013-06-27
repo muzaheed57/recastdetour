@@ -25,8 +25,8 @@
 #include "DetourCommon.h"
 #include "DetourCrowd.h"
 
+class dtCrowdQuery;
 
-static const float EPSILON = 0.01f;
 
 /// Interface defining a steering behavior.
 /// @ingroup behavior
@@ -37,14 +37,14 @@ public:
 	/// Creates an instance of the behavior
 	///
 	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
-	dtSteeringBehavior(unsigned nbMaxAgent);
+	explicit dtSteeringBehavior(unsigned nbMaxAgent);
 	virtual ~dtSteeringBehavior();
 	
 	/// Computes the force that should be applied to the velocity of the given agent.
 	///
 	/// @param[in]	ag		The agent we want to update.
 	/// @param[out]	force	The computed force.
-	virtual void computeForce(const dtCrowdAgent* ag, float* force) = 0;
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force) = 0;
 
 protected:
 	/// Applies the previously computed force the velocity of the old agent and stores the result into the new agent.
@@ -53,7 +53,10 @@ protected:
 	/// @param[out]	newAgent	The agent storing the updated version of the oldAgent.
 	/// @param[in]	force		The computed force.
 	/// @param[in]	dt			The time, in seconds, to update the simulation. [Limit: > 0]
-	virtual void applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt);
+	virtual void applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt);
+
+	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+		const T& currentParams, T& newParams, float dt);
 };
 
 template<typename T>
@@ -68,24 +71,29 @@ dtSteeringBehavior<T>::~dtSteeringBehavior()
 }
 
 template<typename T>
-void dtSteeringBehavior<T>::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
+void dtSteeringBehavior<T>::applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
 {
 	float acceleration[3];
 	dtVcopy(acceleration, force);
-	dtVclamp(acceleration, dtVlen(acceleration), oldAgent->maxAcceleration);
+	dtVclamp(acceleration, dtVlen(acceleration), oldAgent.maxAcceleration);
 
-	dtVmad(newAgent->dvel, oldAgent->vel, acceleration, dt);
+	dtVmad(newAgent.desiredVelocity, oldAgent.velocity, acceleration, dt);
 
 	// Nil velocity
-	if (dtVlen(newAgent->dvel) < EPSILON)
-	{
-		newAgent->desiredSpeed = 0.f;
+	if (dtVlen(newAgent.desiredVelocity) < EPSILON)
 		return;
-	}
 
-	dtVclamp(newAgent->dvel, dtVlen(newAgent->dvel), newAgent->maxSpeed);
+	dtVclamp(newAgent.desiredVelocity, dtVlen(newAgent.desiredVelocity), newAgent.maxSpeed);
+}
 
-	newAgent->desiredSpeed = dtVlen(newAgent->dvel);
+template <typename T>
+void dtSteeringBehavior<T>::doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+									 const T& currentParams, T& newParams, float dt)
+{
+	float desiredForce[] = {0, 0, 0};
+
+	computeForce(query, oldAgent, desiredForce);
+	applyForce(query, oldAgent, newAgent, desiredForce, dt);
 }
 
 #endif

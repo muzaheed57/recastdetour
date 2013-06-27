@@ -25,6 +25,8 @@
 #include "ValueHistory.h"
 #include "DetourCrowd.h"
 
+class dtPathFollowing;
+
 // Tool to create crowds.
 
 struct CrowdToolParams
@@ -80,6 +82,7 @@ class CrowdToolState : public SampleToolState
 	CrowdToolParams m_toolParams;
 
 	bool m_run;
+	dtPathFollowing* m_pf;
 
 public:
 	CrowdToolState();

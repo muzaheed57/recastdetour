@@ -49,7 +49,7 @@ bool DebugInfo::initialize()
         {
             AgentTrail* trail = &m_agentTrails[i];
             for (int j(0); j < maxAgentTrailLen; ++j)
-                dtVcopy(&trail->trail[j*3], ag->npos);
+                dtVcopy(&trail->trail[j*3], ag->position);
             trail->htrail = 0;
         }
     }
@@ -86,7 +86,7 @@ bool DebugInfo::endUpdate(float dt)
             
             // Update agent movement trail.
             trail->htrail = (trail->htrail + 1) % maxAgentTrailLen;
-            dtVcopy(&trail->trail[trail->htrail*3], ag->npos);
+            dtVcopy(&trail->trail[trail->htrail*3], ag->position);
         }
     }
     

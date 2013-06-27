@@ -22,14 +22,16 @@
 #include "DetourSteeringBehavior.h"
 
 struct dtCrowdAgent;
-class dtGoToBehavior;
+class dtArriveBehavior;
+class dtCrowdQuery;
 
 
-struct dtCohesionAgentsParams
+/// Parameters for the alignment behavior
+/// @ingroup behavior
+struct dtCohesionBehaviorParams
 {
-	const dtCrowd* crowd;					///< The crowd used to access agents
-	const int* cohesionTargets;				///< The indices of the targets
-	int cohesionNbTargets;					///< The number of target
+	const unsigned* cohesionTargets;	///< The indices of the targets
+	unsigned cohesionNbTargets;			///< The number of target
 };
 
 
@@ -37,28 +39,37 @@ struct dtCohesionAgentsParams
 ///
 /// An agent using the cohesion behavior will move towards the 
 /// center of gravity of its targets.
-class dtCohesionBehavior : public dtSteeringBehavior<dtCohesionAgentsParams>
+/// @ingroup behavior
+class dtCohesionBehavior : public dtSteeringBehavior<dtCohesionBehaviorParams>
 {
 public:
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
 	dtCohesionBehavior(unsigned nbMaxAgents);
 	~dtCohesionBehavior();
 
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
 	static dtCohesionBehavior* allocate(unsigned nbMaxAgents);
-	static void free(dtCohesionBehavior* ptr);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
+	static void free(dtCohesionBehavior* ptr);
+	
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 
 private:
 	/// Computes the average position of the given agents.
 	///
-	/// @param[in]	agents		The agents of the crowd.
-	/// @param[in]	targets		The indices of the targets.
+	/// @param[in]	agents		The agents used to find the center of gravity.
 	/// @param[in]	nbTargets	The number of targets.
 	/// @param[out]	center		The computed center of gravity.
-	void getGravityCenter(const dtCrowdAgent* agents, const int* targets, int nbTargets, float* center);
-
-	dtGoToBehavior* m_gotoBehabior;								///< The GoTo behavior used to move the agent.
+	void getGravityCenter(const dtCrowdQuery& query, const unsigned* targets, int nbTargets, float* center);
 };
 
 #endif

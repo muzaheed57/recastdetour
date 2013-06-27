@@ -54,32 +54,21 @@ void dtSeparationBehavior::free(dtSeparationBehavior* ptr)
 	ptr = 0;
 }
 
-void dtSeparationBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	if (!oldAgent || !newAgent)
-		return;
-
-	float force[] = {0, 0, 0};
-
-	computeForce(oldAgent, force);
-	applyForce(oldAgent, newAgent, force, dt);
-}
-
-void dtSeparationBehavior::computeForce(const dtCrowdAgent* ag, float* force)
-{
-	const int* targets = getBehaviorParams(ag->id)->separationTargets;
-	const int nbTargets = getBehaviorParams(ag->id)->separationNbTargets;
-	const float distance = getBehaviorParams(ag->id)->separationDistance;
+	const unsigned* targets = getBehaviorParams(ag.id)->targetsID;
+	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
+	const float distance = getBehaviorParams(ag.id)->separationDistance;
 
 	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
-	getBehaviorParams(ag->id)->crowd->getAgents(targets, nbTargets, agents);
+	query.getAgents(targets, nbTargets, agents);
 
 	if (!agents || !targets || nbTargets <= 0) {
 		dtFree(agents);
 		return;
 	}
 
-	float maxDistance = (distance < 0.f) ? ag->collisionQueryRange : distance;
+	float maxDistance = (distance < 0.f) ? ag.collisionQueryRange : distance;
 	const float invSeparationDist = 1.f / maxDistance;
 	float weight;
 	int count = 0;
@@ -92,14 +81,14 @@ void dtSeparationBehavior::computeForce(const dtCrowdAgent* ag, float* force)
 			continue;
 
 		float diff[3];
-		dtVsub(diff, ag->npos, target.npos);
+		dtVsub(diff, ag.position, target.position);
 
-		float dist = dtVlen(diff) - ag->radius - target.radius;
+		float dist = dtVlen(diff) - ag.radius - target.radius;
 
 		if (dist > maxDistance || dist < EPSILON)
 			continue;
 
-		weight = getBehaviorParams(ag->id)->separationWeight * (1.f - dtSqr(dist * invSeparationDist));
+		weight = getBehaviorParams(ag.id)->separationWeight * (1.f - dtSqr(dist * invSeparationDist));
 
 		++count;
 		dtVnormalize(diff);

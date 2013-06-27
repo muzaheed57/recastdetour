@@ -30,7 +30,7 @@
 
 
 dtCollisionAvoidance::dtCollisionAvoidance(unsigned nbMaxAgents) :
-	dtParametrizedBehavior<dtObstacleAvoidanceParams>(nbMaxAgents),
+	dtParametrizedBehavior<dtCollisionAvoidanceParams>(nbMaxAgents),
 	m_velocitySamplesCount(0),
 	m_maxAvoidanceParams(4),
 	m_maxCircles(0),
@@ -67,7 +67,7 @@ void dtCollisionAvoidance::free(dtCollisionAvoidance* ptr)
 	ptr = 0;
 }
 
-bool dtCollisionAvoidance::init(int maxCircles, int maxSegments)
+bool dtCollisionAvoidance::init(unsigned maxCircles, unsigned maxSegments)
 {
 	purge();
 
@@ -101,7 +101,8 @@ void dtCollisionAvoidance::purge()
 	m_segments = 0;
 }
 
-void dtCollisionAvoidance::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float )
+void dtCollisionAvoidance::doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+	const dtCollisionAvoidanceParams& currentParams, dtCollisionAvoidanceParams& newParams, float dt)
 {
 	m_velocitySamplesCount = 0;
 
@@ -109,17 +110,17 @@ void dtCollisionAvoidance::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* ne
 	updateVelocity(oldAgent, newAgent);
 }
 
-void dtCollisionAvoidance::addObtacles(const dtCrowdAgent* ag)
+void dtCollisionAvoidance::addObtacles(const dtCrowdAgent& ag)
 {
 	reset();
-	const dtCrowd* crowd = getBehaviorParams(ag->id)->crowd;
-	const dtCrowdAgentEnvironment* agEnv = crowd->getAgentEnvironment(ag->id);
+	const dtCrowd* crowd = getBehaviorParams(ag.id)->crowd;
+	const dtCrowdAgentEnvironment* agEnv = crowd->getAgentEnvironment(ag.id);
 
 	// Add neighbours as obstacles.
 	for (int j = 0; j < agEnv->nbNeighbors; ++j)
 	{
 		const dtCrowdAgent& nei = *crowd->getAgent(agEnv->neighbors[j].idx);
-		addCircle(nei.npos, nei.radius, nei.vel, nei.dvel);
+		addCircle(nei.position, nei.radius, nei.velocity, nei.desiredVelocity);
 	}
 
 	// Append neighbour segments as obstacles.
@@ -127,20 +128,20 @@ void dtCollisionAvoidance::addObtacles(const dtCrowdAgent* ag)
 	{
 		const float* s = agEnv->boundary.getSegment(j);
 
-		if (dtTriArea2D(ag->npos, s, s+3) < 0.0f)
+		if (dtTriArea2D(ag.position, s, s+3) < 0.0f)
 			continue;
 
 		addSegment(s, s+3);
 	}
 }
 
-void dtCollisionAvoidance::updateVelocity(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent)
+void dtCollisionAvoidance::updateVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent)
 {
 	float newVelocity[] = {0, 0, 0};
-	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent->npos, oldAgent->radius, oldAgent->desiredSpeed,
-													 oldAgent->vel, oldAgent->dvel, newVelocity, *oldAgent, 
-													 getBehaviorParams(oldAgent->id)->caDebug);
-	dtVcopy(newAgent->dvel, newVelocity);
+	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent.position, oldAgent.radius, oldAgent.maxSpeed,
+													 oldAgent.velocity, oldAgent.desiredVelocity, newVelocity, oldAgent, 
+													 getBehaviorParams(oldAgent.id)->caDebug);
+	dtVcopy(newAgent.desiredVelocity, newVelocity);
 }
 
 
@@ -320,10 +321,10 @@ void dtCollisionAvoidance::addCircle(const float* pos, const float rad,
 		return;
 
 	dtObstacleCircle* cir = &m_circles[m_ncircles++];
-	dtVcopy(cir->p, pos);
-	cir->rad = rad;
-	dtVcopy(cir->vel, vel);
-	dtVcopy(cir->dvel, dvel);
+	dtVcopy(cir->position, pos);
+	cir->radius = rad;
+	dtVcopy(cir->velocity, vel);
+	dtVcopy(cir->desiredVelocity, dvel);
 }
 
 void dtCollisionAvoidance::addSegment(const float* p, const float* q)
@@ -345,13 +346,13 @@ void dtCollisionAvoidance::prepare(const float* pos, const float* dvel)
 
 		// Side
 		const float* pa = pos;
-		const float* pb = cir->p;
+		const float* pb = cir->position;
 
 		const float orig[3] = {0,0};
 		float dv[3];
 		dtVsub(cir->dp,pb,pa);
 		dtVnormalize(cir->dp);
-		dtVsub(dv, cir->dvel, dvel);
+		dtVsub(dv, cir->desiredVelocity, dvel);
 
 		const float a = dtTriArea2D(orig, cir->dp,dv);
 		if (a < 0.01f)
@@ -396,14 +397,14 @@ float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
 		float vab[3];
 		dtVscale(vab, vcand, 2);
 		dtVsub(vab, vab, vel);
-		dtVsub(vab, vab, cir->vel);
+		dtVsub(vab, vab, cir->velocity);
 
 		// Side
 		side += dtClamp(dtMin(dtVdot2D(cir->dp,vab)*0.5f+0.5f, dtVdot2D(cir->np,vab)*2), 0.0f, 1.0f);
 		nside++;
 
 		float htmin = 0, htmax = 0;
-		if (!sweepCircleCircle(pos,rad, vab, cir->p,cir->rad, htmin, htmax))
+		if (!sweepCircleCircle(pos,rad, vab, cir->position,cir->radius, htmin, htmax))
 			continue;
 
 		// Handle overlapping obstacles.
@@ -494,8 +495,8 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 	const int nrings= (int)getBehaviorParams(ag.id)->adaptiveRings;
 	const int depth = (int)getBehaviorParams(ag.id)->adaptiveDepth;
 
-	const int nd = dtClamp(ndivs, 1, DT_MAX_PATTERN_DIVS);
-	const int nr = dtClamp(nrings, 1, DT_MAX_PATTERN_RINGS);
+	const int nd = dtClamp<unsigned>(ndivs, 1, DT_MAX_PATTERN_DIVS);
+	const int nr = dtClamp<unsigned>(nrings, 1, DT_MAX_PATTERN_RINGS);
 	const float da = (1.0f/nd) * DT_PI*2;
 	const float dang = atan2f(dvel[2], dvel[0]);
 

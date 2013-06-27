@@ -55,16 +55,16 @@ void dtPipelineBehavior::free(dtPipelineBehavior* ptr)
 	ptr = 0;
 }
 
-void dtPipelineBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtPipelineBehavior::update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt)
 {
-	if (m_behaviors == 0 || m_nbBehaviors == 0 || !oldAgent || !newAgent)
+	if (m_behaviors == 0 || m_nbBehaviors == 0)
 		return;
 
 	for (int i = 0; i < m_nbBehaviors; ++i)
-		m_behaviors[i]->update(oldAgent, newAgent, dt);
+		m_behaviors[i]->update(query, oldAgent, newAgent, dt);
 }
 
-void dtPipelineBehavior::setBehaviors(dtBehavior** behaviors, int nbBehaviors)
+void dtPipelineBehavior::setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors)
 {
 	m_behaviors = behaviors;
 	m_nbBehaviors = nbBehaviors;

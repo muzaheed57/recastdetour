@@ -204,6 +204,51 @@ dtPathCorridor::dtPathCorridor() :
 {
 }
 
+dtPathCorridor::dtPathCorridor(const dtPathCorridor& o) :
+	m_path(0),
+	m_npath(0),
+	m_maxPath(0)
+{
+	dtVcopy(m_pos, o.m_pos);
+	dtVcopy(m_target, o.m_target);
+
+	m_npath = o.m_npath;
+	m_maxPath = o.m_maxPath;
+
+	m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
+
+	for (unsigned i = 0; i < m_maxPath; ++i)
+		m_path[i] = o.m_path[i];
+}
+
+
+dtPathCorridor& dtPathCorridor::operator=(const dtPathCorridor& o)
+{
+	if (this != &o)
+	{
+		dtVcopy(m_pos, o.m_pos);
+		dtVcopy(m_target, o.m_target);
+
+		m_npath = o.m_npath;
+		m_maxPath = o.m_maxPath;
+		
+		if (m_path)
+			dtFree(m_path);
+
+		m_path = 0;
+
+		if (o.m_path)
+		{
+			m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
+
+			for (unsigned i = 0; i < m_maxPath; ++i)
+				m_path[i] = o.m_path[i];
+		}
+	}
+
+	return *this;
+}
+
 dtPathCorridor::~dtPathCorridor()
 {
 	dtFree(m_path);
@@ -250,7 +295,7 @@ If the target is within range, it will be the last corner and have a polygon ref
 */
 int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 							  dtPolyRef* cornerPolys, const int maxCorners,
-							  dtNavMeshQuery* navquery, const dtQueryFilter* /*filter*/)
+							  const dtNavMeshQuery* navquery, const dtQueryFilter* /*filter*/)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -308,7 +353,7 @@ of the call to match the needs to the agent.
 This function is not suitable for long distance searches.
 */
 void dtPathCorridor::optimizePathVisibility(const float* next, const float pathOptimizationRange,
-										  dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+										  const dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
 	dtAssert(m_path);
 	
@@ -379,7 +424,7 @@ bool dtPathCorridor::optimizePathTopology(dtNavMeshQuery* navquery, const dtQuer
 
 bool dtPathCorridor::moveOverOffmeshConnection(dtPolyRef offMeshConRef, dtPolyRef* refs,
 											   float* startPos, float* endPos,
-											   dtNavMeshQuery* navquery)
+											   const dtNavMeshQuery* navquery)
 {
 	dtAssert(navquery);
 	dtAssert(m_path);
@@ -436,7 +481,7 @@ depends on local polygon density, query search extents, etc.
 The resulting position will differ from the desired position if the desired position is not on the navigation mesh, 
 or it can't be reached using a local search.
 */
-void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+void dtPathCorridor::movePosition(const float* npos, const dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -447,6 +492,7 @@ void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	int nvisited = 0;
 	navquery->moveAlongSurface(m_path[0], m_pos, npos, filter,
 							   result, visited, &nvisited, MAX_VISITED);
+	
 	m_npath = dtMergeCorridorStartMoved(m_path, m_npath, m_maxPath, visited, nvisited);
 	
 	// Adjust the position to stay on top of the navmesh.
@@ -573,7 +619,7 @@ bool dtPathCorridor::trimInvalidPath(dtPolyRef safeRef, const float* safePos,
 ///
 /// The path can be invalidated if there are structural changes to the underlying navigation mesh, or the state of 
 /// a polygon within the path changes resulting in it being filtered out. (E.g. An exclusion or inclusion flag changes.)
-bool dtPathCorridor::isValid(const int maxLookAhead, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+bool dtPathCorridor::isValid(const int maxLookAhead, const dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
 	// Check that all polygons still pass query filter.
 	const int n = dtMin(m_npath, maxLookAhead);

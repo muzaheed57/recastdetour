@@ -16,51 +16,70 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURPARAMETRICBEHAVIOR_H
-#define DETOURPARAMETRICBEHAVIOR_H
+#ifndef DETOURPARAMETRIZEDBEHAVIOR_H
+#define DETOURPARAMETRIZEDBEHAVIOR_H
 
 #include "DetourAlloc.h"
 #include "DetourCrowd.h"
 #include "DetourBehavior.h"
 
+#include <climits>
 #include <new>
 
 
+/// Empty data structure used when no parameters are required
+/// @ingroup behavior
 struct NoData
 {};
 
+/// A behavior that can be parametrized.
+///
+/// Each agents can have parameters related to the behaviors
+/// @ingroup behavior
 template <typename T = NoData>
 class dtParametrizedBehavior : public dtBehavior
 {
 public:
-	dtParametrizedBehavior(unsigned nbMaxAgentsParams);
-
+	/// Constructs the behavior
+	/// The user must specify how many agents will be using this behavior.
+	/// You can have have a number of agents greater than this number, 
+	/// but it will be slower (because of the collisions in the Hash Table)
+	///
+	/// @param[in]	nbAgentsEstimated	An estimation of the number of agents that will be using this behavior. 
+	///									You have more agents than this number indicates in the end, or less. It is just an estimation
+	explicit dtParametrizedBehavior(unsigned nbAgentsEstimated);
 	virtual ~dtParametrizedBehavior();
 
 	/// Adds a behavior parameters structure for the given agent and returns a pointer to it.
+	/// If the parameters already existed, then it is returned.
 	/// If either the id of the agent is invalid or a parameter already exists for this agent, it return a NULL pointer.
 	/// @param[in]	id 	The id of the agent we must add a parameter for
-	T* addBehaviorParams(int id);
-
 	/// Returns the behavior parameter for the given agent. NULL if it doesn't exist.
-	T* getBehaviorParams(int id) const;
+	T* getBehaviorParams(unsigned id) const;
+
+	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt);
 
 protected:
+	/// 
+	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+						  const T& currentParams, T& newParams, float dt) = 0;
+
+	/// Linked List 
 	struct Node
 	{
-		T value;
-		Node* next;
-		int id; // Mandatory to handle collisions
+		T value;		///< The parameter
+		Node* next;		///< Pointer to the next element
+		unsigned id;	///< The id of the agent owning this parameter. Mandatory to handle collisions
 	};
 
-	unsigned m_size;
-	Node* m_agentsParams;
+	unsigned m_size;		///< Number of parameters at the beginning
+	Node* m_agentsParams;	///< The data structure containing the parameters
 };
 
 
 template <typename T>
-dtParametrizedBehavior<T>::dtParametrizedBehavior(unsigned nbMaxAgentsParams)
-	: m_size(nbMaxAgentsParams)
+dtParametrizedBehavior<T>::dtParametrizedBehavior(unsigned preAllocationSize)
+	: m_size(preAllocationSize)
 {
 	if (m_size == 0)
 		m_agentsParams = 0;
@@ -72,7 +91,7 @@ dtParametrizedBehavior<T>::dtParametrizedBehavior(unsigned nbMaxAgentsParams)
 		{
 			new(&m_agentsParams[i]) Node();
 			m_agentsParams[i].next = 0;
-			m_agentsParams[i].id = -1;
+			m_agentsParams[i].id = UINT_MAX;
 		}
 	}
 }
@@ -97,9 +116,9 @@ dtParametrizedBehavior<T>::~dtParametrizedBehavior()
 }
 
 template <typename T>
-T* dtParametrizedBehavior<T>::getBehaviorParams(int id) const
+T* dtParametrizedBehavior<T>::getBehaviorParams(unsigned id) const
 {
-	if (id < 0 || m_size == 0)
+	if (m_size == 0)
 		return 0;
 
 	unsigned index = id % m_size;
@@ -109,48 +128,15 @@ T* dtParametrizedBehavior<T>::getBehaviorParams(int id) const
 
 	Node* head = &m_agentsParams[index];
 
-	if (head->id == id)
+	if (head->id == id && head->id < UINT_MAX)
 		return &head->value;
 	
 	while (head->next)
 	{
 		head = head->next;
 
-		if (head->id == id)
+		if (head->id == id && head->id < UINT_MAX)
 			return &head->value;
-	}
-
-	return 0;
-}
-
-template <typename T>
-T* dtParametrizedBehavior<T>::addBehaviorParams(int id)
-{
-	if (id < 0 || m_size == 0)
-		return 0;
-
-	unsigned index = id % m_size;
-
-	if (index >= m_size)
-		return 0;
-
-	Node* head = &m_agentsParams[index];
-
-	if (head->id == id)
-		return 0;
-
-	if (head->id == -1)
-	{
-		head->id = id;
-		return &head->value;
-	}
-
-	while (head->next)
-	{
-		head = head->next;
-
-		if (head->id == id)
-			return 0;
 	}
 
 	void* mem = dtAlloc(sizeof(Node), DT_ALLOC_PERM);
@@ -159,12 +145,27 @@ T* dtParametrizedBehavior<T>::addBehaviorParams(int id)
 		return 0;
 
 	Node* newNode = new(mem) Node;
-	
+
 	newNode->next = 0;
 	newNode->id = id;
 	head->next = newNode;
 
 	return &newNode->value;
+}
+
+template <typename T>
+void dtParametrizedBehavior<T>::update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt)
+{
+	T* params = getBehaviorParams(oldAgent.id);
+
+	if (!params)
+		return;
+
+	T newParams = *params;
+
+	doUpdate(query, oldAgent, newAgent, *params, newParams, dt);
+
+	*params = newParams;
 }
 
 

@@ -24,27 +24,40 @@
 struct dtCrowdAgent;
 
 
+/// Parameters for the alignment behavior
+/// @ingroup behavior
 struct dtAlignmentBehaviorParams
 {
-	const dtCrowd* crowd;					///< The crowd used to access agents
-	const int* alignmentTargets;			///< The indices of the targets
-	int alignmentNbTargets;					///< The number of target
+	const unsigned* alignmentTargets;	///< The indices of the targets
+	unsigned alignmentNbTargets;		///< The number of target
 };
 
 /// Defines the alignment behavior.
 ///
 /// An agent using this behavior will keep its velocity aligned with its targets'.
+/// @ingroup behavior
 class dtAlignmentBehavior : public dtSteeringBehavior<dtAlignmentBehaviorParams>
 {
 public:
-	static dtAlignmentBehavior* allocate(unsigned nbMaxAgents);
-	static void free(dtAlignmentBehavior* ptr);
-
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
 	dtAlignmentBehavior(unsigned nbMaxAgents);
 	~dtAlignmentBehavior();
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
-	virtual void computeForce(const dtCrowdAgent* ag, float* force);
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
+	static dtAlignmentBehavior* allocate(unsigned nbMaxAgents);
+
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
+	static void free(dtAlignmentBehavior* ptr);
+	
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
 };
 
 #endif

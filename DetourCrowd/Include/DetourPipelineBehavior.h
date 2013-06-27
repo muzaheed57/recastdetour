@@ -22,24 +22,39 @@
 #include "DetourBehavior.h"
 
 struct dtCrowdAgent;
+class dtCrowdQuery;
 
-
+/// Behavior having the ability to contain other behaviors
+/// @ingroup behavior
 class dtPipelineBehavior : public dtBehavior
 {
 public:
 	dtPipelineBehavior();
 	~dtPipelineBehavior();
 
+	/// Creates an instance of the behavior
+	///
+	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	///
+	/// @return		A pointer on a newly allocated behavior
 	static dtPipelineBehavior* allocate();
+
+	/// Frees the given behavior
+	///
+	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtPipelineBehavior* ptr);
 
-	virtual void update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt);
+	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt);
 
-	void setBehaviors(dtBehavior** behaviors, int nbBehaviors);
+	/// Affects the given behaviors to the pipeline
+	///
+	/// @param[in]	behaviors	The behaviors we want to affect to the pipeline
+	/// @param[in]	nbBehaviors	The number of behaviors we want to affect to the pipeline
+	void setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors);
 
 private:
-	dtBehavior** m_behaviors;
-	int m_nbBehaviors;
+	dtBehavior** m_behaviors;	///< The behaviors affected to the pipeline
+	int m_nbBehaviors;			///< The number of behaviors affected to the pipeline
 };
 
 #endif

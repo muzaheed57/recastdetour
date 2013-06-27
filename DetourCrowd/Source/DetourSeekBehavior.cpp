@@ -53,75 +53,61 @@ void dtSeekBehavior::free(dtSeekBehavior* ptr)
 	ptr = 0;
 }
 
-void dtSeekBehavior::update(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float dt)
+void dtSeekBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	if (!oldAgent || !newAgent)
-		return;
-
-	const dtCrowdAgent* target = getBehaviorParams(oldAgent->id)->seekTarget;
+	const int targetID = getBehaviorParams(ag.id)->targetID;
+	const dtCrowdAgent* target = query.getAgent(targetID);
+	const float predictionFactor = getBehaviorParams(ag.id)->seekPredictionFactor;
 
 	if (!target || !target->active)
 		return;
 
-	float desiredForce[] = {0, 0, 0};
-
-	computeForce(oldAgent, desiredForce);
-	applyForce(oldAgent, newAgent, desiredForce, dt);
-}
-
-void dtSeekBehavior::computeForce(const dtCrowdAgent* ag, float* force)
-{
-	const dtCrowdAgent* target = getBehaviorParams(ag->id)->seekTarget;
-	const float predictionFactor = getBehaviorParams(ag->id)->seekPredictionFactor;
-
 	// Required force in order to reach the target
-	dtVsub(force, target->npos, ag->npos);
+	dtVsub(force, target->position, ag.position);
 
 	// We take into account the prediction factor
 	float scaledVelocity[3] = {0, 0, 0};
 
-	dtVscale(scaledVelocity, target->vel, predictionFactor);
+	dtVscale(scaledVelocity, target->velocity, predictionFactor);
 	dtVadd(force, force, scaledVelocity);
 
 	// Set the force according to the maximum acceleration
-	dtVclamp(force, dtVlen(force), ag->maxAcceleration);
+	dtVclamp(force, dtVlen(force), ag.maxAcceleration);
+
+	force[1] = 0;
 }
 
-void dtSeekBehavior::applyForce(const dtCrowdAgent* oldAgent, dtCrowdAgent* newAgent, float* force, float dt)
+void dtSeekBehavior::applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
 {
 	float tmpForce[] = {0, 0, 0};
 	float newVelocity[] = {0, 0, 0};
-	const dtCrowdAgent* target = getBehaviorParams(oldAgent->id)->seekTarget;
-	const float distance = getBehaviorParams(oldAgent->id)->seekDistance;
+	const int targetID = getBehaviorParams(oldAgent.id)->targetID;
+	const dtCrowdAgent* target = query.getAgent(targetID);
+	const float distance = getBehaviorParams(oldAgent.id)->seekDistance;
 
 	// Adapting the force to the dt and the previous velocity
 	dtVscale(tmpForce, force, dt);
-	dtVadd(newVelocity, oldAgent->vel, tmpForce);
+	dtVadd(newVelocity, oldAgent.velocity, tmpForce);
 
-	float currentSpeed = dtVlen(oldAgent->vel);
+	float currentSpeed = dtVlen(oldAgent.velocity);
 	// Required distance to reach nil speed according to the acceleration and current speed
-	float slowDist = currentSpeed * (currentSpeed - 0) / oldAgent->maxAcceleration;
-	float distToObj = dtVdist(oldAgent->npos, target->npos) - oldAgent->radius - target->radius - distance;
+	float slowDist = currentSpeed * (currentSpeed - 0) / oldAgent.maxAcceleration;
+	float distToObj = dtVdist(oldAgent.position, target->position) - oldAgent.radius - target->radius - distance;
 
 	// If we have reached the target, we stop
 	if (distToObj <= EPSILON)
 	{
 		dtVset(newVelocity, 0, 0, 0);
-		newAgent->desiredSpeed = 0.f;
 	}
 	// If the have to slow down
 	else if (distToObj < slowDist)
 	{
 		float slowDownRadius = distToObj / slowDist;
 		dtVscale(newVelocity, newVelocity, slowDownRadius);
-		newAgent->desiredSpeed = dtVlen(newVelocity);
 	}
-	// Else, we move as fast as possible
-	else
-		newAgent->desiredSpeed = oldAgent->maxSpeed;
 
 	// Check for maximal speed
-	dtVclamp(newVelocity, dtVlen(newVelocity), oldAgent->maxSpeed);
+	dtVclamp(newVelocity, dtVlen(newVelocity), oldAgent.maxSpeed);
 
-	dtVcopy(newAgent->dvel, newVelocity);
+	dtVcopy(newAgent.desiredVelocity, newVelocity);
 }
