@@ -1,17 +1,5 @@
 #Cmake generation results
-build/vc*/
-build/linux/
-build/.ant-targets-build.xml
-
-#Poney generated stuffs
-build/poney/
-
-#Retrieved externals
-build/externals/
-
-#Installation output
-Out
-dist
+build/*
 
 # Bin content
 */Bin/
@@ -20,3 +8,5 @@ dist
 !/Bin/Samples/
 !/Bin/Tests/
 
+# Doxygen generation output
+Docs/out

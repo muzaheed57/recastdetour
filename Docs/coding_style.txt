@@ -1,0 +1,71 @@
+// Documentation about the coding style of the API
+
+/**
+
+@defgroup codingstyle Coding Style
+
+Coding Style created according to the sources of Recast/Detour.
+
+## Files
+### Copyright Note
+Each file begins with a mention about the author and the MIT license.
+
+### The #define guard
+All header files should have #define guards to prevent multiple inclusion. The format of the symbol should be <NameOfTheFile>_H.
+
+## Naming
+### File Names
+File names must be in mixed case starting with uppercase and have a capital letter for each new word. If a file concerns the Recast library, it must be prefixed by “Recast”. The same goes for Detour.
+
+### Type Names
+User created types should prefixed with “rc” if the source code belongs to the Recast library, or “dt” if it belongs to the Detour library. Then type names must start with uppercase and have a capital letter for each new word.
+
+### Variable Names
+Variable names must be in mixed case starting with lowercase and have a capital letter for each new word. If a variable is an attribute, it must be prefixed by “m_”.
+
+### Null Pointers
+A null pointer is designated by 0.
+
+### Function Names
+Names representing methods or functions must be verbs written in mixed case starting with lowercase. Plus if the function is not a method, it must be prefixed by either “rc” or “dt”, depending on whether they belong to the Recast library or the Detour library.
+
+### Enumerators
+Enumerators should be named like types.
+
+### Macro Names
+Macro should be named like types.
+
+## Formatting
+### Preprocessor Directives
+The hash mark that starts a preprocessor directive should always be at the beginning of the line.
+
+### Spaces vs. Tabs
+Use Tabs instead of spaces. Indent length is 4 spaces.
+
+### Function Declarations and Definitions
+Return type on the same line as function name, parameters on the same line if they fit.
+
+### Class Format
+Sections in public, protected and private order, each indented four spaces.
+
+## Comments
+### Class Comments
+Class comments must follow the following Doxygen conventions.
+
+### Method Comments
+Method comments must follow the following Doxygen conventions.
+
+### Grouping
+Doxygen groups are a convenient way to structure the document AND the source code.
+
+### Comment Language
+All comments should be written in American English.
+
+### Comment Indentation
+Comments should be included relative to their positions in the code.
+
+## Whitespaces
+### Parenthesis
+Opening parenthesis should not be followed by a whitespace and closing parenthesis preceded by another.
+
+*/

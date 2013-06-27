@@ -28,6 +28,22 @@ The general life-cycle of the main classes is as follows:
 -# Use the object as part of the pipeline.
 -# Free the object using the Recast allocator. (E.g. #rcFreeHeightField)
 
+Here are he different steps Recast has to go through when creating a navigation mesh:
+
+@image html Recast.png
+
+- __Voxelisation:__ Recast creates a large voxel array from the input scene by rasterizing the triangles. The user can specify some parameters such the size of the cell or its height. Basically, the smaller the cells, the more computation the application will need.
+- __Filtering:__ Once the voxel array is created, some simple filters are applied in order to isolate the walkable voxels. Whether a chunk of voxel will be walkable or not depends on many factors. Of course the size of the voxels matters, but also severals parameters about the agents that are provided by the user. These parameters for the agents are :
+    - Its height
+    - Its radius
+    - The maximum height it can climb
+    - The maximum angle of slope he can walk on
+    Recast will use all these informations to determine which voxels are walkable.
+- __Division:__ Once the walkable areas have been identified, Recast will divided these areas into 2D regions placed on top of the voxels. These regions do not overlap with each other. The objective is to facilitate the next step of the process.
+- __Polygons Creation:__ Using the previously created regions and their boundaries, Recast is going to create convex simplified polygons. The boundaries of the regions represent the vertices of the polygons (the number of maximum vertices per polygon can be specified). The convexity of the polygons is here to make the computation of the shortest path between two points inside a polygon easier. The end result of this process is two meshes : The navigation mesh and the detail mesh.
+    - __Navigation Mesh :__ A mesh of walkable connected polygons representing the path search space.
+    - __Detail Mesh :__ A mesh that corresponds to the navigation mesh, but with much more detailed about the height. Its purpose is to determine the surface height on the polygons mesh it is associated with.
+
 @note This is a summary list of members.  Use the index or search 
 feature to find minor members.
 

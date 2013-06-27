@@ -62,6 +62,7 @@ ADD_SUBDIRECTORY(RecastDemo)
 ADD_SUBDIRECTORY(DetourCrowdDemo)
 ADD_SUBDIRECTORY(DetourSceneCreator)
 ADD_SUBDIRECTORY(DetourCrowdTest)
+ADD_SUBDIRECTORY(Docs)
 
 # install the platform string computation module
 INSTALL(FILES PlatformStr.cmake DESTINATION build/cmake)
