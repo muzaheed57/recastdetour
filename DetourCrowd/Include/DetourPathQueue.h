@@ -68,7 +68,7 @@ public:
 	/// @return True if the initialization succeeded, false otherwise
 	bool init(const int maxPathSize, const int maxSearchNodeCount, const dtNavMesh* nav);
 	
-	/// Updates the path request until there is nothing to update or until #maxIters pathfinder iterations has been consumed.
+	/// Updates the path request until there is nothing to update or until maxIters pathfinder iterations has been consumed.
 	///
 	/// @param[in]	maxIters	The maximal number of iterations allowed to update the path request
 	void update(const int maxIters);
@@ -76,9 +76,9 @@ public:
 	/// Requests a path between the given points.
 	///
 	/// @param[in]	startRef	The polygon for the start point
-	/// @param[in]	startRef	The polygon for the destination point
-	/// @param[in]	startRef	The start position
-	/// @param[in]	startRef	The destination position
+	/// @param[in]	endRef		The polygon for the destination point
+	/// @param[in]	startPos	The start position
+	/// @param[in]	endPos		The destination position
 	/// @param[in]	filter		The query filter
 	///
 	/// @return	Returns a reference on the path query of the newly created path

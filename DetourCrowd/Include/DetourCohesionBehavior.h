@@ -30,8 +30,8 @@ class dtCrowdQuery;
 /// @ingroup behavior
 struct dtCohesionBehaviorParams
 {
-	const unsigned* cohesionTargets;	///< The indices of the targets
-	unsigned cohesionNbTargets;			///< The number of target
+	const unsigned* targets;	///< The indices of the targets
+	unsigned nbTargets;			///< The number of target
 };
 
 

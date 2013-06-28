@@ -60,8 +60,19 @@ void dtPipelineBehavior::update(const dtCrowdQuery& query, const dtCrowdAgent& o
 	if (m_behaviors == 0 || m_nbBehaviors == 0)
 		return;
 
-	for (int i = 0; i < m_nbBehaviors; ++i)
-		m_behaviors[i]->update(query, oldAgent, newAgent, dt);
+	recursiveUpdate(query, oldAgent, newAgent, dt, m_nbBehaviors);
+}
+
+void dtPipelineBehavior::recursiveUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, unsigned remainingBehaviors)
+{
+	if (remainingBehaviors == 0)
+		return;
+
+	m_behaviors[m_nbBehaviors - remainingBehaviors]->update(query, oldAgent, newAgent, dt);
+	dtCrowdAgent ag = newAgent;
+
+	recursiveUpdate(query, newAgent, ag, dt, remainingBehaviors - 1);
+	newAgent = ag;
 }
 
 void dtPipelineBehavior::setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors)

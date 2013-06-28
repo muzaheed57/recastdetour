@@ -106,20 +106,19 @@ void dtCollisionAvoidance::doUpdate(const dtCrowdQuery& query, const dtCrowdAgen
 {
 	m_velocitySamplesCount = 0;
 
-	addObtacles(oldAgent);
+	addObtacles(oldAgent, query);
 	updateVelocity(oldAgent, newAgent);
 }
 
-void dtCollisionAvoidance::addObtacles(const dtCrowdAgent& ag)
+void dtCollisionAvoidance::addObtacles(const dtCrowdAgent& ag, const dtCrowdQuery& query)
 {
 	reset();
-	const dtCrowd* crowd = getBehaviorParams(ag.id)->crowd;
-	const dtCrowdAgentEnvironment* agEnv = crowd->getAgentEnvironment(ag.id);
+	const dtCrowdAgentEnvironment* agEnv = query.getAgentEnvironment(ag.id);
 
 	// Add neighbours as obstacles.
 	for (int j = 0; j < agEnv->nbNeighbors; ++j)
 	{
-		const dtCrowdAgent& nei = *crowd->getAgent(agEnv->neighbors[j].idx);
+		const dtCrowdAgent& nei = *query.getAgent(agEnv->neighbors[j].idx);
 		addCircle(nei.position, nei.radius, nei.velocity, nei.desiredVelocity);
 	}
 
@@ -128,7 +127,7 @@ void dtCollisionAvoidance::addObtacles(const dtCrowdAgent& ag)
 	{
 		const float* s = agEnv->boundary.getSegment(j);
 
-		if (dtTriArea2D(ag.position, s, s+3) < 0.0f)
+		if (dtTriArea2D(ag.position, s, s+3) < 0.f)
 			continue;
 
 		addSegment(s, s+3);
@@ -140,7 +139,7 @@ void dtCollisionAvoidance::updateVelocity(const dtCrowdAgent& oldAgent, dtCrowdA
 	float newVelocity[] = {0, 0, 0};
 	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent.position, oldAgent.radius, oldAgent.maxSpeed,
 													 oldAgent.velocity, oldAgent.desiredVelocity, newVelocity, oldAgent, 
-													 getBehaviorParams(oldAgent.id)->caDebug);
+													 getBehaviorParams(oldAgent.id)->debug);
 	dtVcopy(newAgent.desiredVelocity, newVelocity);
 }
 
@@ -497,23 +496,23 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 
 	const int nd = dtClamp<unsigned>(ndivs, 1, DT_MAX_PATTERN_DIVS);
 	const int nr = dtClamp<unsigned>(nrings, 1, DT_MAX_PATTERN_RINGS);
-	const float da = (1.0f/nd) * DT_PI*2;
+	const float da = (1.0f / nd) * DT_PI * 2;
 	const float dang = atan2f(dvel[2], dvel[0]);
 
 	// Always add sample at zero
-	pat[npat*2+0] = 0;
-	pat[npat*2+1] = 0;
-	npat++;
+	pat[npat * 2 + 0] = 0;
+	pat[npat * 2 + 1] = 0;
+	++npat;
 
 	for (int j = 0; j < nr; ++j)
 	{
 		const float r = (float)(nr-j)/(float)nr;
-		float a = dang + (j&1)*0.5f*da;
+		float a = dang + (j & 1) * 0.5f * da;
 		for (int i = 0; i < nd; ++i)
 		{
-			pat[npat*2+0] = cosf(a)*r;
-			pat[npat*2+1] = sinf(a)*r;
-			npat++;
+			pat[npat * 2 + 0] = cosf(a) * r;
+			pat[npat * 2 + 1] = sinf(a) * r;
+			++npat;
 			a += da;
 		}
 	}
@@ -533,14 +532,14 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 		for (int i = 0; i < npat; ++i)
 		{
 			float vcand[3];
-			vcand[0] = res[0] + pat[i*2+0]*cr;
+			vcand[0] = res[0] + pat[i * 2 + 0] * cr;
 			vcand[1] = 0;
-			vcand[2] = res[2] + pat[i*2+1]*cr;
+			vcand[2] = res[2] + pat[i * 2 + 1] * cr;
 
-			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+0.001f)) continue;
+			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax + EPSILON)) continue;
 
-			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, ag, debug);
-			ns++;
+			const float penalty = processSample(vcand,cr / 10, pos,rad,vel,dvel, ag, debug);
+			++ns;
 			if (penalty < minPenalty)
 			{
 				minPenalty = penalty;

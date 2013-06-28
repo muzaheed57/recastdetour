@@ -92,7 +92,6 @@ struct dtCrowdAgent
 	float maxSpeed;				///< Maximum allowed speed. [Limit: >= 0]
 
 	unsigned char updateFlags;	///< Flags that impact steering behavior. (See: #UpdateFlags)
-	float collisionQueryRange;	///< Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
 
 	float offmeshInitPos[3];
 	float offmeshStartPos[3];
@@ -122,8 +121,10 @@ class dtCrowdQuery
 public:
 	/// Constructor
 	///
-	/// @param[in]	nbMaxAgents		The maximum number of agents.
-	dtCrowdQuery(unsigned maxAgents, dtCrowdAgent* agents);
+	/// @param[in]	maxAgents	The maximum number of agents for the crowd.
+	/// @param[in]	agents		The agents of the crowd.
+	/// @param[in]	env			The environments of the agents of the crowd.
+	dtCrowdQuery(unsigned maxAgents, const dtCrowdAgent* agents, const dtCrowdAgentEnvironment* env);
 
 	~dtCrowdQuery();
 
@@ -156,15 +157,21 @@ public:
 	/// @param[out]	agents		The list of agents where the results will be stored
 	/// @return Returns the number of agents found and put into the array
 	unsigned getAgents(const unsigned* ids, unsigned size, const dtCrowdAgent** agents) const;
+
+	/// Gets the environment of the given agent
+	/// @param[in]	id	The id of the agent
+	/// @return Returns the environment of the given agent
+	const dtCrowdAgentEnvironment* getAgentEnvironment(unsigned id) const;
 	/// @}
 
 private:
-	float m_ext[3];							///< The query filters used for navigation queries.
-	dtNavMeshQuery* m_navMeshQuery;			///< Used to perform queries on the navigation mesh.
-	dtQueryFilter m_filter;					///< Defines polygon filtering and traversal costs for navigation mesh query operations.
-	dtProximityGrid* m_grid;				///< The proximity grid of the crowd.
-	dtCrowdAgent* m_agents;
-	unsigned m_maxAgents;
+	float m_ext[3];								///< The query filters used for navigation queries.
+	dtNavMeshQuery* m_navMeshQuery;				///< Used to perform queries on the navigation mesh.
+	dtQueryFilter m_filter;						///< Defines polygon filtering and traversal costs for navigation mesh query operations.
+	dtProximityGrid* m_grid;					///< The proximity grid of the crowd.
+	const dtCrowdAgent* m_agents;				///< The agents of the crowd
+	unsigned m_maxAgents;						///< Max number of agents in the crowd
+	const dtCrowdAgentEnvironment* m_agentsEnv;	///< The environments of the agents
 };
 
 /// Class containing and handling the agents of the simulation.
@@ -187,9 +194,16 @@ class dtCrowd
 	unsigned m_maxCommonNodes;				///< Maximal number of search nodes for the navigation mesh
 
 	float** m_disp;							///< Used to prevent agents from bumping into each other
+	float m_collisionQueryRange;			///< Defines how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 	
 	/// Returns the index of the given agent
 	inline unsigned getAgentIndex(const dtCrowdAgent* agent) const  { return agent - m_agents; }
+
+	/// Fetch the agent of the given id if he is active.
+	/// param[out]	ag	The agent corresponding to the given id
+	/// param[in]	id	the id of the agent we want to fetch
+	/// @return	False if the agent is not active or if the id is out of bound. True otherwise
+	bool getActiveAgent(dtCrowdAgent** ag, int id);
 
 	/// Cleans the crowd so it can be used for a fresh start
 	void purge();
@@ -202,8 +216,9 @@ public:
 	///  @param[in]		maxAgents		The maximum number of agents the crowd can manage. [Limit: >= 1]
 	///  @param[in]		maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
 	///  @param[in]		nav				The navigation mesh to use for planning.
+	///  @param[in]		collisionRange	Defines how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 	/// @return True if the initialization succeeded.
-	bool init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav);	
+	bool init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav, float collisionRange);	
 
 	/// @name Data access
 	/// @{
@@ -215,7 +230,7 @@ public:
 
 	/// Gets the specified agent from the pool.
 	/// The required agent's data are copied into the given dtCrowdAgent object
-	///	 @param[in]		ag	The dtCrowdAgent object into which the data will be copied.
+	///	 @param[out]	ag	The dtCrowdAgent object into which the data will be copied.
 	///	 @param[in]		id	The agent id.
 	void fetchAgent(dtCrowdAgent& ag, unsigned id) const;
 	
@@ -235,16 +250,15 @@ public:
 	///  @param[out]	agents		An array of agent pointers. [(#dtCrowdAgent *) * maxAgents]
 	///  @param[in]		maxAgents	The size of the crowd agent array.
 	/// @return The number of agents returned in @p agents.
-	unsigned getActiveAgents(dtCrowdAgent** agents, const unsigned maxAgents);
-
-	bool getActiveAgent(dtCrowdAgent** ag, int id);
-
+	unsigned getActiveAgents(const dtCrowdAgent** agents, const unsigned maxAgents);
+	
 	/// Gets the maximum number of agents that can be managed by the object.
 	const unsigned getAgentCount() const;
 
 	const dtCrowdQuery* getCrowdQuery() const { return m_crowdQuery; }
 	dtCrowdQuery* getCrowdQuery() { return m_crowdQuery; }
 
+	float getCollisionRange() const;
 	/// @}
 
 	/// @name Data modifiers
@@ -264,10 +278,10 @@ public:
 	/// Adds a new agent to the crowd.
 	/// The data of the given agent will be copied into the crowd's pool.
 	/// The position of the agent in the pool will be determined according to its id.
-	///  @param[out]	ag		The agent whose data should be copied.
+	///  @param[out]	agent	The agent whose data should be copied.
 	///  @param[in]		pos		The requested position of the agent. [(x, y, z)]
 	/// @return False if the id of the agent is incorrect, True otherwise.
-	bool addAgent(dtCrowdAgent& ag, const float* pos);
+	bool addAgent(dtCrowdAgent& agent, const float* pos);
 
 	/// Removes the agent of the given id from the crowd.
 	///  @param[in]		id		The agent id.
@@ -355,8 +369,8 @@ the interface will only grant you a constant access to the data.
 
 Through `dtCrowd` you can do several things:
 
-- Have access to the agents (although not directly)
-- Have access to the data the crowd uses to update the agents (navigation mesh, proximity grid, etc.)
+- Have constant access to the agents
+- Have access to the data the crowd uses to update the agents (navigation mesh, proximity grid, environment, etc.)
 - Add / Remove / Edit agents inside the crowd via some specific methods
 - Update the crowd. This will update every agents using their behaviors. When updating an agent you can 
 update its position, velocity, environment or all of those.
@@ -373,10 +387,12 @@ dtCrowd crowd;
 int nbMaxAgents = 1000;
 // The maximum radius for an agent
 float maxRadius = 10.f;
+// How close should an element be before being considered as an obstacle?
+float collisionRange = 4.f;
 
 // Note: the navigation mesh must already be initialized
 // The navigation mesh will be used by the agents for navigation
-crowd.init(nbMaxAgents, mawRadius, navigationMesh);
+crowd.init(nbMaxAgents, mawRadius, navigationMesh, collisionRange);
 @endcode
 
 You now have a crowd ready to work, but empty...
@@ -388,7 +404,7 @@ You now have a crowd ready to work, but empty...
 An agent is an entity inside a crowd with several properties. The most important of these is the `dtCrowdAgent::id` property.
 
 @warning Each agent is identified by its id, and the crowd handles its agents using these ids. Therefore the user __should 
-not__ modify the id of an agent by himself.
+not__ modify the id of an agent by himself. The ids are generated by crowd and are unique.
 
 # Add an agent to the crowd
 
@@ -439,7 +455,7 @@ const dtCrowdAgent* agents[4];
 int nbAgentsFound = crowd.getAgents(ids, 4, agents);
 @endcode
 
-Now that you have accessed your agent, you might to modify some of its properties, and then send the changes to the crowd, 
+Now that you have accessed your agent, you might want to modify some of its properties, and then send the changes to the crowd, 
 here is how this can be acheived:
 
 @code
@@ -496,7 +512,7 @@ crowd.update(dt, list, 1);
 Crowds updating is a three parts process, for each agent we do the following:
 
 - __Updating the environment:__ Updates the proximity grid and registers every agent's neighbor. This will take into account 
-things like other agents, boundaries, obstacles, etc. The range of the environment depends on the agent's property `dtCrowdAgent::collisionQueryRange`.
+things like other agents, boundaries, obstacles, etc. The range of the environment depends on the agent's property `dtCrowd::collisionQueryRange`.
 - __Updating the velocity:__ Updates the velocity of the agent. This uses the behaviors assigned to the agent. These behaviors will compute a new velocity 
 for the agent.
 - __Updating the position:__ Updates the position of the agent using the previously computed velocity.
@@ -539,7 +555,7 @@ The environment of an agent contains many informations that can be useful for so
 
 You can retreive the environment of an agent by using the method `dtCrowd::getAgentEnvironment`.
 
-## The crowd Query
+## The Crowd Query
 
 `dtCrowdQuery` contains informations that `dtCrowd` uses and that might be useful for the user.
 It contains things like the proximity grid, the animations of the agents, the `dtNavMeshQuery`, etc.

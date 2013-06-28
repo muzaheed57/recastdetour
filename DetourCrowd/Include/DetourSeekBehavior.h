@@ -29,9 +29,9 @@ struct dtCrowdAgent;
 struct dtSeekBehaviorParams
 {
 	unsigned targetID;			///< The id of the agent we seek.
-	float seekDistance;				///< Minimal distance to keep between the agent and its target.
-	float seekPredictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
-									///  Nonetheless a big value is not realistic when agents are close to each other.
+	float distance;				///< Minimal distance to keep between the agent and its target.
+	float predictionFactor;		///< Used by the agent to predict the next position of the target. The higher the value, The better the prediction. 
+								///  Nonetheless a big value is not realistic when agents are close to each other.
 };
 
 /// This class implements the seek behavior.
@@ -47,7 +47,7 @@ class dtSeekBehavior : public dtSteeringBehavior<dtSeekBehaviorParams>
 public:
 	/// Creates an instance of the behavior
 	///
-	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	/// @param[in]	maxAgents	Estimation of the maximum number of agents using this behavior
 	dtSeekBehavior(unsigned maxAgents);
 	~dtSeekBehavior();
 

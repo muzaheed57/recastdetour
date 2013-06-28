@@ -35,11 +35,11 @@ public:
 
 	/// Creation of the 3D scene (a square).
 	///
-	/// @param[in]	vertices	The vertices for the creation of the navigation mesh
-	/// @param[in]	triangles	The triangles for the creation of the navigation mesh
+	/// @param[in]	nbMaxAgents	The maximum number of agents allowed for the crowd
+	/// @param[in]	maxRadius	The radius allowed for the agents of the crowd
 	///
 	/// @return Return the newly created crowd. Return 0 if something went wrong.
-	dtCrowd* createSquareScene();
+	dtCrowd* createSquareScene(unsigned nbMaxAgents, float maxRadius);
 
 	bool defaultInitializeAgent(dtCrowd& crowd, int index) const;
 

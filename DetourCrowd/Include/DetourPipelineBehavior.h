@@ -24,7 +24,11 @@
 struct dtCrowdAgent;
 class dtCrowdQuery;
 
-/// Behavior having the ability to contain other behaviors
+/// Behavior having the ability to contain other behaviors.
+/// 
+/// The behavior will be called one after another, this means that there is a risk that 
+/// a behavior might erase the modifications done by the previous one (depending on how they were implemented).
+/// Also, the order in which you put your behaviors into the pipeline matters.
 /// @ingroup behavior
 class dtPipelineBehavior : public dtBehavior
 {
@@ -33,14 +37,10 @@ public:
 	~dtPipelineBehavior();
 
 	/// Creates an instance of the behavior
-	///
-	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
-	///
 	/// @return		A pointer on a newly allocated behavior
 	static dtPipelineBehavior* allocate();
 
 	/// Frees the given behavior
-	///
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtPipelineBehavior* ptr);
 
@@ -53,6 +53,8 @@ public:
 	void setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors);
 
 private:
+	void recursiveUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, unsigned remainingBehaviors);
+
 	dtBehavior** m_behaviors;	///< The behaviors affected to the pipeline
 	int m_nbBehaviors;			///< The number of behaviors affected to the pipeline
 };

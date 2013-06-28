@@ -57,10 +57,21 @@ public:
 	/// Returns the behavior parameter for the given agent. NULL if it doesn't exist.
 	T* getBehaviorParams(unsigned id) const;
 
+	/// This method automatically gets the parameters of the given agents and perform some checks on them (do they exist?). 
+	/// It then calls the `dtParametrizedBehavior::doUpdate()` method, which contains the implementation of the behavior.
+	/// This is the method the user must call from its main loop, but not the one he should overload.
 	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt);
 
 protected:
-	/// 
+	/// This method will eventually be called by the `dtParametrizedBehavior::update()` method. 
+	/// This is the method the user must overload in order to describe his behavior, 
+	/// but not the one he should call (since this method is called by the `dtParametrizedBehavior::update()` method)
+	/// @param[in]	query			Allows the user to query data from the crowd.
+	/// @param[in]	oldAgent		The agent we want to update.
+	/// @param[out]	newAgent		The agent storing the updated version of the oldAgent.
+	/// @param[in]	currentParams	The parameters to the oldAgent.
+	/// @param[out]	newParams		The parameters to the newAgent.
+	/// @param[in]	dt				The time, in seconds, to update the simulation. [Limit: > 0, otherwise strange things can happen (undefined behavior)]
 	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 						  const T& currentParams, T& newParams, float dt) = 0;
 

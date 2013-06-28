@@ -419,7 +419,7 @@ void dtPathFollowing::checkPathValidity(const dtCrowdQuery& crowdQuery, const dt
 /// 
 /// The position will be constrained to the surface of the navigation mesh.
 ///
-/// The request will be processed during the next #update().
+/// The request will be processed during the next update.
 bool dtPathFollowing::requestMoveTarget(const unsigned idx, dtPolyRef ref, const float* pos)
 {
 	if (!ref)

@@ -36,12 +36,13 @@ class dtSteeringBehavior : public dtParametrizedBehavior<T>
 public:
 	/// Creates an instance of the behavior
 	///
-	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	/// @param[in]	nbMaxAgent		Estimation of the maximum number of agents using this behavior
 	explicit dtSteeringBehavior(unsigned nbMaxAgent);
 	virtual ~dtSteeringBehavior();
 	
 	/// Computes the force that should be applied to the velocity of the given agent.
 	///
+	/// @param[in]	query	Allows the user to query data from the crowd.
 	/// @param[in]	ag		The agent we want to update.
 	/// @param[out]	force	The computed force.
 	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force) = 0;
@@ -49,6 +50,7 @@ public:
 protected:
 	/// Applies the previously computed force the velocity of the old agent and stores the result into the new agent.
 	///
+	/// @param[in]	query		Allows the user to query data from the crowd.
 	/// @param[in]	oldAgent	The agent we want to update.
 	/// @param[out]	newAgent	The agent storing the updated version of the oldAgent.
 	/// @param[in]	force		The computed force.

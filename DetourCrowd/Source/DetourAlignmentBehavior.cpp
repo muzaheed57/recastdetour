@@ -35,8 +35,8 @@ dtAlignmentBehavior::~dtAlignmentBehavior()
 
 void dtAlignmentBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	const unsigned* targets = getBehaviorParams(ag.id)->alignmentTargets;
-	const unsigned nbTargets = getBehaviorParams(ag.id)->alignmentNbTargets;
+	const unsigned* targets = getBehaviorParams(ag.id)->targets;
+	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
 
 	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
 	query.getAgents(targets, nbTargets, agents);

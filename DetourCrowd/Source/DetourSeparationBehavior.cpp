@@ -58,7 +58,7 @@ void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowd
 {
 	const unsigned* targets = getBehaviorParams(ag.id)->targetsID;
 	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
-	const float distance = getBehaviorParams(ag.id)->separationDistance;
+	const float distance = getBehaviorParams(ag.id)->distance;
 
 	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
 	query.getAgents(targets, nbTargets, agents);
@@ -68,8 +68,7 @@ void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowd
 		return;
 	}
 
-	float maxDistance = (distance < 0.f) ? ag.collisionQueryRange : distance;
-	const float invSeparationDist = 1.f / maxDistance;
+	const float invSeparationDist = 1.f / distance;
 	float weight;
 	int count = 0;
 
@@ -85,10 +84,10 @@ void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowd
 
 		float dist = dtVlen(diff) - ag.radius - target.radius;
 
-		if (dist > maxDistance || dist < EPSILON)
+		if (dist > distance || dist < EPSILON)
 			continue;
 
-		weight = getBehaviorParams(ag.id)->separationWeight * (1.f - dtSqr(dist * invSeparationDist));
+		weight = getBehaviorParams(ag.id)->weight * (1.f - dtSqr(dist * invSeparationDist));
 
 		++count;
 		dtVnormalize(diff);

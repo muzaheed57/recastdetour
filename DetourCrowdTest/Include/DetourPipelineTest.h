@@ -45,7 +45,7 @@
 TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 {
 	TestScene ts;
-	dtCrowd* crowd = ts.createSquareScene();
+	dtCrowd* crowd = ts.createSquareScene(20, 0.5);
 
 	REQUIRE(crowd != 0);
 

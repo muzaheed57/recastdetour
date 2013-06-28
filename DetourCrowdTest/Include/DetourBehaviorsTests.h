@@ -27,7 +27,7 @@
 TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors behave correctly")
 {
 	TestScene ts;
-	dtCrowd* crowd = ts.createSquareScene();
+	dtCrowd* crowd = ts.createSquareScene(20, 0.5f);
 	REQUIRE(crowd != 0);
 	
 	SECTION("Seek Behavior", "With the seeking behavior, an agent must move towards its target")
@@ -40,8 +40,8 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		dtSeekBehavior* seek = dtSeekBehavior::allocate(5);
 		dtSeekBehaviorParams* params = seek->getBehaviorParams(crowd->getAgent(0)->id);
 		params->targetID = 1;
-		params->seekDistance = 0;
-		params->seekPredictionFactor = 0;
+		params->distance = 0;
+		params->predictionFactor = 0;
 
 		// Adding the agents to the crowd
 		REQUIRE(crowd->addAgent(ag1, posAgt1));
@@ -194,8 +194,23 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		
 		dtCrowdAgent ag;
 		crowd->fetchAgent(ag, ag1.id);
-		ag.collisionQueryRange = 0.f;
 		crowd->applyAgent(ag);
+
+		// Set the behavior
+		dtSeparationBehavior* separation = dtSeparationBehavior::allocate(5);
+		dtSeparationBehaviorParams* params = separation->getBehaviorParams(crowd->getAgent(ag1.id)->id);
+		dtSeparationBehaviorParams* params2 = separation->getBehaviorParams(crowd->getAgent(ag2.id)->id);
+		params->targetsID = &ag2.id;
+		params->nbTargets = 1;
+		params->weight = 1.f;
+		params->distance = 0.f;
+		params2->targetsID = &ag1.id;
+		params2->nbTargets = 1;
+		params2->weight = 1.f;
+		params2->distance = 0.f;
+
+		crowd->setAgentBehavior(ag1.id, separation);
+		crowd->setAgentBehavior(ag2.id, separation);
 
 		crowd->update(2.0, 0);
 
@@ -208,27 +223,16 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		CHECK(dtVequal(agt1NewVel, nilVector));
 
 		// We now set the distance
-		crowd->fetchAgent(ag, ag1.id);
-		ag.collisionQueryRange = 5.f;
-		crowd->applyAgent(ag);
+		separation->getBehaviorParams(crowd->getAgent(ag1.id)->id)->distance = 5.f;
+		separation->getBehaviorParams(crowd->getAgent(ag2.id)->id)->distance = 5.f;
 
 		crowd->update(2.0, 0);
 
 		dtVcopy(agt1NewVel, crowd->getAgent(ag1.id)->velocity);	
 
 		// However the agent has not moved yet since no target was specified
-		CHECK(dtVequal(agt1NewVel, nilVector));
-
-		// Set the behavior
-		dtSeparationBehavior* separation = dtSeparationBehavior::allocate(5);
-		dtSeparationBehaviorParams* params = separation->getBehaviorParams(crowd->getAgent(ag1.id)->id);
-		params->targetsID = &ag2.id;
-		params->nbTargets = 1;
-		params->separationWeight = 1.f;
-		params->separationDistance = 2.f;
+		CHECK(!dtVequal(agt1NewVel, nilVector));
 		
-		crowd->setAgentBehavior(ag1.id, separation);
-
 		crowd->update(2.0, 0);
 
 		// The agent should now be moving to the left (away from the target)
@@ -239,7 +243,7 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 			crowd->update(1.0, 0);
 
 		// The agent should have moved to the left far enough to respect the minimal distance
-		CHECK(dtVdist2D(crowd->getAgent(ag1.id)->position, crowd->getAgent(ag2.id)->position) >= params->separationDistance);
+		CHECK(dtVdist2D(crowd->getAgent(ag1.id)->position, crowd->getAgent(ag2.id)->position) >= params->distance);
 
 		dtSeparationBehavior::free(separation);
 	}
@@ -345,8 +349,8 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		unsigned targets[] = {1, 2};
 		dtAlignmentBehavior* align = dtAlignmentBehavior::allocate(1);
 		dtAlignmentBehaviorParams* params = align->getBehaviorParams(crowd->getAgent(ag1.id)->id);
-		params->alignmentTargets = targets;
-		params->alignmentNbTargets = 2;
+		params->targets = targets;
+		params->nbTargets = 2;
 		
 		crowd->setAgentBehavior(ag1.id, align);
 
@@ -395,8 +399,8 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		unsigned targets[] = {1, 2};
 		dtCohesionBehavior* cohesion = dtCohesionBehavior::allocate(5);
 		dtCohesionBehaviorParams* params = cohesion->getBehaviorParams(crowd->getAgent(0)->id);
-		params->cohesionTargets = targets;
-		params->cohesionNbTargets = 2;
+		params->targets = targets;
+		params->nbTargets = 2;
 		
 		crowd->setAgentBehavior(ag1.id, cohesion);
 

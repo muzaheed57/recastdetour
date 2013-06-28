@@ -49,7 +49,11 @@ public:
 
 	/// Creates an instance of the behavior
 	///
-	/// @param[in]	nbMaxAgents		Estimation of the maximum number of agents using this behavior
+	/// @param[in]	nbMaxAgents				Estimation of the maximum number of agents using this behavior
+	/// @param[in]	separationWeight		The weight to apply to the separation force
+	/// @param[in]	cohesionWeight			The weight to apply to the cohesion force
+	/// @param[in]	alignmentWeight			The weight to apply to the alignment force
+	/// @param[in]	separationDistance		The minimal distance from which the other agents must be taken into account
 	///
 	/// @return		A pointer on a newly allocated behavior
 	static dtFlockingBehavior* allocate(unsigned nbMaxAgents, float separationWeight, float cohesionWeight, float alignmentWeight, float separationDistance);

@@ -61,12 +61,13 @@ to update the position / orientation of the agent.
 
 It is important to make difference between the following two properties of an agent:
 
-- The desired velocity.
-- The current velocity.
+- The desired velocity (`dtCrowdAgent::desiredVelocity`)
+- The current velocity (`dtCrowdAgent::velocity`)
 
 When updating the position of an agent, the desired velocity is used to compute the current velocity which is itself used to determine the next position.
-In other words, the user should not update the current velocity of an agent himself, but it is possible to do it anyway if it is the only way to 
-have the behavior he wants. Just remember that the current velocity is updated according to the desired velocity.
+In other words, the user should not update the current velocity of an agent himself (although it can be done). 
+
+Just remember that the current velocity is updated according to the desired velocity.
 
 # Different types of behavior
 
@@ -81,7 +82,9 @@ given agent.
 __Steering behavior:__ #dtSteeringBehavior
 
 A steering behavior is a special kind of behavior. A steering behavior works by computing a force that should 
-be applied to the current velocity of an agent in order to get the desired velocity.
+be applied to the current velocity of an agent in order to get the desired velocity. 
+This is why the user should doesn't need to implement the `dtSteeringBehavior::update()` method, but instead he needs to define 
+the `dtSteeringBehavior::computeForce()` method (and maybe the `dtSteeringBehavior::applyForce()` method as well).
 
 A steering behavior can be parametrized (see below).
 
@@ -89,7 +92,8 @@ __Parametrized behavior:__ #dtParametrizedBehavior
 
 Most of the behaviors cannot work on their own, they need parameters. 
 And these parameters can vary from agent to agent (for instance with a following behavior, each agent can follow a different target).
-In order to allow your behavior to be parametrized, you need to inherit from `dtParametrizedBehavior` (which implement the `dtBehavior` interface).
+In order to allow your behavior to be parametrized, you need to inherit from `dtParametrizedBehavior` (which implement the `dtBehavior` interface) 
+and define the `dtParametrizedBehavior::doUpdate()` method.
 This will give you access to a set a methods allowing you to store and access your parameters (which can be represented by any data structure) for every agent.
 
 @note The parameters can also be used to store any data whose lifetime is the same as the behavior's.
@@ -111,7 +115,7 @@ This is useful for instance if you want to combine a dtPathFollowing and a dtCol
 - `dtSeparationBehavior`: The agent moves away from the center of gravity of its targets.
 
 Most of these behaviors need some parameters (distance, targets, etc.), and those parameters must be related to the agents.
-For each behavior there is a structure containing the necessary parameters. 
+For each behavior there is a data structure containing the necessary parameters. 
 This structure is called `dtBehaviorNameParams` (where `BehaviorName` must be replaced by the name of the behavior). 
 Once the parameters are defined, you need to associate them with an agent, then the behavior will know what parameters must be used 
 according to the agent it is updating. Here is a sample code:
@@ -120,20 +124,20 @@ according to the agent it is updating. Here is a sample code:
 // Here we create a behavior. 1 is an indication to the behavior, 
 // it tells that no more than 1 agents should be using this behavior.
 // There can be more or less agents using this behavior than the number you gave, it's not critical.
-// This number is just an indication for the allocation size for the HashTable handeling the parameters.
-dtGoToBehavior goTo(1);
+// This number is just an indication for the allocation size for the HashTable handling the parameters.
+dtArriveBehavior arrive(1);
 
 // You also need to associate this behavior to the agent
-crowd.setAgentBehavior(myAgent.id, &goTo);
+crowd.setAgentBehavior(&arrive, myAgent.id);
 
-// Now we create the parameters for this behavior. For the GoTo behavior, 
-// the already existing structure is dtGoToBehaviorParams.
-dtGoToBehaviorParams* gotoParams = goTo.addBehaviorParams(myAgent.id);
+// Now we create the parameters for this behavior. For the Arrive behavior, 
+// the already existing structure is dtArriveBehaviorParams.
+dtArriveBehaviorParams* arriveParams = arrive.getBehaviorParams(myAgent.id);
 float dest[] = {12, 0, 12};
 
 // Now, we need to set the parameters.
-gotoParams->gotoDistance = 1.f; // Minimal distance to keep between the agent and its target
-gotoParams->gotoTarget = dest; // The target to reach
+arriveParams->distance = 1.f; // Minimal distance to keep between the agent and its target
+arriveParams->target = dest; // The target to reach
 @endcode
 
 # Create your own behaviors
@@ -157,14 +161,16 @@ Now we can create our behavior. Since it uses parameters, we need to inherit fro
 @code
 class MyBehavior : public dtParametrizedBehavior<MyParams>
 {
+public:
 	explicit MyBehavior(unsigned nbMaxAgent) 
 	: dtParametrizedBehavior<MyParams>(nbMaxAgents) 
 	{}
 
 	virtual ~MyBehavior() {}
 
-	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
-						const dtArriveBehaviorParams& currentParams, dtArriveBehaviorParams& newParams, float dt)
+protected:
+	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+						  const MyParams& currentParams, MyParams& newParams, float dt)
 	{
 		float* targetVelocity[3];
 		dtVcopy(targetVelocity, query.getAgent(currentParams.targetID)->vel);
@@ -189,7 +195,7 @@ crowd.init(nbMaxAgents, maxRadius, navigationMesh);
 
 // We create the behavior and attach the target to it
 MyBehavior b(1);
-MyParams* params = b.addBehaviorParams(idAgent);
+MyParams* params = b.getBehaviorParams(idAgent);
 
 // We configure the parameters
 params->target = crowd.getAgent(idTarget);
@@ -198,7 +204,7 @@ params->target = crowd.getAgent(idTarget);
 crowd.setAgentBehavior(idAgent, &b);
 @endcode
 
-Now our behavior has been assigned to the agent. The next time the crowd updates, 
+Now our behavior has been assigned to the agent. The next time the crowd updates its agents, 
 the agent will go in the opposite direction of its target.
 
 */

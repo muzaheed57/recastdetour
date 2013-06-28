@@ -32,7 +32,7 @@ TestScene::~TestScene()
 	m_crowd = 0;
 }
 
-dtCrowd* TestScene::createSquareScene()
+dtCrowd* TestScene::createSquareScene(unsigned nbMaxAgents, float maxRadius)
 {
 	// Creation of a square
 	float* vert = new float[12];
@@ -52,7 +52,7 @@ dtCrowd* TestScene::createSquareScene()
 	if (!m_cs.initializeNavmesh(m_scene, &m_navMesh)) 
 		return 0;
 
-	if (!m_crowd->init(20, 0.5, &m_navMesh)) 
+	if (!m_crowd->init(nbMaxAgents, maxRadius, &m_navMesh, 4)) 
 		return 0;
 
 	return m_crowd;
@@ -70,7 +70,6 @@ bool TestScene::defaultInitializeAgent(dtCrowd& crowd, int index) const
 	ag.height = 1.7;
 	ag.maxSpeed = 2.0;
 	ag.maxAcceleration = 10.0;
-	ag.collisionQueryRange = 4.0;
 	ag.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
 	ag.behavior = 0;
 

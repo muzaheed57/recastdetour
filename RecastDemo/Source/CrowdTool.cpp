@@ -149,7 +149,7 @@ void CrowdToolState::init(class Sample* sample)
 		m_nav = nav;
 		m_crowd = crowd;
 	
-		crowd->init(MAX_AGENTS, m_sample->getAgentRadius(), nav);
+		crowd->init(MAX_AGENTS, m_sample->getAgentRadius(), nav, 4);
 		
 		// Make polygons with 'disabled' flag invalid.
 		crowd->getCrowdQuery()->getQueryFilter()->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
@@ -358,7 +358,7 @@ void CrowdToolState::handleRender()
 		{
 			const float* center = m_crowd->getAgentEnvironment(ag->id)->boundary.getCenter();
 			duDebugDrawCross(&dd, center[0],center[1]+radius,center[2], 0.2f, duRGBA(192,0,128,255), 2.0f);
-			duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], ag->collisionQueryRange,
+			duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], crowd->getCollisionRange(),
 							  duRGBA(192,0,128,128), 2.0f);
 			
 			dd.begin(DU_DRAW_LINES, 3.0f);
@@ -376,7 +376,7 @@ void CrowdToolState::handleRender()
 		
 		if (m_toolParams.m_showNeis)
 		{
-			duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], ag->collisionQueryRange,
+			duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], crowd->getCollisionRange(),
 							  duRGBA(0,192,128,128), 2.0f);
 			
 			dd.begin(DU_DRAW_LINES, 2.0f);
@@ -575,7 +575,6 @@ void CrowdToolState::addAgent(const float* p)
 		ag.height = m_sample->getAgentHeight();
 		ag.maxAcceleration = 8.0f;
 		ag.maxSpeed = 3.5f;
-		ag.collisionQueryRange = 4.0f;
 		ag.updateFlags = 0; 
 
 		if (m_toolParams.m_anticipateTurns)

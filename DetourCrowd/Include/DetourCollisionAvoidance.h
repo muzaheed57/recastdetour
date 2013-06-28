@@ -121,8 +121,7 @@ struct dtCollisionAvoidanceParams
 	unsigned char adaptiveRings;	///< adaptive
 	unsigned char adaptiveDepth;	///< adaptive
 
-	dtObstacleAvoidanceDebugData* caDebug;	///< A debug object to load with debug information. [Opt]
-	const dtCrowd* crowd;					///< The agents in the crowd.
+	dtObstacleAvoidanceDebugData* debug;	///< A debug object to load with debug information. [Opt]
 };
 
 
@@ -170,8 +169,9 @@ private:
 
 	/// Registers all the neighbors of the given agent as obstacles.
 	///
-	/// @param[in]		ag			The index we want to change.
-	void addObtacles(const dtCrowdAgent& ag);
+	/// @param[in]		ag		The index we want to change.
+	/// @param[in]		query	Allows the user to query data from the crowd.
+	void addObtacles(const dtCrowdAgent& ag, const dtCrowdQuery& query);
 
 	/// Updates the velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///

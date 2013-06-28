@@ -57,7 +57,7 @@ void dtSeekBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent&
 {
 	const int targetID = getBehaviorParams(ag.id)->targetID;
 	const dtCrowdAgent* target = query.getAgent(targetID);
-	const float predictionFactor = getBehaviorParams(ag.id)->seekPredictionFactor;
+	const float predictionFactor = getBehaviorParams(ag.id)->predictionFactor;
 
 	if (!target || !target->active)
 		return;
@@ -83,7 +83,7 @@ void dtSeekBehavior::applyForce(const dtCrowdQuery& query, const dtCrowdAgent& o
 	float newVelocity[] = {0, 0, 0};
 	const int targetID = getBehaviorParams(oldAgent.id)->targetID;
 	const dtCrowdAgent* target = query.getAgent(targetID);
-	const float distance = getBehaviorParams(oldAgent.id)->seekDistance;
+	const float distance = getBehaviorParams(oldAgent.id)->distance;
 
 	// Adapting the force to the dt and the previous velocity
 	dtVscale(tmpForce, force, dt);

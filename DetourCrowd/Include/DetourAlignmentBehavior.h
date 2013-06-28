@@ -28,8 +28,8 @@ struct dtCrowdAgent;
 /// @ingroup behavior
 struct dtAlignmentBehaviorParams
 {
-	const unsigned* alignmentTargets;	///< The indices of the targets
-	unsigned alignmentNbTargets;		///< The number of target
+	const unsigned* targets;	///< The indices of the targets
+	unsigned nbTargets;			///< The number of target
 };
 
 /// Defines the alignment behavior.

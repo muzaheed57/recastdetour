@@ -30,10 +30,10 @@ class dtCrowd;
 /// @ingroup behavior
 struct dtSeparationBehaviorParams
 {
-	unsigned* targetsID;			///< The others agents we want to keep our distances from.
-	unsigned nbTargets;				///< The number of targets.
-	float separationDistance;		///< From distance from which the agent considers the targets that must be avoided.
-	float separationWeight;			///< A coefficient defining how agressively the agent should avoid the targets.
+	unsigned* targetsID;	///< The others agents we want to keep our distances from.
+	unsigned nbTargets;		///< The number of targets.
+	float distance;			///< From distance from which the agent considers the targets that must be avoided.
+	float weight;			///< A coefficient defining how agressively the agent should avoid the targets.
 };
 
 /// Implementation of the separation behavior.

@@ -249,8 +249,7 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 
 		if (params)
 		{
-			params->crowd = crowd;
-			params->caDebug = 0;
+			params->debug = 0;
 			params->velBias = 0.4f;
 			params->weightDesVel = 2.0f;
 			params->weightCurVel = 0.75f;
@@ -328,11 +327,11 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 
 		JSONValue* dist = behavior->Child(L"minimalDistance");
 		if (dist && dist->IsNumber())
-			params->seekDistance = (float) dist->AsNumber();
+			params->distance = (float) dist->AsNumber();
 
 		JSONValue* predict = behavior->Child(L"predictionFactor");
 		if (predict && predict->IsNumber())
-			params->seekPredictionFactor = (float) predict->AsNumber();
+			params->predictionFactor = (float) predict->AsNumber();
 	}
 
 	// Separation behavior
@@ -348,11 +347,11 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 		
 		JSONValue* weight = behavior->Child(L"weight");
 		if (weight && weight->IsNumber())
-			params->separationWeight = (float) weight->AsNumber();
+			params->weight = (float) weight->AsNumber();
 
 		JSONValue* dist = behavior->Child(L"distance");
 		if (dist && dist->IsNumber())
-			params->separationDistance = (float) weight->AsNumber();
+			params->distance = (float) weight->AsNumber();
 
 		JSONValue* targets = behavior->Child(L"targets");
 		if (targets && targets->IsArray())
@@ -400,8 +399,8 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 			unsigned* targets = (unsigned*) dtAlloc(sizeof(int) * m_alignmentTargets.size(), DT_ALLOC_PERM);
 			std::copy(m_alignmentTargets.begin(), m_alignmentTargets.end(), targets);
 
-			params->alignmentTargets = targets;
-			params->alignmentNbTargets = m_alignmentTargets.size();
+			params->targets = targets;
+			params->nbTargets = m_alignmentTargets.size();
 		}
 
 		m_agentCfgs[iAgent].steeringBehavior = alignBehavior;
@@ -432,8 +431,8 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 			unsigned* targets = (unsigned*) dtAlloc(sizeof(int) * m_cohesionTargets.size(), DT_ALLOC_PERM);
 			std::copy(m_cohesionTargets.begin(), m_cohesionTargets.end(), targets);
 
-			params->cohesionTargets = targets;
-			params->cohesionNbTargets = m_cohesionTargets.size();
+			params->targets = targets;
+			params->nbTargets = m_cohesionTargets.size();
 		}
 
 		m_agentCfgs[iAgent].steeringBehavior = cohesion;
@@ -517,7 +516,7 @@ bool CrowdSample::initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMes
     else if (!initializeNavmesh(*scene, navMesh))
         return false;
 
-	crowd->init(m_agentCount, m_maxRadius, navMesh);
+	crowd->init(m_agentCount, m_maxRadius, navMesh, 4);
 	parseCrowd(crowd);
 
     if (!initializeCrowd(crowd))
@@ -607,7 +606,6 @@ bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 		ag.radius = m_agentCfgs[i].radius;
 		ag.maxSpeed = m_agentCfgs[i].maxSpeed;
 		ag.maxAcceleration = m_agentCfgs[i].maxAcceleration;
-		ag.collisionQueryRange = m_agentCfgs[i].collisionQueryRange;
 		ag.position[0] = m_agentCfgs[i].position[0];
 		ag.position[1] = m_agentCfgs[i].position[1];
 		ag.position[2] = m_agentCfgs[i].position[2];

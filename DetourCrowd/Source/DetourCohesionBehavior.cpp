@@ -55,8 +55,8 @@ void dtCohesionBehavior::free(dtCohesionBehavior* ptr)
 
 void dtCohesionBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
 {
-	const unsigned* targets = getBehaviorParams(ag.id)->cohesionTargets;
-	const unsigned nbTargets = getBehaviorParams(ag.id)->cohesionNbTargets;
+	const unsigned* targets = getBehaviorParams(ag.id)->targets;
+	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
 
 	float center[] = {0, 0, 0};
 

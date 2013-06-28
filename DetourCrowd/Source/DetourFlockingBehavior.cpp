@@ -113,14 +113,14 @@ void dtFlockingBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAg
 
 	separationParams->targetsID = neighborsList;
 	separationParams->nbTargets = nbNeighbors;
-	separationParams->separationDistance = this->separationDistance;
-	separationParams->separationWeight = separationWeight;
+	separationParams->distance = this->separationDistance;
+	separationParams->weight = separationWeight;
 
-	cohesionParams->cohesionTargets = neighborsList;
-	cohesionParams->cohesionNbTargets = nbNeighbors;
+	cohesionParams->targets = neighborsList;
+	cohesionParams->nbTargets = nbNeighbors;
 
-	alignmentParams->alignmentTargets = neighborsList;
-	alignmentParams->alignmentNbTargets = nbNeighbors;
+	alignmentParams->targets = neighborsList;
+	alignmentParams->nbTargets = nbNeighbors;
 
 	float separationForce[] = {0, 0, 0};
 	float cohesionForce[] = {0, 0, 0};

@@ -21,7 +21,7 @@
 TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update the position of an agent with error checking")
 {
 	TestScene ts;
-	dtCrowd* crowd = ts.createSquareScene();
+	dtCrowd* crowd = ts.createSquareScene(20, 0.5f);
 
 	REQUIRE(crowd != 0);
 
@@ -43,7 +43,7 @@ TEST_CASE("DetourCrowdTest/HashTable", "Testing the hash table containing the pa
 {
 	// Creation of the simulation
 	TestScene ts;
-	dtCrowd* crowd = ts.createSquareScene();
+	dtCrowd* crowd = ts.createSquareScene(10, 0.5f);
 
 	REQUIRE(crowd != 0);
 
@@ -61,7 +61,6 @@ TEST_CASE("DetourCrowdTest/HashTable", "Testing the hash table containing the pa
 	// Adding another element (id is greater or equal to the size of the HT)
 	param = align->getBehaviorParams(crowd->getAgent(2)->id);
 	CHECK(param == 0);
-
 
 	// This time the HT is not empty
 	dtSeekBehavior* seek = dtSeekBehavior::allocate(2);
@@ -94,7 +93,7 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 {
 	// Creation of the simulation
 	TestScene ts;
-	dtCrowd* crowd = ts.createSquareScene();
+	dtCrowd* crowd = ts.createSquareScene(4, 0.5f);
 
 	REQUIRE(crowd != 0);
 

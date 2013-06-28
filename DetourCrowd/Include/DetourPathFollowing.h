@@ -126,7 +126,7 @@ public:
 	///
 	/// Must be called before using the behavior.
 	/// @param[in]		crowdQuery	An object granting access to several elements of the crowd (animations, navigation mesh queries, etc.)
-	/// @param[in]		maxAgents	Size of the list of agents.
+	/// @param[in]		maxPathRes	Maximum number of polygons for a path.
 	///
 	/// @return True if the initialization succeeded, false otherwise.
 	bool init(dtCrowdQuery& crowdQuery, unsigned maxPathRes = 256);
