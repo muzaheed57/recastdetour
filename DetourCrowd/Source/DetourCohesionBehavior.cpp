@@ -53,12 +53,16 @@ void dtCohesionBehavior::free(dtCohesionBehavior* ptr)
 	ptr = 0;
 }
 
-void dtCohesionBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
+void dtCohesionBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+									  const dtCohesionBehaviorParams& currentParams, dtCohesionBehaviorParams& newParams)
 {
-	const unsigned* targets = getBehaviorParams(ag.id)->targets;
-	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
+	const unsigned* targets = currentParams.targets;
+	const unsigned nbTargets = currentParams.nbTargets;
 
 	float center[] = {0, 0, 0};
+
+	if (nbTargets == 0 || !targets)
+		return;
 
 	getGravityCenter(query, targets, nbTargets, center);
 	dtVsub(force, center, ag.position);

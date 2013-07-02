@@ -54,11 +54,12 @@ void dtSeparationBehavior::free(dtSeparationBehavior* ptr)
 	ptr = 0;
 }
 
-void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
+void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+										const dtSeparationBehaviorParams& currentParams, dtSeparationBehaviorParams& newParams)
 {
-	const unsigned* targets = getBehaviorParams(ag.id)->targetsID;
-	const unsigned nbTargets = getBehaviorParams(ag.id)->nbTargets;
-	const float distance = getBehaviorParams(ag.id)->distance;
+	const unsigned* targets = currentParams.targetsID;
+	const unsigned nbTargets = currentParams.nbTargets;
+	const float distance = currentParams.distance;
 
 	const dtCrowdAgent** agents = (const dtCrowdAgent**) dtAlloc(sizeof(dtCrowdAgent*) * nbTargets, DT_ALLOC_TEMP);
 	query.getAgents(targets, nbTargets, agents);
@@ -87,7 +88,7 @@ void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowd
 		if (dist > distance || dist < EPSILON)
 			continue;
 
-		weight = getBehaviorParams(ag.id)->weight * (1.f - dtSqr(dist * invSeparationDist));
+		weight = currentParams.weight * (1.f - dtSqr(dist * invSeparationDist));
 
 		++count;
 		dtVnormalize(diff);

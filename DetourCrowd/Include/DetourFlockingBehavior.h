@@ -63,7 +63,8 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtFlockingBehavior* ptr);
 
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const dtFlockingBehaviorParams& currentParams, dtFlockingBehaviorParams& newParam);
 
 	float separationWeight;		///< The strength of the separation velocity.
 	float cohesionWeight;		///< The strength of the cohesion velocity.

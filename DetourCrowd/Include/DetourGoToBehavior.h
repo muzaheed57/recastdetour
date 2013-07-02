@@ -54,7 +54,8 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtArriveBehavior* ptr);
 
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const dtArriveBehaviorParams& currentParams, dtArriveBehaviorParams& newParams);
 
 private:
 	virtual void applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt);

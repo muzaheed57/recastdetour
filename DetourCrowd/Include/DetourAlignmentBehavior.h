@@ -57,7 +57,8 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtAlignmentBehavior* ptr);
 	
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const dtAlignmentBehaviorParams& currentParams, dtAlignmentBehaviorParams& newParams);
 };
 
 #endif

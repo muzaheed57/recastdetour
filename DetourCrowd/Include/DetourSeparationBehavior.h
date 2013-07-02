@@ -62,7 +62,8 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtSeparationBehavior* ptr);
 
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const dtSeparationBehaviorParams& currentParams, dtSeparationBehaviorParams& newParams);
 };
 
 #endif // DETOURSEPARATIONBEHAVIOR_H

@@ -88,7 +88,7 @@ void dtPathFollowing::getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& ne
 	if (agParams->targetState == DT_CROWDAGENT_TARGET_NONE)
 		return;
 
-	float dvel[3] = {0,0,0};
+	float dvel[] = {0, 0, 0};
 
 	if (agParams->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 	{
@@ -104,7 +104,10 @@ void dtPathFollowing::getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& ne
 
 		// Calculate speed scale, which tells the agent to slowdown at the end of the path.
 		const float slowDownRadius = oldAgent.radius * 2;	// TODO: make less hacky.
-		const float speedScale = getDistanceToGoal(oldAgent, slowDownRadius, agParams) / slowDownRadius;
+		float speedScale = 0.f;
+
+		if (slowDownRadius > EPSILON)
+			speedScale = getDistanceToGoal(oldAgent, slowDownRadius, agParams) / slowDownRadius;
 
 		dtVscale(dvel, dvel, oldAgent.maxSpeed * speedScale);
 	}

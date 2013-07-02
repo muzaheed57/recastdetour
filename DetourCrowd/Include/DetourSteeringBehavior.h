@@ -45,7 +45,8 @@ public:
 	/// @param[in]	query	Allows the user to query data from the crowd.
 	/// @param[in]	ag		The agent we want to update.
 	/// @param[out]	force	The computed force.
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force) = 0;
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const T& currentParams, T& newParams) = 0;
 
 protected:
 	/// Applies the previously computed force the velocity of the old agent and stores the result into the new agent.
@@ -94,7 +95,7 @@ void dtSteeringBehavior<T>::doUpdate(const dtCrowdQuery& query, const dtCrowdAge
 {
 	float desiredForce[] = {0, 0, 0};
 
-	computeForce(query, oldAgent, desiredForce);
+	computeForce(query, oldAgent, desiredForce, currentParams, newParams);
 	applyForce(query, oldAgent, newAgent, desiredForce, dt);
 }
 

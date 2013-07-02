@@ -52,9 +52,10 @@ void dtArriveBehavior::free(dtArriveBehavior* ptr)
 	ptr = 0;
 }
 
-void dtArriveBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
+void dtArriveBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+									const dtArriveBehaviorParams& currentParams, dtArriveBehaviorParams& newParams)
 {
-	const float* target = getBehaviorParams(ag.id)->target;
+	const float* target = currentParams.target;
 
 	// Required velocity in order to reach the target
 	dtVsub(force, target, ag.position);

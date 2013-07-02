@@ -61,7 +61,8 @@ public:
 	/// @param[in]	ptr	A pointer to the behavior we want to free
 	static void free(dtCohesionBehavior* ptr);
 	
-	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force);
+	virtual void computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+							  const dtCohesionBehaviorParams& currentParams, dtCohesionBehaviorParams& newParams);
 
 private:
 	/// Computes the average position of the given agents.

@@ -175,9 +175,12 @@ private:
 
 	/// Updates the velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///
-	/// @param[in]	oldAgent	The agent whose velocity must be updated.
-	/// @param[out]	newAgent	The agent storing the new parameters.
-	void updateVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent);
+	/// @param[in]	oldAgent		The agent whose velocity must be updated.
+	/// @param[out]	newAgent		The agent storing the new parameters.
+	/// @param[in]	currentParams	The parameters of the agent.
+	/// @param[out]	newParams		The new parameters of the agent.
+	void updateVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+		const dtCollisionAvoidanceParams& currentParams, dtCollisionAvoidanceParams& newParams);
 
 	/// Resets the number of circles and segments.
 	void reset();
@@ -199,17 +202,18 @@ private:
 	
 	/// Computes the desired velocity of an agent.
 	///
-	/// @param[in]		pos		The position of the agent.
-	/// @param[in]		rad		The radius of the agent.
-	/// @param[in]		vmax	The maximal speed of the agent.
-	/// @param[in]		vel		The current velocity of the agent.
-	/// @param[in]		dvel	The desired velocity of the agent.
-	/// @param[in]		nvel	The new velocity of the agent.
-	/// @param[in]		ag		The agent for which a new velocity must be computed.
-	/// @param[in]		debug	A debug object to load with debug information. [Opt]
+	/// @param[in]		pos			The position of the agent.
+	/// @param[in]		rad			The radius of the agent.
+	/// @param[in]		vmax		The maximal speed of the agent.
+	/// @param[in]		vel			The current velocity of the agent.
+	/// @param[in]		dvel		The desired velocity of the agent.
+	/// @param[in]		nvel		The new velocity of the agent.
+	/// @param[in]		ag			The agent for which a new velocity must be computed.
+	/// @param[in]		oldParams	The parameters of the agent.
+	/// @param[out]		newParams	The new parameters of the agent.
 	int sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
 							   const float* vel, const float* dvel, float* nvel, const dtCrowdAgent& ag,
-							   dtObstacleAvoidanceDebugData* debug = 0);
+							   const dtCollisionAvoidanceParams& oldParams, dtCollisionAvoidanceParams& newParams);
 
 	/// Access to the obstacles (other agents for instance)
 	/// @{
@@ -228,19 +232,21 @@ private:
 
 	/// Checks if a collision is going to happen with the given velocity sample.
 	///
-	/// @param[in]		vcand	The samples velocity.
-	/// @param[in]		pos		The position of the agent.
-	/// @param[in]		rad		The radius of the agent.
-	/// @param[in]		vel		The current velocity of the agent.
-	/// @param[in]		dvel	The desired velocity of the agent.
-	/// @param[in]		nvel	The new velocity of the agent.
-	/// @param[in]		ag		The agent for which a new velocity must be computed.
-	/// @param[in]		debug	A debug object to load with debug information. [Opt]
+	/// @param[in]		vcand		The samples velocity.
+	/// @param[in]		pos			The position of the agent.
+	/// @param[in]		rad			The radius of the agent.
+	/// @param[in]		vel			The current velocity of the agent.
+	/// @param[in]		dvel		The desired velocity of the agent.
+	/// @param[in]		nvel		The new velocity of the agent.
+	/// @param[in]		ag			The agent for which a new velocity must be computed.
+	/// @param[in]		oldParams	The parameters of the agent.
+	/// @param[out]		newParams	The new parameters of the agent.
 	float processSample(const float* vcand, const float cs,
 		const float* pos, const float rad,
 		const float* vel, const float* dvel,
 		const dtCrowdAgent& ag, 
-		dtObstacleAvoidanceDebugData* debug);
+		const dtCollisionAvoidanceParams& oldParams, 
+		dtCollisionAvoidanceParams& newParams);
 
 	int m_velocitySamplesCount;				///< The number of velocity samples generate on the last frame.
 	const int m_maxAvoidanceParams;			///< The maximum number of crowd avoidance configurations supported by the collision avoidance.

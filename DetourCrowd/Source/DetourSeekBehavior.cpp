@@ -53,11 +53,12 @@ void dtSeekBehavior::free(dtSeekBehavior* ptr)
 	ptr = 0;
 }
 
-void dtSeekBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force)
+void dtSeekBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
+								  const dtSeekBehaviorParams& currentParams, dtSeekBehaviorParams& newParams)
 {
-	const int targetID = getBehaviorParams(ag.id)->targetID;
+	const int targetID = currentParams.targetID;
 	const dtCrowdAgent* target = query.getAgent(targetID);
-	const float predictionFactor = getBehaviorParams(ag.id)->predictionFactor;
+	const float predictionFactor = currentParams.predictionFactor;
 
 	if (!target || !target->active)
 		return;
