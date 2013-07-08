@@ -251,7 +251,7 @@ bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMe
 		return false;
 
 	for (unsigned i = 0; i < maxAgents; ++i)
-		new(&m_agentsEnv[i]) dtCrowdAgentEnvironment(maxAgents);
+		new(&m_agentsEnv[i]) dtCrowdAgentEnvironment();
 				
 	m_maxAgents = maxAgents;
 	m_maxAgentRadius = maxAgentRadius;
@@ -887,7 +887,7 @@ const dtCrowdAgentEnvironment* dtCrowdQuery::getAgentEnvironment(unsigned id) co
 	return 0;
 }
 
-dtCrowdAgentEnvironment::dtCrowdAgentEnvironment(unsigned nbMaxAgents) 
+dtCrowdAgentEnvironment::dtCrowdAgentEnvironment() 
 	: nbNeighbors(0) 
 {
 	boundary.reset();

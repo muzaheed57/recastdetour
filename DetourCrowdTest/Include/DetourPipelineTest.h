@@ -21,12 +21,15 @@
 
 #define CATCH_CONFIG_MAIN
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #include <catch.hpp>
 #pragma warning(pop)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
 #pragma GCC diagnostic pop
+#endif
 
 #include "DetourCrowdTestUtils.h"
 

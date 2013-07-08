@@ -54,7 +54,7 @@ void dtSeekBehavior::free(dtSeekBehavior* ptr)
 }
 
 void dtSeekBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
-								  const dtSeekBehaviorParams& currentParams, dtSeekBehaviorParams& newParams)
+								  const dtSeekBehaviorParams& currentParams, dtSeekBehaviorParams& /*newParams*/)
 {
 	const int targetID = currentParams.targetID;
 	const dtCrowdAgent* target = query.getAgent(targetID);

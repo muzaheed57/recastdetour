@@ -144,7 +144,11 @@ bool Visualization::initialize()
     {
         // Center window
         char env[] = "SDL_VIDEO_CENTERED=1";
+#ifdef _MSC_VER
+        _putenv(env);
+#else
         putenv(env);
+#endif
         
         // Init OpenGL
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -412,6 +416,10 @@ bool Visualization::update()
     
     // Update the camera velocity from keyboard state.
     Uint8* keystate = SDL_GetKeyState(NULL);
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4800)
+#endif
     updateCameraVelocity(
                          dt,
                          keystate[SDLK_w] || keystate[SDLK_UP] || scrollForward,
@@ -419,7 +427,10 @@ bool Visualization::update()
                          keystate[SDLK_a] || keystate[SDLK_LEFT],
                          keystate[SDLK_d] || keystate[SDLK_RIGHT],
                          SDL_GetModState() & KMOD_SHIFT);
-    
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     //Update the camera position
     updateCameraPosition(dt);
     

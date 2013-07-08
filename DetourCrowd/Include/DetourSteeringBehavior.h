@@ -74,7 +74,7 @@ dtSteeringBehavior<T>::~dtSteeringBehavior()
 }
 
 template<typename T>
-void dtSteeringBehavior<T>::applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
+void dtSteeringBehavior<T>::applyForce(const dtCrowdQuery& /*query*/, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
 {
 	float acceleration[3];
 	dtVcopy(acceleration, force);

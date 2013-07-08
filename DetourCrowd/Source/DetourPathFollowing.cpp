@@ -250,9 +250,9 @@ void dtPathFollowing::getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrow
 void dtPathFollowing::updateTopologyOptimization(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& ag, const float dt, dtPathFollowingParams* agParams)
 {
 	const float OPT_TIME_THR = 0.5f; // seconds
-	const int OPT_MAX_AGENTS = 1;
-	dtCrowdAgent* queue[OPT_MAX_AGENTS];
-	int nqueue = 0;
+	//const int OPT_MAX_AGENTS = 1;
+	//dtCrowdAgent* queue[OPT_MAX_AGENTS];
+	//int nqueue = 0;
 
 	if (ag.state != DT_CROWDAGENT_STATE_WALKING)
 		return;
@@ -263,14 +263,10 @@ void dtPathFollowing::updateTopologyOptimization(const dtCrowdQuery& crowdQuery,
 	agParams->topologyOptTime += dt;
 
 	if (agParams->topologyOptTime >= OPT_TIME_THR)
-		nqueue = addToOptQueue(ag, queue, nqueue, OPT_MAX_AGENTS);
-
-	for (int i = 0; i < nqueue; ++i)
-	{
-		dtCrowdAgent* ag = queue[i];
-		agParams->corridor.optimizePathTopology(const_cast<dtNavMeshQuery*>(crowdQuery.getNavMeshQuery()), crowdQuery.getQueryFilter());
+    {
+        agParams->corridor.optimizePathTopology(const_cast<dtNavMeshQuery*>(crowdQuery.getNavMeshQuery()), crowdQuery.getQueryFilter());
 		agParams->topologyOptTime = 0;
-	}
+    }
 }
 
 int dtPathFollowing::addToOptQueue(const dtCrowdAgent& newag, dtCrowdAgent** agents, const unsigned nagents, const unsigned maxAgents)
@@ -481,7 +477,7 @@ bool dtPathFollowing::requestMoveTargetReplan(const unsigned idx, dtPolyRef ref,
 	return true;
 }
 
-void dtPathFollowing::updateMoveRequest(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
+void dtPathFollowing::updateMoveRequest(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& /*newAgent*/, 
 	const dtPathFollowingParams& currentParams, dtPathFollowingParams& newParams)
 {
 	const int PATH_MAX_AGENTS = 8;

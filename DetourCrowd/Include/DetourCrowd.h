@@ -62,9 +62,7 @@ enum CrowdAgentState
 struct dtCrowdAgentEnvironment
 {
 	/// Constructs an environment for a certain number of agents
-	///
-	/// @param[in]	nbMaxAgents	Maximum number of needed environment
-	explicit dtCrowdAgentEnvironment(unsigned nbMaxAgents);
+	explicit dtCrowdAgentEnvironment();
 	~dtCrowdAgentEnvironment();
 
 	dtLocalBoundary boundary;									///< The local boundary data for the agent.

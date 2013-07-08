@@ -52,8 +52,8 @@ void dtArriveBehavior::free(dtArriveBehavior* ptr)
 	ptr = 0;
 }
 
-void dtArriveBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
-									const dtArriveBehaviorParams& currentParams, dtArriveBehaviorParams& newParams)
+void dtArriveBehavior::computeForce(const dtCrowdQuery& /*query*/, const dtCrowdAgent& ag, float* force, 
+									const dtArriveBehaviorParams& currentParams, dtArriveBehaviorParams& /*newParams*/)
 {
 	const float* target = currentParams.target;
 
@@ -61,7 +61,7 @@ void dtArriveBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgen
 	dtVsub(force, target, ag.position);
 }
 
-void dtArriveBehavior::applyForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
+void dtArriveBehavior::applyForce(const dtCrowdQuery& /*query*/, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float* force, float dt)
 {
 	const float* target = getBehaviorParams(oldAgent.id)->target;
 	const float distance = getBehaviorParams(oldAgent.id)->distance;

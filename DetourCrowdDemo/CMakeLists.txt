@@ -100,11 +100,9 @@ IF(BUILD_DETOURCROWD_DEMO)
     ENDIF()
 
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY DEBUG_POSTFIX -gd)
-    SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin)
-    SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin)
-
-    TARGET_LINK_LIBRARIES(DetourCrowdDemo RecastDetourDebugUtils Detour DetourCrowd DetourSceneCreator DetourTileCache Recast ${SDL_LIBRARY} ${SDLMAIN_LIBRARY} ${OPENGL_LIBRARIES})
-
+    SET(DETOURCROWDDEMO_BIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Bin)
+    SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${DETOURCROWDDEMO_BIN_DIR})
+    SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${DETOURCROWDDEMO_BIN_DIR})
     IF(MSVC)
         # Enable some linker optimisations
         SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY LINK_FLAGS_RELEASE "/OPT:REF /OPT:ICF")
@@ -112,18 +110,20 @@ IF(BUILD_DETOURCROWD_DEMO)
     	SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY LINK_FLAGS_RELWITHDEBINFO "/OPT:REF /OPT:ICF")
     ENDIF()
 
-    INSTALL(DIRECTORY ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin/Meshes ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin/Samples
+    TARGET_LINK_LIBRARIES(DetourCrowdDemo RecastDetourDebugUtils Detour DetourCrowd DetourSceneCreator DetourTileCache Recast ${SDL_LIBRARY} ${SDLMAIN_LIBRARY} ${OPENGL_LIBRARIES})
+
+    INSTALL(DIRECTORY Bin/Meshes Bin/Samples
         DESTINATION bin/${PLATFORM_STR}
     )
 
     IF(MSVC)
         INSTALL(
-            FILES ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin/DroidSans.ttf ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin/SDL.dll
+            FILES Bin/DroidSans.ttf Bin/SDL.dll
             DESTINATION bin/${PLATFORM_STR}
         )
     ELSE()
         INSTALL(
-            FILES ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin/DroidSans.ttf
+            FILES Bin/DroidSans.ttf
             DESTINATION bin/${PLATFORM_STR}
         )
     ENDIF()
@@ -135,4 +135,3 @@ IF(BUILD_DETOURCROWD_DEMO)
         ARCHIVE DESTINATION lib/${PLATFORM_STR}
     )
 ENDIF()
-

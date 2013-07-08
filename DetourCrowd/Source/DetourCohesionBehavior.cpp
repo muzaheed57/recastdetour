@@ -54,7 +54,7 @@ void dtCohesionBehavior::free(dtCohesionBehavior* ptr)
 }
 
 void dtCohesionBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
-									  const dtCohesionBehaviorParams& currentParams, dtCohesionBehaviorParams& newParams)
+									  const dtCohesionBehaviorParams& currentParams, dtCohesionBehaviorParams& /*newParams*/)
 {
 	const unsigned* targets = currentParams.targets;
 	const unsigned nbTargets = currentParams.nbTargets;

@@ -72,7 +72,7 @@ void dtFlockingBehavior::free(dtFlockingBehavior* ptr)
 }
 
 void dtFlockingBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, float* force, 
-									  const dtFlockingBehaviorParams& currentParams, dtFlockingBehaviorParams& newParam)
+									  const dtFlockingBehaviorParams& currentParams, dtFlockingBehaviorParams& /*newParam*/)
 {
 	unsigned* neighborsList = currentParams.toFlockWith;
 	unsigned nbNeighbors = currentParams.nbflockingTargets;

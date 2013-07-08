@@ -55,7 +55,7 @@ void dtSeparationBehavior::free(dtSeparationBehavior* ptr)
 }
 
 void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdAgent& ag, float* force, 
-										const dtSeparationBehaviorParams& currentParams, dtSeparationBehaviorParams& newParams)
+										const dtSeparationBehaviorParams& currentParams, dtSeparationBehaviorParams& /*newParams*/)
 {
 	const unsigned* targets = currentParams.targetsID;
 	const unsigned nbTargets = currentParams.nbTargets;

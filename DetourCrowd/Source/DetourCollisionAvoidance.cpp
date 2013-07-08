@@ -102,7 +102,7 @@ void dtCollisionAvoidance::purge()
 }
 
 void dtCollisionAvoidance::doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
-	const dtCollisionAvoidanceParams& currentParams, dtCollisionAvoidanceParams& newParams, float dt)
+	const dtCollisionAvoidanceParams& currentParams, dtCollisionAvoidanceParams& newParams, float /*dt*/)
 {
 	m_velocitySamplesCount = 0;
 
@@ -139,7 +139,7 @@ void dtCollisionAvoidance::updateVelocity(const dtCrowdAgent& oldAgent, dtCrowdA
 {
 	float newVelocity[] = {0, 0, 0};
 	m_velocitySamplesCount += sampleVelocityAdaptive(oldAgent.position, oldAgent.radius, oldAgent.maxSpeed,
-													 oldAgent.velocity, oldAgent.desiredVelocity, newVelocity, oldAgent, 
+													 oldAgent.velocity, oldAgent.desiredVelocity, newVelocity, 
 													 currentParams, newParams);
 	dtVcopy(newAgent.desiredVelocity, newVelocity);
 }
@@ -381,7 +381,6 @@ void dtCollisionAvoidance::prepare(const float* pos, const float* dvel)
 float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
 										  const float* pos, const float rad,
 										  const float* vel, const float* dvel,
-										  const dtCrowdAgent& ag,
 										  const dtCollisionAvoidanceParams& oldParams, 
 										  dtCollisionAvoidanceParams& newParams)
 {
@@ -474,7 +473,7 @@ float dtCollisionAvoidance::processSample(const float* vcand, const float cs,
 }
 
 int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
-												 const float* vel, const float* dvel, float* nvel, const dtCrowdAgent& ag, 
+												 const float* vel, const float* dvel, float* nvel,
 												 const dtCollisionAvoidanceParams& oldParams, dtCollisionAvoidanceParams& newParams)
 {
 	prepare(pos, dvel);
@@ -540,7 +539,7 @@ int dtCollisionAvoidance::sampleVelocityAdaptive(const float* pos, const float r
 
 			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax + EPSILON)) continue;
 
-			const float penalty = processSample(vcand,cr / 10, pos,rad,vel,dvel, ag, oldParams, newParams);
+			const float penalty = processSample(vcand,cr / 10, pos,rad,vel,dvel, oldParams, newParams);
 			++ns;
 			if (penalty < minPenalty)
 			{

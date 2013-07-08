@@ -164,6 +164,9 @@ public:
 	int getVelocitySamplesCount() const { return m_velocitySamplesCount; }
 
 private:
+    dtCollisionAvoidance(const dtCollisionAvoidance&);
+    dtCollisionAvoidance& operator=(const dtCollisionAvoidance&);
+
 	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 		const dtCollisionAvoidanceParams& currentParams, dtCollisionAvoidanceParams& newParams, float dt);
 
@@ -208,11 +211,10 @@ private:
 	/// @param[in]		vel			The current velocity of the agent.
 	/// @param[in]		dvel		The desired velocity of the agent.
 	/// @param[in]		nvel		The new velocity of the agent.
-	/// @param[in]		ag			The agent for which a new velocity must be computed.
 	/// @param[in]		oldParams	The parameters of the agent.
 	/// @param[out]		newParams	The new parameters of the agent.
 	int sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
-							   const float* vel, const float* dvel, float* nvel, const dtCrowdAgent& ag,
+							   const float* vel, const float* dvel, float* nvel,
 							   const dtCollisionAvoidanceParams& oldParams, dtCollisionAvoidanceParams& newParams);
 
 	/// Access to the obstacles (other agents for instance)
@@ -238,13 +240,11 @@ private:
 	/// @param[in]		vel			The current velocity of the agent.
 	/// @param[in]		dvel		The desired velocity of the agent.
 	/// @param[in]		nvel		The new velocity of the agent.
-	/// @param[in]		ag			The agent for which a new velocity must be computed.
 	/// @param[in]		oldParams	The parameters of the agent.
 	/// @param[out]		newParams	The new parameters of the agent.
 	float processSample(const float* vcand, const float cs,
 		const float* pos, const float rad,
 		const float* vel, const float* dvel,
-		const dtCrowdAgent& ag, 
 		const dtCollisionAvoidanceParams& oldParams, 
 		dtCollisionAvoidanceParams& newParams);
 

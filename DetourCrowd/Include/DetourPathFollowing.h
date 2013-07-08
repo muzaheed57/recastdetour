@@ -153,6 +153,9 @@ public:
 	/// @}
 
 private:
+    dtPathFollowing(const dtPathFollowing&);
+    dtPathFollowing& operator=(const dtPathFollowing&);
+
 	/// Checks that the given agents still have valid paths.
 	/// 
 	/// @param[in]		ag				The agent to work on.
