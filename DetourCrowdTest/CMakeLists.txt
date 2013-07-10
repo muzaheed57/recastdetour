@@ -39,7 +39,7 @@ INCLUDE_DIRECTORIES(
     ../Detour/Include
     ../Recast/Include
     ../DetourCrowd/Include
-	../DetourSceneCreator/Include
+    ../DetourSceneCreator/Include
     ../DetourTileCache/Include
 	${catch_INC}
 	)
@@ -77,8 +77,7 @@ ADD_TEST(
 
 ADD_TEST(
   NAME DetourBehaviorsTest 
-  CONFIGURATIONS Debug Release 
-  WORKING_DIRECTORY Bin
+  WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
   COMMAND DetourCrowdTest -t DetourBehaviorsTests/*)
 
 ADD_TEST(
