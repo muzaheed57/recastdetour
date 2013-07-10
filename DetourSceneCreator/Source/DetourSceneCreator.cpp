@@ -16,45 +16,27 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DEBUGINFO_H
-#define DEBUGINFO_H
+#include "DetourSceneCreator.h"
 
-#include "ValueHistory.h"
-#include "PerfTimer.h"
-#include "StaticConfiguration.h"
 
-#include <DetourCrowd.h>
-
-#include <stdint.h>
-
-class DebugInfo
+DetourSceneCreator::DetourSceneCreator()
+: m_currentSample()
+, m_context()
 {
-public:
-    DebugInfo();
-    ~DebugInfo();
-    
-    bool initialize();
-    bool terminate();
-    bool startUpdate(); //To be called just before the call to crowd->update.
-    bool endUpdate(float dt); //To be called just ater the call to crowd->update.
-    
-    bool isInitialized() const;
-    
-    dtCrowd* m_crowd;
-    
-    dtCrowdAgentDebugInfo m_debuggedAgentInfo;
-    ValueHistory m_crowdTotalTime;
-    ValueHistory m_crowdSampleCount;
-	
-	struct AgentTrail
-	{
-		float trail[maxAgentTrailLen*3];
-		int htrail;
-	} m_agentTrails[maxAgentCount];
-    
-private:
-    bool m_initialized;
-    TimeVal m_lastStart;
-};
+    m_currentSample.m_context = &m_context;
+}
 
-#endif
+DetourSceneCreator::~DetourSceneCreator()
+{
+    
+}
+
+bool DetourSceneCreator::initialize(InputGeom* scene, dtNavMesh* navMesh, dtCrowd* crowd)
+{
+    return m_currentSample.initialize(scene, crowd, navMesh);
+}
+
+bool DetourSceneCreator::createFromFile(const char* fileName)
+{
+	return m_currentSample.loadFromFile(fileName);
+}

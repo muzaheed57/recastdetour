@@ -23,7 +23,7 @@
 
 #include <Recast.h>
 #include <RecastAlloc.h>
-//#include <RecastDump.h>
+#include <RecastDump.h>
 
 #include <cmath>
 #include <cstring>
@@ -49,8 +49,6 @@ void NavMeshCreator::initParameters()
 
 void NavMeshCreator::computeNavMesh()
 {
-	m_context = new rcContext;
-
     // Reset build times gathering.
 	m_context->resetTimers();
     
@@ -246,10 +244,10 @@ void NavMeshCreator::computeNavMesh()
     }
     m_context->stopTimer(RC_TIMER_TOTAL);
     
-    /*if (m_success)
+    if (m_success)
     {
         duLogBuildTimes(*m_context, m_context->getAccumulatedTime(RC_TIMER_TOTAL));
-    }*/
+    }
 }
 
 void NavMeshCreator::allocIntermediateResults()

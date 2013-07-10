@@ -60,6 +60,7 @@ ADD_SUBDIRECTORY(DetourTileCache)
 ADD_SUBDIRECTORY(Recast)
 ADD_SUBDIRECTORY(RecastDemo)
 ADD_SUBDIRECTORY(DetourCrowdDemo)
+ADD_SUBDIRECTORY(DetourSceneCreator)
 ADD_SUBDIRECTORY(DetourCrowdTest)
 
 # install the platform string computation module

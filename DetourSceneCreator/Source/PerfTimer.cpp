@@ -16,31 +16,45 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef APPLICATION_H
-#define APPLICATION_H
+#include "PerfTimer.h"
 
-#include "CrowdSample.h"
-#include "InputGeom.h"
-#include "NavMeshCreator.h"
+#if defined(_WIN32)
 
-#include <DetourCrowd.h>
+// Win32
+#include <windows.h>
 
-#include <DetourNavMeshQuery.h>
-
-class Application
+TimeVal getPerfTime()
 {
-public:
-    Application();
-    ~Application();
-    
-    bool run();
-    
-    CrowdSample m_currentSample;
-    
-private:
-    
-    //BuildContext m_context;
-    
-};
+	__int64 count;
+	QueryPerformanceCounter((LARGE_INTEGER*)&count);
+	return count;
+}
+
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end)
+{
+	static __int64 freq = 0;
+	if (freq == 0)
+		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+	__int64 elapsed = end - start;
+	return (int)(elapsed*1000000 / freq);
+}
+
+#else
+
+// Linux, BSD, OSX
+
+#include <sys/time.h>
+
+TimeVal getPerfTime()
+{
+	timeval now;
+	gettimeofday(&now, 0);
+	return (TimeVal)now.tv_sec*1000000L + (TimeVal)now.tv_usec;
+}
+
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end)
+{
+	return (int)(end - start);
+}
 
 #endif

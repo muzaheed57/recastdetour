@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
+// Copyright (c) 2013 MASA Group recastdetour@masagroup.net
 //
 // This software is provided 'as-is', without any express or implied
 // warranty.  In no event will the authors be held liable for any damages
@@ -16,20 +16,35 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef FILELIST_H
-#define FILELIST_H
+#ifndef SCENECREATOR_H
+#define SCENECREATOR_H
 
-struct FileList
+#include "CrowdSample.h"
+#include "InputGeom.h"
+#include "NavMeshCreator.h"
+#include "BuildContext.h"
+
+#include <DetourCrowd.h>
+#include <DetourNavMeshQuery.h>
+
+
+/// This class is used to create a complete scene (navigation mesh and agents) 
+/// from a file.
+class DetourSceneCreator
 {
-	static const int MAX_FILES = 256;
-	
-	FileList();
-	~FileList();
-	
-	char* files[MAX_FILES];
-	int size;
+public:
+    DetourSceneCreator();
+    ~DetourSceneCreator();
+    
+	/// Load informations from the given file.
+	bool createFromFile(const char* fileName);
+
+	/// Initialize the scene, the navigation mesh and the crowd.
+    bool initialize(InputGeom* scene, dtNavMesh* navMesh, dtCrowd* crowd);
+        
+private:
+	CrowdSample m_currentSample;
+	BuildContext m_context; /// rcContext concrete implementation
 };
 
-void scanDirectory(const char* path, const char* ext, FileList& list);
-
-#endif // FILELIST_H
+#endif

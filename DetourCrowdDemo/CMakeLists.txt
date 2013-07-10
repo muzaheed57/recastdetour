@@ -30,17 +30,11 @@ CMAKE_DEPENDENT_OPTION(BUILD_DETOURCROWD_DEMO "Build DetourCrowd graphical demo 
 IF(BUILD_DETOURCROWD_DEMO)
     SET(detourcrowddemo_SRCS
         Source/Application.cpp
-        Source/ChunkyTriMesh.cpp
         Source/DebugInfo.cpp
         Source/Filelist.cpp
         Source/imgui.cpp
         Source/imguiRenderGL.cpp
-        Source/InputGeom.cpp
         Source/main.cpp
-        Source/NavMeshCreator.cpp
-        Source/MeshLoaderObj.cpp
-        Source/PerfTimer.cpp
-        Source/CrowdSample.cpp
         Source/SampleInterfaces.cpp
         Source/ValueHistory.cpp
         Source/Visualization.cpp
@@ -48,19 +42,12 @@ IF(BUILD_DETOURCROWD_DEMO)
 
     SET(detourcrowddemo_HDRS
         Include/Application.h
-        Include/ChunkyTriMesh.h
         Include/DebugInfo.h
         Include/Filelist.h
         Include/imgui.h
         Include/imguiRenderGL.h
-        Include/InputGeom.h
-        Include/MeshLoaderObj.h
-        Include/NavMeshCreator.h
-        Include/PerfTimer.h
-        Include/CrowdSample.h
         Include/SampleInterfaces.h
         Include/SDLMain.h
-        Include/StaticConfiguration.h
         Include/ValueHistory.h
         Include/Visualization.h
     )
@@ -68,16 +55,6 @@ IF(BUILD_DETOURCROWD_DEMO)
     SET(fastlz_DIR Contrib/fastlz)
     SET(fastlz_SRCS 
         ${fastlz_DIR}/fastlz.c
-    )
-
-    SET(simplejson_DIR Contrib/SimpleJSON)
-    SET(simplejson_SRCS 
-        ${simplejson_DIR}/JSON.cpp
-        ${simplejson_DIR}/JSONValue.cpp
-    )
-    SET(simplejson_HDRS
-        ${simplejson_DIR}/JSON.h
-        ${simplejson_DIR}/JSONValue.h
     )
 
     SET(sdl_DIR Contrib/SDL)
@@ -97,7 +74,6 @@ IF(BUILD_DETOURCROWD_DEMO)
         SOURCE_GROUP(externals\\SDLMain FILES ${sdlmain_HDRS} ${sdlmain_SRCS})
     ENDIF()
     SOURCE_GROUP(externals\\fastlz FILES ${fastlz_SRCS})
-    SOURCE_GROUP(externals\\SimpleJSON FILES ${simplejson_SRCS} ${simplejson_HDRS})
     SOURCE_GROUP(cmake FILES CMakeLists.txt)
 
     IF(MSVC)
@@ -106,28 +82,28 @@ IF(BUILD_DETOURCROWD_DEMO)
     ENDIF()
 
     INCLUDE_DIRECTORIES(Include 
-        Contrib
         ${fastlz_DIR}
-        ${simplejson_DIR}
-        ../RecastDetourDebugUtils/Include
+        ${SDL_INCLUDE_DIR}
         ../Detour/Include
         ../DetourCrowd/Include
+        ../DetourSceneCreator/Include
         ../DetourTileCache/Include
         ../Recast/Include
-        ${SDL_INCLUDE_DIR}
+        ../RecastDetourDebugUtils/Include
+        Contrib
     )
 
     IF(XCODE)
-        ADD_EXECUTABLE(DetourCrowdDemo MACOSX_BUNDLE ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${sdlmain_HDRS} ${sdlmain_SRCS} ${fastlz_SRCS} ${simplejson_HDRS} ${simplejson_SRCS})
+        ADD_EXECUTABLE(DetourCrowdDemo MACOSX_BUNDLE ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${sdlmain_HDRS} ${sdlmain_SRCS} ${fastlz_SRCS})
     ELSE()
-        ADD_EXECUTABLE(DetourCrowdDemo WIN32 ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${fastlz_SRCS} ${simplejson_HDRS} ${simplejson_SRCS})
+        ADD_EXECUTABLE(DetourCrowdDemo WIN32 ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${fastlz_SRCS})
     ENDIF()
 
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY DEBUG_POSTFIX -gd)
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin)
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RecastNavigation_SOURCE_DIR}/DetourCrowdDemo/Bin)
 
-    TARGET_LINK_LIBRARIES(DetourCrowdDemo RecastDetourDebugUtils Detour DetourCrowd DetourTileCache Recast ${SDL_LIBRARY} ${SDLMAIN_LIBRARY} ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(DetourCrowdDemo RecastDetourDebugUtils Detour DetourCrowd DetourSceneCreator DetourTileCache Recast ${SDL_LIBRARY} ${SDLMAIN_LIBRARY} ${OPENGL_LIBRARIES})
 
     IF(MSVC)
         # Enable some linker optimisations

@@ -549,16 +549,9 @@ void dtCrowd::updateVelocity(const float dt, dtCrowdAgentDebugInfo* debug, int* 
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-		const int debugIdx = debug ? debug->idx : -1;
-
-		dtObstacleAvoidanceDebugData* vod = 0;
-
-		if (debugIdx == i)
-			vod = debug->vod;
-
 		if (ag->params.updateFlags & DT_CROWD_OBSTACLE_AVOIDANCE)
 		{
-			m_collisionHandler[ag->params.obstacleAvoidanceType].update(ag, (const dtCrowdAgent**)agents, vod);
+			m_collisionHandler[ag->params.obstacleAvoidanceType].update(ag, (const dtCrowdAgent**)agents, 0);
 		}
 		else
 		{

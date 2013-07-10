@@ -20,9 +20,8 @@
 #define APPLICATION_H
 
 #include "Visualization.h"
-#include "CrowdSample.h"
 #include "InputGeom.h"
-#include "SampleInterfaces.h"
+#include "BuildContext.h"
 #include "NavMeshCreator.h"
 #include "DebugInfo.h"
 
@@ -36,14 +35,16 @@ public:
     Application();
     ~Application();
     
+	bool init(const char* fileName);
     bool run();
-    
-    CrowdSample m_currentSample;
-    
+        
 private:
-    
     BuildContext m_context;
-    
+	InputGeom m_scene;
+	dtNavMesh m_navMesh;
+	dtCrowd m_crowd;
+	Visualization m_visu;
+	DebugInfo m_debug;
 };
 
 #endif

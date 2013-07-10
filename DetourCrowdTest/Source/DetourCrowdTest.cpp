@@ -16,9 +16,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
 #include "CrowdSample.h"
 #include "DetourCommon.h"
+#include "DetourSceneCreator.h"
 #include "InputGeom.h"
 
 #define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
@@ -59,6 +59,7 @@ TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update 
 
 	// Creation of the simulation
 	CrowdSample cs;
+	cs.m_context = new BuildContext;
 	InputGeom scene;
 	dtNavMesh navMesh;
 
@@ -101,7 +102,6 @@ TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update 
 	// The agent has not moved
 	CHECK(vectorEqual2D(crowd.getAgent(indexAgent1)->npos, correctPosition));
 }
->>>>>>> 975aae2... Allowing users to dynamically change the position of an agent.
 
 TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the agents inside a crowd")
 {
@@ -117,10 +117,12 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	tri[0] = 1; tri[1] = 2; tri[2] = 3;
 	tri[3] = 3; tri[4] = 4; tri[5] = 1;
 
-	// Creation of the navigation mesh
+	// Creation of the simulation
 	CrowdSample cs;
 	InputGeom scene;
 	dtNavMesh navMesh;
+	BuildContext bc;
+	cs.m_context = &bc;
 
 	REQUIRE(cs.initializeScene(&scene, vert, 4, tri, 2));
 	REQUIRE(cs.initializeNavmesh(scene, &navMesh));
@@ -352,5 +354,5 @@ TEST_CASE("DetourCrowdTest/InitCrowd", "Test whether the initialization of a cro
 {
 	dtCrowd crowd;
 
-	CHECK(crowd.getAgentCount() == 0);
+	REQUIRE(crowd.getAgentCount() == 0);
 }

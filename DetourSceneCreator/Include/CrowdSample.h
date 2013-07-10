@@ -19,9 +19,9 @@
 #ifndef CROWDSAMPLE_H
 #define CROWDSAMPLE_H
 
-//#include "Visualization.h"
 
 #include <DetourCrowd.h>
+#include "StaticConfiguration.h"
 
 class rcContext;
 class InputGeom;
@@ -43,21 +43,25 @@ public:
     
     bool loadFromBuffer(const char* data);
     bool loadFromFile(const char* fileName);
-	
+
     bool initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMesh);
-    bool initializeScene(InputGeom* scene, float* vert, unsigned vertCount, int* tris, unsigned triCount);
-    bool initializeScene(InputGeom* scene);
-    bool initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh);
-    bool initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd);
-	
+
+	/// Method to call when we want to create a scene without using a JSON file.
+	/// The vertices and triangles of the scene are passed directly.
+	bool initializeScene(InputGeom* scene, float* vert, unsigned vertCount, int* tris, unsigned triCount);
+
+	bool initializeScene(InputGeom* scene);
+	bool initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd);
+	bool initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh);
+    
+    AgentConfiguration m_agentCfgs[maxAgentCount];
+    int m_agentCount;
+	rcContext* m_context;
+	char m_sceneFileName[maxPathLen];
+    
+private:
     void computeMaximumRadius();
     
-    char m_sceneFileName[260];
-    AgentConfiguration m_agentCfgs[100];
-    int m_agentCount;
-    rcContext* m_context;
-    
-private:    
     float m_maxRadius;
 };
 

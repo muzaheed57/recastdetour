@@ -25,8 +25,8 @@ public:
 	rcMeshLoaderObj();
 	~rcMeshLoaderObj();
 	
-	bool load(float* vert, unsigned vertCount, int* tris, unsigned triCount);
 	bool load(const char* fileName);
+	bool load(float* vert, unsigned vertCount, int* tris, unsigned triCount);
 
 	inline const float* getVerts() const { return m_verts; }
 	inline const float* getNormals() const { return m_normals; }

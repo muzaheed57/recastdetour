@@ -26,7 +26,7 @@
 #define _JSON_H_
 
 // Win32 incompatibilities
-#if defined(WIN32) && !defined(__GNUC__)
+#if defined(_WIN32) && !defined(__GNUC__)
 	#define wcsncasecmp _wcsnicmp 
 	static inline bool isnan(double x) { return x != x; }
 	static inline bool isinf(double x) { return !isnan(x) && isnan(x - x); }

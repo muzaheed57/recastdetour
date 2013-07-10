@@ -24,8 +24,10 @@ int main(int /*argc*/, char** /*argv*/)
 {
     Application app;
     
-    app.m_currentSample.loadFromFile("Samples/four_corners.js");
-    //app.m_currentSample.loadFromFile("Samples/face_to_face.js");
+    app.init("Samples/four_corners.js");
+	//app.m_currentSample.loadFromFile("Samples/face_to_face.js");
+	//app.m_currentSample.loadFromFile("Samples/big_agent.js");
+	//app.m_currentSample.loadFromFile("Samples/tanks.js");
     
     return app.run();
 }

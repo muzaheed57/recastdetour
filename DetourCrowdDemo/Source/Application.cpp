@@ -17,12 +17,11 @@
 //
 
 #include "Application.h"
+#include "DetourSceneCreator.h"
 
 Application::Application()
-: m_currentSample()
-, m_context()
+:  m_context()
 {
-    m_currentSample.m_context = &m_context;
 }
 
 Application::~Application()
@@ -30,44 +29,40 @@ Application::~Application()
     
 }
 
+bool Application::init(const char* fileName)
+{
+	DetourSceneCreator sc;
+
+	sc.createFromFile(fileName);
+
+	if (!sc.initialize(&m_scene, &m_navMesh, &m_crowd))
+		return false;
+
+	m_debug.m_crowd = &m_crowd;
+	
+	m_visu.m_scene = &m_scene;
+	m_visu.m_crowd = &m_crowd;
+	m_visu.m_navmesh = &m_navMesh;
+	m_visu.m_debugInfo = &m_debug;
+
+	//Run the simulation
+	if (!m_visu.initialize())
+		return false;
+
+	return true;
+}
+
 bool Application::run()
 {
-    // Initialize the scene, the navmesh and the crowd.
-    InputGeom scene;
-    dtNavMesh navMesh;
-    dtCrowd crowd;
-    if (!m_currentSample.initialize(&scene, &crowd, &navMesh))
+    while (!m_visu.m_stopRequested)
     {
-        return false;
-    }
-    
-    //Create the debug info
-    DebugInfo debugInfo;
-    debugInfo.m_crowd = &crowd;
-    
-    //Create the visualization
-    Visualization visu;
-    
-    visu.m_scene = &scene;
-    visu.m_crowd = &crowd;
-    visu.m_navmesh = &navMesh;
-    visu.m_debugInfo = &debugInfo;
-    
-    //Run the simulation
-    if (!visu.initialize())
-    {
-        return false;
-    }
-
-    while (!visu.m_stopRequested)
-    {
-        if (!visu.update())
+        if (!m_visu.update())
         {
             return false;
         }
     }
     
-    if (!visu.terminate())
+    if (!m_visu.terminate())
     {
         return false;
     }

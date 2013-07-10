@@ -27,7 +27,6 @@ DebugInfo::DebugInfo()
 , m_debuggedAgentInfo()
 , m_crowdTotalTime()
 , m_crowdSampleCount()
-, m_agentTrails()
 , m_initialized(false)
 , m_lastStart()
 {

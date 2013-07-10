@@ -21,13 +21,12 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <iostream>
 #include "Recast.h"
 #include "InputGeom.h"
 #include "ChunkyTriMesh.h"
 #include "MeshLoaderObj.h"
-//#include "DebugDraw.h"
-//#include "RecastDebugDraw.h"
+#include "DebugDraw.h"
+#include "RecastDebugDraw.h"
 #include "DetourNavMesh.h"
 
 static bool intersectSegmentTriangle(const float* sp, const float* sq,
@@ -130,7 +129,7 @@ bool InputGeom::loadMesh(class rcContext* ctx, float* vert, unsigned vertCount, 
 	}
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
-	
+
 	m_mesh = new rcMeshLoaderObj;
 	if (!m_mesh)
 	{
@@ -159,7 +158,7 @@ bool InputGeom::loadMesh(class rcContext* ctx, float* vert, unsigned vertCount, 
 
 	return true;
 }
-	
+		
 bool InputGeom::loadMesh(rcContext* ctx, const char* filepath)
 {
 	if (m_mesh)
@@ -435,36 +434,36 @@ void InputGeom::deleteOffMeshConnection(int i)
 	m_offMeshConFlags[i] = m_offMeshConFlags[m_offMeshConCount];
 }
 
-//void InputGeom::drawOffMeshConnections(duDebugDraw* dd, bool hilight)
-//{
-//	unsigned int conColor = duRGBA(192,0,128,192);
-//	unsigned int baseColor = duRGBA(0,0,0,64);
-//	dd->depthMask(false);
-//
-//	dd->begin(DU_DRAW_LINES, 2.0f);
-//	for (int i = 0; i < m_offMeshConCount; ++i)
-//	{
-//		float* v = &m_offMeshConVerts[i*3*2];
-//
-//		dd->vertex(v[0],v[1],v[2], baseColor);
-//		dd->vertex(v[0],v[1]+0.2f,v[2], baseColor);
-//		
-//		dd->vertex(v[3],v[4],v[5], baseColor);
-//		dd->vertex(v[3],v[4]+0.2f,v[5], baseColor);
-//		
-//		duAppendCircle(dd, v[0],v[1]+0.1f,v[2], m_offMeshConRads[i], baseColor);
-//		duAppendCircle(dd, v[3],v[4]+0.1f,v[5], m_offMeshConRads[i], baseColor);
-//
-//		if (hilight)
-//		{
-//			duAppendArc(dd, v[0],v[1],v[2], v[3],v[4],v[5], 0.25f,
-//						(m_offMeshConDirs[i]&1) ? 0.6f : 0.0f, 0.6f, conColor);
-//		}
-//	}	
-//	dd->end();
-//
-//	dd->depthMask(true);
-//}
+void InputGeom::drawOffMeshConnections(duDebugDraw* dd, bool hilight)
+{
+	unsigned int conColor = duRGBA(192,0,128,192);
+	unsigned int baseColor = duRGBA(0,0,0,64);
+	dd->depthMask(false);
+
+	dd->begin(DU_DRAW_LINES, 2.0f);
+	for (int i = 0; i < m_offMeshConCount; ++i)
+	{
+		float* v = &m_offMeshConVerts[i*3*2];
+
+		dd->vertex(v[0],v[1],v[2], baseColor);
+		dd->vertex(v[0],v[1]+0.2f,v[2], baseColor);
+		
+		dd->vertex(v[3],v[4],v[5], baseColor);
+		dd->vertex(v[3],v[4]+0.2f,v[5], baseColor);
+		
+		duAppendCircle(dd, v[0],v[1]+0.1f,v[2], m_offMeshConRads[i], baseColor);
+		duAppendCircle(dd, v[3],v[4]+0.1f,v[5], m_offMeshConRads[i], baseColor);
+
+		if (hilight)
+		{
+			duAppendArc(dd, v[0],v[1],v[2], v[3],v[4],v[5], 0.25f,
+						(m_offMeshConDirs[i]&1) ? 0.6f : 0.0f, 0.6f, conColor);
+		}
+	}	
+	dd->end();
+
+	dd->depthMask(true);
+}
 
 void InputGeom::addConvexVolume(const float* verts, const int nverts,
 								const float minh, const float maxh, unsigned char area)
@@ -485,70 +484,70 @@ void InputGeom::deleteConvexVolume(int i)
 	m_volumes[i] = m_volumes[m_volumeCount];
 }
 
-//void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
-//{
-//	dd->depthMask(false);
-//
-//	dd->begin(DU_DRAW_TRIS);
-//	
-//	for (int i = 0; i < m_volumeCount; ++i)
-//	{
-//		const ConvexVolume* vol = &m_volumes[i];
-//		unsigned int col = duIntToCol(vol->area, 32);
-//		for (int j = 0, k = vol->nverts-1; j < vol->nverts; k = j++)
-//		{
-//			const float* va = &vol->verts[k*3];
-//			const float* vb = &vol->verts[j*3];
-//
-//			dd->vertex(vol->verts[0],vol->hmax,vol->verts[2], col);
-//			dd->vertex(vb[0],vol->hmax,vb[2], col);
-//			dd->vertex(va[0],vol->hmax,va[2], col);
-//			
-//			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
-//			dd->vertex(va[0],vol->hmax,va[2], col);
-//			dd->vertex(vb[0],vol->hmax,vb[2], col);
-//
-//			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
-//			dd->vertex(vb[0],vol->hmax,vb[2], col);
-//			dd->vertex(vb[0],vol->hmin,vb[2], duDarkenCol(col));
-//		}
-//	}
-//	
-//	dd->end();
-//
-//	dd->begin(DU_DRAW_LINES, 2.0f);
-//	for (int i = 0; i < m_volumeCount; ++i)
-//	{
-//		const ConvexVolume* vol = &m_volumes[i];
-//		unsigned int col = duIntToCol(vol->area, 220);
-//		for (int j = 0, k = vol->nverts-1; j < vol->nverts; k = j++)
-//		{
-//			const float* va = &vol->verts[k*3];
-//			const float* vb = &vol->verts[j*3];
-//			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
-//			dd->vertex(vb[0],vol->hmin,vb[2], duDarkenCol(col));
-//			dd->vertex(va[0],vol->hmax,va[2], col);
-//			dd->vertex(vb[0],vol->hmax,vb[2], col);
-//			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
-//			dd->vertex(va[0],vol->hmax,va[2], col);
-//		}
-//	}
-//	dd->end();
-//
-//	dd->begin(DU_DRAW_POINTS, 3.0f);
-//	for (int i = 0; i < m_volumeCount; ++i)
-//	{
-//		const ConvexVolume* vol = &m_volumes[i];
-//		unsigned int col = duDarkenCol(duIntToCol(vol->area, 255));
-//		for (int j = 0; j < vol->nverts; ++j)
-//		{
-//			dd->vertex(vol->verts[j*3+0],vol->verts[j*3+1]+0.1f,vol->verts[j*3+2], col);
-//			dd->vertex(vol->verts[j*3+0],vol->hmin,vol->verts[j*3+2], col);
-//			dd->vertex(vol->verts[j*3+0],vol->hmax,vol->verts[j*3+2], col);
-//		}
-//	}
-//	dd->end();
-//	
-//	
-//	dd->depthMask(true);
-//}
+void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
+{
+	dd->depthMask(false);
+
+	dd->begin(DU_DRAW_TRIS);
+	
+	for (int i = 0; i < m_volumeCount; ++i)
+	{
+		const ConvexVolume* vol = &m_volumes[i];
+		unsigned int col = duIntToCol(vol->area, 32);
+		for (int j = 0, k = vol->nverts-1; j < vol->nverts; k = j++)
+		{
+			const float* va = &vol->verts[k*3];
+			const float* vb = &vol->verts[j*3];
+
+			dd->vertex(vol->verts[0],vol->hmax,vol->verts[2], col);
+			dd->vertex(vb[0],vol->hmax,vb[2], col);
+			dd->vertex(va[0],vol->hmax,va[2], col);
+			
+			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
+			dd->vertex(va[0],vol->hmax,va[2], col);
+			dd->vertex(vb[0],vol->hmax,vb[2], col);
+
+			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
+			dd->vertex(vb[0],vol->hmax,vb[2], col);
+			dd->vertex(vb[0],vol->hmin,vb[2], duDarkenCol(col));
+		}
+	}
+	
+	dd->end();
+
+	dd->begin(DU_DRAW_LINES, 2.0f);
+	for (int i = 0; i < m_volumeCount; ++i)
+	{
+		const ConvexVolume* vol = &m_volumes[i];
+		unsigned int col = duIntToCol(vol->area, 220);
+		for (int j = 0, k = vol->nverts-1; j < vol->nverts; k = j++)
+		{
+			const float* va = &vol->verts[k*3];
+			const float* vb = &vol->verts[j*3];
+			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
+			dd->vertex(vb[0],vol->hmin,vb[2], duDarkenCol(col));
+			dd->vertex(va[0],vol->hmax,va[2], col);
+			dd->vertex(vb[0],vol->hmax,vb[2], col);
+			dd->vertex(va[0],vol->hmin,va[2], duDarkenCol(col));
+			dd->vertex(va[0],vol->hmax,va[2], col);
+		}
+	}
+	dd->end();
+
+	dd->begin(DU_DRAW_POINTS, 3.0f);
+	for (int i = 0; i < m_volumeCount; ++i)
+	{
+		const ConvexVolume* vol = &m_volumes[i];
+		unsigned int col = duDarkenCol(duIntToCol(vol->area, 255));
+		for (int j = 0; j < vol->nverts; ++j)
+		{
+			dd->vertex(vol->verts[j*3+0],vol->verts[j*3+1]+0.1f,vol->verts[j*3+2], col);
+			dd->vertex(vol->verts[j*3+0],vol->hmin,vol->verts[j*3+2], col);
+			dd->vertex(vol->verts[j*3+0],vol->hmax,vol->verts[j*3+2], col);
+		}
+	}
+	dd->end();
+	
+	
+	dd->depthMask(true);
+}
