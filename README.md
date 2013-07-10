@@ -2,35 +2,15 @@
 
 This repository is a fork of [recastnavigation](http://code.google.com/p/recastnavigation/) whose original author is [Mikko Mononen](memon@inside.org).
 
+This library is releaed under the terms of the open souce [Zlib license](http://opensource.org/licenses/Zlib).
+
 ## Recast ##
 
 Recast is state of the art navigation mesh construction toolset for games.
 
 * It is automatic, which means that you can throw any level geometry
-at it and you will get robust mesh out
-* It is fast which means swift turnaround times for level designers
-* It is open source so it comes with full source and you can
-customize it to your hearts content. 
-
-The Recast process starts with constructing a voxel mold from a level geometry 
-and then casting a navigation mesh over it. The process consists of three steps, 
-building the voxel mold, partitioning the mold into simple regions, peeling off 
-the regions as simple polygons.
-
-1. The voxel mold is build from the input triangle mesh by rasterizing 
-the triangles into a multi-layer heightfield. Some simple filters are 
-then applied to the mold to prune out locations where the character 
-would not be able to move.
-2. The walkable areas described by the mold are divided into simple 
-overlayed 2D regions. The resulting regions have only one non-overlapping 
-contour, which simplifies the final step of the process tremendously.
-3. The navigation polygons are peeled off from the regions by first tracing 
-the boundaries and then simplifying them. The resulting polygons are 
-finally converted to convex polygons which makes them perfect for 
-pathfinding and spatial reasoning about the level. 
-
-The toolset code is located in the Recast folder and demo application using the Recast
-toolset is located in the RecastDemo folder.
+at it and you will get robust mesh out;
+* It is fast which means swift turnaround times for level designers.
 
 ## Detour ##
 
@@ -40,7 +20,7 @@ Detour offers simple static navigation mesh which is suitable for many simple ca
 
 ## Detour Crowd ##
 
-Detour Crowd is a simple navigation engine relying on Detour features.
+The Detour Crowd module provides you with features for agents handling and behavior customization. You can create lots of agents and move them in the navigation mesh thanks to Detour. Moreover you can create your own behaviors that will tell your agents how to move and to react.
 
 # Build instructions #
 
@@ -50,8 +30,9 @@ Detour Crowd is a simple navigation engine relying on Detour features.
 - [Cmake](http://www.cmake.org/);
 - [SDL](http://www.libsdl.org) development libraries;
 - [Catch](https://github.com/philsquared/Catch) unit test library is used as a [submodule](http://git-scm.com/book/en/Git-Tools-Submodules) in [DetourCrowdTest/Contrib/catch](DetourCrowdTest/Contrib/catch);
-- Virtually any recent version of visual studio, tested with;
-    - Visual Studio 2010 x86.
+- Virtually any recent version of visual studio, tested with,
+    - Visual Studio 2010 x86,
+    - Visual Studio 2010 x64.
 
 ### Build ###
 1. Generate the Visual Studio files with CMake.
@@ -61,17 +42,45 @@ Detour Crowd is a simple navigation engine relying on Detour features.
     - Set the `SDL_LIBRARY_TEMP to the path of `SDL.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDL.lib`);
     - Set the `SDLMAIN_LIBRARY` to the path of `SDLMain.lib` downloaded with the SDL development lib download (e.g. `E:/SDL-devel-1.2.15-VC/SDL-1.2.15/lib/x86/SDLmain.lib`);
     - Click *Configure* then *Generate*.
-2. Build with Visual Studio.
+2. Initialize and update the submodule (git submodule init & git submodule update)
+3. Build with Visual Studio.
     - Open `RecastNavigation.sln` that has been generated in the chosen directory (e.g. `E:\recastdetour\Build\RecastNavigation.sln`);
     - Build the project `ALL_BUILD`, it will build all libraries and executables.
-    - Build the project `RUN_TESTS`, it will launch the unit tests and check they passed successfully.
-3. Execute `Recast_Demo` and `DetourCrowd_Demo.
+    - Build the project `RUN_TESTS`, it will launch the unit tests and check that they passed successfully.
+4. Execute `Recast_Demo` and `DetourCrowd_Demo.
     - Make sure you execute the application from its Run directory (e.g. `E:\projects\recastdetour\RecastDemo\Run`);
     - Make sure `SDL.dll` is present in the path;
     - Run, and enjoy!
- 
+
+### Support ###
+- A Google Group is available [here](https://groups.google.com/forum/?fromgroups#!forum/recastnavigation)
+- There is a doxygen documentation as a project, just build and open Docs/index.html
+- If no notice a bug or something strange, please let us know about it on the Github repository, issues section
+
+### Contributors ###
+
+#### Master repository contributors ####
+- Mikko Mononen <memon@inside.org>
+- Steve ?? <stevefsp@gmail.com>
+- Cameron Hart <cameron.hart@gmail.com>
+
+#### [MASA LIFE](http://www.masalife.net) team contributors ####
+- Jérémy Chanut <jeremy.chanut@masagroup.net>
+- Clodéric Mars <cloderic.mars@masagroup.net>
+- Damien Avrillon <damien.avrillon@masagroup.net>
 
 # Release Notes #
+
+----------------
+* Recast 2.0
+  Released July 10th, 2013
+
+- The interface for the dtCrowd class has been completely rebuild.
+- Implementation of the notion of behaviors for the agents.
+- Some behaviors are available by default for the user to use.
+- The user can create its own behaviors.
+- The documentation has been updated and some tutorials have been added.
+- The features of the Detour Crowd module have unit tests (more than 100)
 
 ----------------
 * Recast 1.4
