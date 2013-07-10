@@ -31,7 +31,7 @@ Application::~Application()
 
 bool Application::init(const char* fileName)
 {
-	DetourSceneCreator sc;
+	dtSceneCreator sc;
 
 	sc.createFromFile(fileName);
 

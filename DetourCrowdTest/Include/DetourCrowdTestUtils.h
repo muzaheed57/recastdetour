@@ -16,23 +16,38 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef DETOURCROWDTESTUTILS_H
+#define DETOURCROWDTESTUTILS_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+#include "DetourCrowd.h"
 
-#include <iostream>
+#include "CrowdSample.h"
+#include "InputGeom.h"
+#include "DetourSceneCreator.h"
 
-int main(int argc, char** argv)
+
+/// Class used to create a scene from vertices and triangles.
+class TestScene
 {
-	if (argc < 2)
-	{
-		std::cerr << "Error: One argument has to be provided." << std::endl;
-		return 1;
-	}
+public:
+	TestScene();
+	~TestScene();
 
-	Application app;
+	/// Creation of the scene.
+	///
+	/// @param[out]	param		Will be initialized to a default configuration
+	/// @param[in]	vertices	The vertices for the creation of the navigation mesh
+	/// @param[in]	triangles	The triangles for the creation of the navigation mesh
+	///
+	/// @return Return the newly created crowd. Return 0 if something went wrong.
+	dtCrowd* createScene(dtCrowdAgentParams& param, float* vertices, int* triangles);
 
-	app.init(argv[1]);
+private:
+	CrowdSample m_cs;
+	InputGeom m_scene;
+	dtNavMesh m_navMesh;
+	BuildContext m_bc;
+	dtCrowd* m_crowd;
+};
 
-	return app.run();
-}
+#endif

@@ -8,6 +8,12 @@ SET(detourcrowd_SRCS
 	Source/DetourProximityGrid.cpp
 	Source/DetourCollisionAvoidance.cpp
 	Source/DetourPathFollowing.cpp
+	Source/DetourSeekBehavior.cpp
+	Source/DetourFlockingBehavior.cpp
+	Source/DetourSeparationBehavior.cpp
+	Source/DetourCohesionBehavior.cpp
+	Source/DetourAlignmentBehavior.cpp
+	Source/DetourGoToBehavior.cpp
 )
 
 SET(detourcrowd_HDRS
@@ -18,6 +24,12 @@ SET(detourcrowd_HDRS
 	Include/DetourPathQueue.h
 	Include/DetourCollisionAvoidance.h
 	Include/DetourPathFollowing.h
+	Include/DetourSeekBehavior.h
+	Include/DetourFlockingBehavior.h
+	Include/DetourSeparationBehavior.h
+	Include/DetourCohesionBehavior.h
+	Include/DetourAlignmentBehavior.h
+	Include/DetourGoToBehavior.h
 )
 
 INCLUDE_DIRECTORIES(Include 

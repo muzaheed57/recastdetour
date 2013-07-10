@@ -66,14 +66,12 @@ public:
 
 	/// Update the velocity of the given agents.
 	/// 
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nbIdx			Number of agents to work on.
+	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		m_agentAnims	The animations for each agent.
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
 	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void update(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentAnimation* m_agentAnims, 
-				const float dt, dtCrowdAgentDebugInfo* debug = 0);
+	void update(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims, 
+				const float dt, dtCrowdAgentDebugInfo* debug = 0, int index = -1);
 		
 	/// Get the navigation mesh
 	const dtNavMeshQuery* getNavMeshQuery() const { return m_navMeshQuery; }
@@ -98,45 +96,35 @@ public:
 private:
 	/// Checks that the given agents still have valid paths.
 	/// 
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nagents			Number of agents to work on.
+	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
-	void checkPathValidity(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
+	void checkPathValidity(dtCrowdAgent* ag, const float dt);
 
 	/// Update async move request and path finder.
 	void updateMoveRequest();
 
 	/// Optimize path topology.
 	/// 
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nagents			Number of agents to work on.
+	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
-	void updateTopologyOptimization(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
+	void updateTopologyOptimization(dtCrowdAgent* ag, const float dt);
 
 	/// Performs some checking and optimization on the agents.
 	///
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nagents			Number of agents to work on.
+	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		dt				The time, in seconds, to update the simulation. [Limit: > 0]
-	void prepare(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt);
+	void prepare(dtCrowdAgent* ag, const float dt);
 
 	/// Computes the new velocity of the given agents according to their environment.
 	///
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nagents			Number of agents to work on.
-	void getVelocity(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx);
+	/// @param[in]		ag				The agent to work on.
+	void getVelocity(dtCrowdAgent* ag);
 
 	/// Finds the next corner the given agents should aim to
 	/// 
-	/// @param[in]		agents			List of active agents.
-	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
-	/// @param[in]		nbIdx			Number of agents to work on.
+	/// @param[in]		ag				The agent to work on.
 	/// @param[in]		debug			A debug object to load with debug information. [Opt]
-	void getNextCorner(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentDebugInfo* debug = 0);
+	void getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* debug, int index);
 
 	/// Checks whether the given are on an offmesh connection. If so, the path is adjusted.
 	/// 
@@ -144,7 +132,7 @@ private:
 	/// @param[in]		agentsIdx		The list of the indexes of the agents we want to update.
 	/// @param[in]		nbIdx			Number of agents to work on.
 	/// @param[in]		m_agentAnims	The animations for each agent.
-	void triggerOffMeshConnections(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentAnimation* m_agentAnims);
+	void triggerOffMeshConnections(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims);
 
 	/// Submits a new move request for the specified agent.
 	/// Sets a flag indicate that the path of the agent is being replanned.
@@ -209,9 +197,9 @@ private:
 	int m_maxAgents;			///< Maximal number of agents.
 	int m_maxPathRes;			///< Maximal number of path results
 
-	const int m_maxCommonNodes;		///< Maximal number of common nodes.
-	const int m_maxPathQueueNodes;	///< Maximal number of nodes in the path queue.
-	const int m_maxIterPerUpdate;	///< Maximal number of iterations per update.
+	const int m_maxCommonNodes;					///< Maximal number of common nodes.
+	const int m_maxPathQueueNodes;				///< Maximal number of nodes in the path queue.
+	const int m_maxIterPerUpdate;				///< Maximal number of iterations per update.
 };
 
 #endif

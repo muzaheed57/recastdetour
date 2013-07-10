@@ -139,14 +139,45 @@ static int parseFace(char* row, int* data, int n, int vcnt)
 
 bool rcMeshLoaderObj::load(float* vert, unsigned vertCount, int* tris, unsigned triCount)
 {
-	if (vert == 0 || tris == 0)
+	if (vert == 0 || tris == 0 || vertCount == 0 || triCount == 0)
 		return false;
 
-	m_verts = vert;
-	m_tris = tris;
+	int vcap = 0;
+	int tcap = 0;
 
-	m_vertCount = vertCount;
-	m_triCount = triCount;
+	for (int i = 0; i < vertCount * 3; i += 3)
+		addVertex(vert[i], vert[i + 1], vert[i + 2], vcap);
+
+	for (int i = 0; i < triCount * 3; i += 3)
+		addTriangle(tris[i], tris[i + 1], tris[i + 2], tcap);
+
+	// Calculate normals.
+	m_vertCount = m_vertCount;
+	m_normals = new float[m_triCount*3];
+	for (int i = 0; i < m_triCount*3; i += 3)
+	{
+		const float* v0 = &m_verts[m_tris[i]*3];
+		const float* v1 = &m_verts[m_tris[i+1]*3];
+		const float* v2 = &m_verts[m_tris[i+2]*3];
+		float e0[3], e1[3];
+		for (int j = 0; j < 3; ++j)
+		{
+			e0[j] = v1[j] - v0[j];
+			e1[j] = v2[j] - v0[j];
+		}
+		float* n = &m_normals[i];
+		n[0] = e0[1]*e1[2] - e0[2]*e1[1];
+		n[1] = e0[2]*e1[0] - e0[0]*e1[2];
+		n[2] = e0[0]*e1[1] - e0[1]*e1[0];
+		float d = sqrtf(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+		if (d > 0)
+		{
+			d = 1.0f/d;
+			n[0] *= d;
+			n[1] *= d;
+			n[2] *= d;
+		}
+	}
 
 	return true;
 }

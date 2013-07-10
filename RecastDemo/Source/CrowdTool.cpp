@@ -658,7 +658,6 @@ void CrowdToolState::addAgent(const float* p)
 	if (m_toolParams.m_separation)
 		ap.updateFlags |= DT_CROWD_SEPARATION;
 	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
-	ap.separationWeight = m_toolParams.m_separationWeight;
 	
 	int idx = crowd->addAgent(p, &ap);
 	if (idx != -1)
@@ -815,7 +814,6 @@ void CrowdToolState::updateAgentParams()
 		memcpy(&params, &ag->params, sizeof(dtCrowdAgentParams));
 		params.updateFlags = updateFlags;
 		params.obstacleAvoidanceType = obstacleAvoidanceType;
-		params.separationWeight = m_toolParams.m_separationWeight;
 		crowd->updateAgentParameters(i, &params);
 	}	
 }

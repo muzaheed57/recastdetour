@@ -23,6 +23,7 @@
 #include "imgui.h"
 #include "imguiRenderGL.h"
 #include "DebugInfo.h"
+#include "DetourSeekBehavior.h"
 
 #include <DetourCrowd.h>
 
@@ -132,7 +133,7 @@ bool Visualization::initialize()
     m_crowdAvailableDt = 0.f;
     m_stopRequested = false;
 	m_rotating = false;
-    
+	    
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
 		printf("Could not initialize SDL.\n");
@@ -286,8 +287,43 @@ bool Visualization::update()
 				}
 				else if (event.key.keysym.sym == SDLK_r)
 				{
-					float pos[3] = {-15, 0, 0};
+					float pos[3] = {-15, 0, 15};
 					m_crowd->updateAgentPosition(0, pos);
+				}
+				else if (event.key.keysym.sym == SDLK_KP7)
+				{
+					float pos[3] = {-19, 0, -19};
+					dtVnormalize(pos);
+					dtVscale(pos, pos, 2.f);
+					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+				}
+				else if (event.key.keysym.sym == SDLK_KP9)
+				{
+					float pos[] = {19, 0, -19};
+					dtVnormalize(pos);
+					dtVscale(pos, pos, 2.f);
+					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+				}
+				else if (event.key.keysym.sym == SDLK_KP3)
+				{
+					float pos[3] = {19, 0, 19};
+					dtVnormalize(pos);
+					dtVscale(pos, pos, 2.f);
+					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+				}
+				else if (event.key.keysym.sym == SDLK_KP1)
+				{
+					float pos[3] = {-19, 0, 19};
+					dtVnormalize(pos);
+					dtVscale(pos, pos, 2.f);
+					dtVcopy(m_crowd->getAgent(0)->vel, pos);
+				}
+				else if (event.key.keysym.sym == SDLK_KP5)
+				{
+					float pos[3] = {0, 0, 0};
+					dtVnormalize(pos);
+					dtVscale(pos, pos, 2.f);
+					dtVcopy(m_crowd->getAgent(0)->vel, pos);
 				}
                 break;
                 
@@ -306,10 +342,10 @@ bool Visualization::update()
                 {
                     scrollForward = true;
                 }
-                else if (event.button.button == SDL_BUTTON_WHEELDOWN)
-                {
-                    scrollBackward = true;
-                }
+				else if (event.button.button == SDL_BUTTON_WHEELDOWN)
+				{
+					scrollBackward = true;
+				}
                 break;
                 
             case SDL_MOUSEBUTTONUP:
@@ -356,9 +392,9 @@ bool Visualization::update()
     Uint8* keystate = SDL_GetKeyState(NULL);
     updateCameraVelocity(
                          dt,
-                         keystate[SDLK_z] || keystate[SDLK_UP] || scrollForward,
+                         keystate[SDLK_w] || keystate[SDLK_UP] || scrollForward,
                          keystate[SDLK_s] || keystate[SDLK_DOWN] || scrollBackward,
-                         keystate[SDLK_q] || keystate[SDLK_LEFT],
+                         keystate[SDLK_a] || keystate[SDLK_LEFT],
                          keystate[SDLK_d] || keystate[SDLK_RIGHT],
                          SDL_GetModState() & KMOD_SHIFT);
     
@@ -367,7 +403,7 @@ bool Visualization::update()
     
     //Update the crowd
     if (m_crowd)
-	{
+    {
         if (singleSimulationStep)
         {
             m_paused = true;
@@ -639,6 +675,9 @@ void Visualization::renderCrowd()
                 const float* pos = ag->npos;
                 
                 unsigned int col = duRGBA(220,220,220,128);
+
+				if (i == 0)
+					col = duRGBA(0,220,0,128);
                 
                 duDebugDrawCircle(&dd, pos[0], pos[1], pos[2], radius, duRGBA(0,0,0,32), 2.0f);
                 duDebugDrawCircle(&dd, pos[0], pos[1]+height, pos[2], radius, duRGBA(0,0,0,32), 2.0f);
@@ -687,15 +726,18 @@ void Visualization::renderCrowd()
                 const float* dvel = ag->dvel;
                 
                 unsigned int col = duRGBA(220,220,220,192);
+
+				if (i == 0)
+					col = duRGBA(0,220,0,192);
                 
                 duDebugDrawCircle(&dd, pos[0], pos[1]+height, pos[2], radius, col, 2.0f);
                 
-                duDebugDrawArrow(&dd, pos[0],pos[1]+height,pos[2],
-                                 pos[0]+dvel[0],pos[1]+height+dvel[1],pos[2]+dvel[2],
+                duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
+                                 pos[0]+dvel[0],pos[1]+height+dvel[1] + 0.01f,pos[2]+dvel[2],
                                  0.0f, 0.4f, duRGBA(0,192,255,192), 1.0f);
                 
-                duDebugDrawArrow(&dd, pos[0],pos[1]+height,pos[2],
-                                 pos[0]+vel[0],pos[1]+height+vel[1],pos[2]+vel[2],
+                duDebugDrawArrow(&dd, pos[0],pos[1]+height + 0.01f,pos[2],
+                                 pos[0]+vel[0],pos[1]+height+vel[1] + 0.01f,pos[2]+vel[2],
                                  0.0f, 0.4f, duRGBA(0,0,0,160), 2.0f);
             }
         }

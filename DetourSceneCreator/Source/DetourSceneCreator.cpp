@@ -19,24 +19,24 @@
 #include "DetourSceneCreator.h"
 
 
-DetourSceneCreator::DetourSceneCreator()
+dtSceneCreator::dtSceneCreator()
 : m_currentSample()
 , m_context()
 {
     m_currentSample.m_context = &m_context;
 }
 
-DetourSceneCreator::~DetourSceneCreator()
+dtSceneCreator::~dtSceneCreator()
 {
     
 }
 
-bool DetourSceneCreator::initialize(InputGeom* scene, dtNavMesh* navMesh, dtCrowd* crowd)
+bool dtSceneCreator::initialize(InputGeom* scene, dtNavMesh* navMesh, dtCrowd* crowd)
 {
     return m_currentSample.initialize(scene, crowd, navMesh);
 }
 
-bool DetourSceneCreator::createFromFile(const char* fileName)
+bool dtSceneCreator::createFromFile(const char* fileName)
 {
 	return m_currentSample.loadFromFile(fileName);
 }

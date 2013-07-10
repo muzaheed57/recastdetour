@@ -16,23 +16,30 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "Application.h"
+#ifndef DETOURGOTOBEHAVIOR_H
+#define DETOURGOTOBEHAVIOR_H
 
-#include <SDL.h> // Needed for the application to work using SDLMain.m
+struct dtCrowdAgent;
 
-#include <iostream>
 
-int main(int argc, char** argv)
+/// Defines the GoTo behavior.
+///
+/// This behavior allows the user to set a target, and the agent will try to reach it.
+class dtGoToBehavior
 {
-	if (argc < 2)
-	{
-		std::cerr << "Error: One argument has to be provided." << std::endl;
-		return 1;
-	}
+public:
+	dtGoToBehavior();
+	~dtGoToBehavior();
 
-	Application app;
+	/// Computes the new velocity of the agent
+	///
+	/// @param[in]	ag		The agent whose velocity must be updated.
+	/// @param[out]	force	The computed force that must be applied to the agent's velocity.
+	/// @param[in]	dt		The time, in seconds, since the last frame.
+	void update(dtCrowdAgent* ag, float* force, const float dt) const;
+	
+	float m_distance;	///< Minimal distance to keep between the agent and its target.
+	float* m_target;	///< The position we want to reach.
+};
 
-	app.init(argv[1]);
-
-	return app.run();
-}
+#endif

@@ -20,8 +20,15 @@
 #define CROWDSAMPLE_H
 
 
-#include <DetourCrowd.h>
 #include "StaticConfiguration.h"
+
+#include <DetourCrowd.h>
+#include <DetourFlockingBehavior.h>
+
+#include <map>
+#include <vector>
+
+#include <map>
 
 class rcContext;
 class InputGeom;
@@ -58,11 +65,31 @@ public:
     int m_agentCount;
 	rcContext* m_context;
 	char m_sceneFileName[maxPathLen];
+	float m_maxRadius;
     
 private:
+	struct Flocking
+	{
+		size_t nbMaxAgents;
+		float distance;
+		float desiredSeparation;
+		float separationWeight;
+		float cohesionWeight;
+		float alignmentWeight;
+	};
+
     void computeMaximumRadius();
     
-    float m_maxRadius;
+	std::vector<Flocking> m_flockingsGroups;
+	std::vector<dtFlockingBehavior*> m_flockingBehaviors;
+	std::map<int, std::vector<int> > m_agentsFlockingNeighbors;
+	std::map<int, int> m_seekTargets;
+	float m_seekDist;
+	float m_seekPredict;
+	std::vector<int> m_separationTargets;
+	float m_separationWeight;
+	std::vector<int> m_alignmentTargets;
+	std::vector<int> m_cohesionTargets;
 };
 
 #endif

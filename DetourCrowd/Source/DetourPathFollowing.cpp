@@ -28,7 +28,6 @@
 #include <cstring>
 
 
-
 dtPathFollowing* dtPathFollowing::allocate()
 {
 	void* mem = dtAlloc(sizeof(dtPathFollowing), DT_ALLOC_PERM);
@@ -71,7 +70,7 @@ bool dtPathFollowing::init(dtNavMesh* navMesh, float* ext, int maxPathRes, dtCro
 
 	m_navMeshQuery = dtAllocNavMeshQuery();
 	m_pathResult = (dtPolyRef*) dtAlloc(sizeof(dtPolyRef) * maxPathRes, DT_ALLOC_PERM);
-	
+
 	m_agents = agents;
 	m_maxAgents = maxAgents;
 	m_maxPathRes = maxPathRes;
@@ -96,98 +95,44 @@ void dtPathFollowing::purge()
 	m_navMeshQuery = 0;
 }
 
-void dtPathFollowing::prepare(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt)
+void dtPathFollowing::prepare(dtCrowdAgent* ag, const float dt)
 {
-	checkPathValidity(agents, agentsIdx, nagents, dt);
+	checkPathValidity(ag, dt);
 	updateMoveRequest();
-	updateTopologyOptimization(agents, agentsIdx, nagents, dt);
+	updateTopologyOptimization(ag, dt);
 }
 
-void dtPathFollowing::getVelocity(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx)
+void dtPathFollowing::getVelocity(dtCrowdAgent* ag)
 {
-	for (int i = 0; i < nbIdx; ++i)
+	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		return;
+	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE)
+		return;
+
+	float dvel[3] = {0,0,0};
+
+	if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 	{
-		if (agentsIdx[i] < 0 || agentsIdx[i] > m_maxAgents)
-			continue;
-
-		dtCrowdAgent* ag = agents[agentsIdx[i]];
-
-		if (!ag->active)
-			continue;
-
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
-			continue;
-		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE)
-			continue;
-
-		float dvel[3] = {0,0,0};
-
-		if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
-		{
-			dtVcopy(dvel, ag->targetPos);
-			ag->desiredSpeed = dtVlen(ag->targetPos);
-		}
-		else
-		{
-			// Calculate steering direction.
-			if (ag->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS)
-				calcSmoothSteerDirection(ag, dvel);
-			else
-				calcStraightSteerDirection(ag, dvel);
-
-			// Calculate speed scale, which tells the agent to slowdown at the end of the path.
-			const float slowDownRadius = ag->params.radius*2;	// TODO: make less hacky.
-			const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
-
-			ag->desiredSpeed = ag->params.maxSpeed;
-			dtVscale(dvel, dvel, ag->desiredSpeed * speedScale);
-		}
-
-		// Separation
-		if (ag->params.updateFlags & DT_CROWD_SEPARATION)
-		{
-			const float separationDist = ag->params.collisionQueryRange; 
-			const float invSeparationDist = 1.0f / separationDist; 
-			const float separationWeight = ag->params.separationWeight;
-
-			float w = 0;
-			float disp[3] = {0,0,0};
-
-			for (int j = 0; j < ag->nneis; ++j)
-			{
-				const dtCrowdAgent* nei = &m_agents[ag->neis[j].idx];
-
-				float diff[3];
-				dtVsub(diff, ag->npos, nei->npos);
-				diff[1] = 0;
-
-				const float distSqr = dtVlenSqr(diff);
-				if (distSqr < 0.00001f)
-					continue;
-				if (distSqr > dtSqr(separationDist))
-					continue;
-				const float dist = sqrtf(distSqr);
-				const float weight = separationWeight * (1.0f - dtSqr(dist*invSeparationDist));
-
-				dtVmad(disp, disp, diff, weight/dist);
-				w += 1.0f;
-			}
-
-			if (w > 0.0001f)
-			{
-				// Adjust desired velocity.
-				dtVmad(dvel, dvel, disp, 1.0f/w);
-				// Clamp desired velocity to desired speed.
-				const float speedSqr = dtVlenSqr(dvel);
-				const float desiredSqr = dtSqr(ag->desiredSpeed);
-				if (speedSqr > desiredSqr)
-					dtVscale(dvel, dvel, desiredSqr/speedSqr);
-			}
-		}
-
-		// Set the desired velocity.
-		dtVcopy(ag->dvel, dvel);
+		dtVcopy(dvel, ag->targetPos);
+		ag->desiredSpeed = dtVlen(ag->targetPos);
 	}
+	else
+	{
+		// Calculate steering direction.
+		if (ag->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS)
+			calcSmoothSteerDirection(ag, dvel);
+		else
+			calcStraightSteerDirection(ag, dvel);
+
+		// Calculate speed scale, which tells the agent to slowdown at the end of the path.
+		const float slowDownRadius = ag->params.radius*2;	// TODO: make less hacky.
+		const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
+
+		ag->desiredSpeed = ag->params.maxSpeed;
+		dtVscale(dvel, dvel, ag->desiredSpeed * speedScale);
+	}
+		
+	dtVcopy(ag->dvel, dvel);
 }
 
 float dtPathFollowing::getDistanceToGoal(const dtCrowdAgent* ag, const float range)
@@ -245,132 +190,102 @@ void dtPathFollowing::calcStraightSteerDirection(const dtCrowdAgent* ag, float* 
 	dtVnormalize(dir);
 }
 
-void dtPathFollowing::triggerOffMeshConnections(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentAnimation* m_agentAnims)
+void dtPathFollowing::triggerOffMeshConnections(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims)
 {
 	// Trigger off-mesh connections (depends on corners).
-	for (int i = 0; i < nbIdx; ++i)
+
+	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		return;
+	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
+		return;
+
+	// Check 
+	const float triggerRadius = ag->params.radius*2.25f;
+	if (overOffmeshConnection(ag, triggerRadius))
 	{
-		if (agentsIdx[i] < 0 || agentsIdx[i] > m_maxAgents)
-			continue;
+		// Prepare to off-mesh connection.
+		const int idx = ag - m_agents;
+		dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
 
-		dtCrowdAgent* ag = agents[agentsIdx[i]];
-
-		if (!ag->active)
-			continue;
-
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
-			continue;
-		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
-			continue;
-
-		// Check 
-		const float triggerRadius = ag->params.radius*2.25f;
-		if (overOffmeshConnection(ag, triggerRadius))
+		// Adjust the path over the off-mesh connection.
+		dtPolyRef refs[2];
+		if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners-1], refs,
+			anim->startPos, anim->endPos, m_navMeshQuery))
 		{
-			// Prepare to off-mesh connection.
-			const int idx = ag - m_agents;
-			dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
+			dtVcopy(anim->initPos, ag->npos);
+			anim->polyRef = refs[1];
+			anim->active = 1;
+			anim->t = 0.0f;
+			anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 0.5f;
 
-			// Adjust the path over the off-mesh connection.
-			dtPolyRef refs[2];
-			if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners-1], refs,
-				anim->startPos, anim->endPos, m_navMeshQuery))
-			{
-				dtVcopy(anim->initPos, ag->npos);
-				anim->polyRef = refs[1];
-				anim->active = 1;
-				anim->t = 0.0f;
-				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 0.5f;
-
-				ag->state = DT_CROWDAGENT_STATE_OFFMESH;
-				ag->ncorners = 0;
-				ag->nneis = 0;
-				continue;
-			}
-			else
-			{
-				// Path validity check will ensure that bad/blocked connections will be replanned.
-			}
-		}
-	}
-}
-
-void dtPathFollowing::getNextCorner(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentDebugInfo* debug)
-{
-	const int debugIdx = debug ? debug->idx : -1;
-
-	// Find next corner to steer to.
-	for (int i = 0; i < nbIdx; ++i)
-	{
-		if (agentsIdx[i] < 0 || agentsIdx[i] > m_maxAgents)
-			continue;
-
-		dtCrowdAgent* ag = agents[agentsIdx[i]];
-		
-		if (!ag->active)
-			continue;
-
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
-			continue;
-		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
-			continue;
-
-		// Find corners for steering
-		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
-			DT_CROWDAGENT_MAX_CORNERS, m_navMeshQuery, &m_filter);
-
-		// Check to see if the corner after the next corner is directly visible,
-		// and short cut to there.
-		if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_VIS) && ag->ncorners > 0)
-		{
-			const float* target = &ag->cornerVerts[dtMin(1,ag->ncorners-1)*3];
-			ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navMeshQuery, &m_filter);
-
-			// Copy data for debug purposes.
-			if (debugIdx == i)
-			{
-				dtVcopy(debug->optStart, ag->corridor.getPos());
-				dtVcopy(debug->optEnd, target);
-			}
+			ag->state = DT_CROWDAGENT_STATE_OFFMESH;
+			ag->ncorners = 0;
+			ag->nneis = 0;
+			return;
 		}
 		else
 		{
-			// Copy data for debug purposes.
-			if (debugIdx == i)
-			{
-				dtVset(debug->optStart, 0,0,0);
-				dtVset(debug->optEnd, 0,0,0);
-			}
+			// Path validity check will ensure that bad/blocked connections will be replanned.
 		}
 	}
 }
 
-void dtPathFollowing::updateTopologyOptimization(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt)
+void dtPathFollowing::getNextCorner(dtCrowdAgent* ag, dtCrowdAgentDebugInfo* debug, int index)
 {
-	if (!nagents)
+	const int debugIdx = debug ? debug->idx : -1;
+
+	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		return;
+	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 		return;
 
+
+	// Find corners for steering
+	ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
+		DT_CROWDAGENT_MAX_CORNERS, m_navMeshQuery, &m_filter);
+
+	// Check to see if the corner after the next corner is directly visible,
+	// and short cut to there.
+	if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_VIS) && ag->ncorners > 0)
+	{
+		const float* target = &ag->cornerVerts[dtMin(1,ag->ncorners-1)*3];
+		ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navMeshQuery, &m_filter);
+
+		// Copy data for debug purposes.
+		if (debugIdx == index)
+		{
+			dtVcopy(debug->optStart, ag->corridor.getPos());
+			dtVcopy(debug->optEnd, target);
+		}
+	}
+	else
+	{
+		// Copy data for debug purposes.
+		if (debugIdx == index)
+		{
+			dtVset(debug->optStart, 0,0,0);
+			dtVset(debug->optEnd, 0,0,0);
+		}
+	}
+}
+
+void dtPathFollowing::updateTopologyOptimization(dtCrowdAgent* ag, const float dt)
+{
 	const float OPT_TIME_THR = 0.5f; // seconds
 	const int OPT_MAX_AGENTS = 1;
 	dtCrowdAgent* queue[OPT_MAX_AGENTS];
 	int nqueue = 0;
 
-	for (int i = 0; i < nagents; ++i)
-	{
-		if (agentsIdx[i] < 0 || agentsIdx[i] > m_maxAgents)
-			continue;
+	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		return;
+	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
+		return;
+	if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_TOPO) == 0)
+		return;
+	ag->topologyOptTime += dt;
 
-		dtCrowdAgent* ag = agents[agentsIdx[i]];
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
-			continue;
-		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
-			continue;
-		if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_TOPO) == 0)
-			continue;
-		ag->topologyOptTime += dt;
-		if (ag->topologyOptTime >= OPT_TIME_THR)
-			nqueue = addToOptQueue(ag, queue, nqueue, OPT_MAX_AGENTS);
-	}
+	if (ag->topologyOptTime >= OPT_TIME_THR)
+		nqueue = addToOptQueue(ag, queue, nqueue, OPT_MAX_AGENTS);
 
 	for (int i = 0; i < nqueue; ++i)
 	{
@@ -417,105 +332,97 @@ int dtPathFollowing::addToOptQueue(dtCrowdAgent* newag, dtCrowdAgent** agents, c
 	return dtMin(nagents+1, maxAgents);
 }
 
-void dtPathFollowing::checkPathValidity(dtCrowdAgent** agents, int* agentsIdx, const int nagents, const float dt)
+void dtPathFollowing::checkPathValidity(dtCrowdAgent* ag, const float dt)
 {
 	static const int CHECK_LOOKAHEAD = 10;
 	static const float TARGET_REPLAN_DELAY = 1.0; // seconds
+	
+	if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+		return;
 
-	for (int i = 0; i < nagents; ++i)
+	if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
+		return;
+
+
+	ag->targetReplanTime += dt;
+
+	bool replan = false;
+	// First check that the current location is valid.
+	const int idx = ag - m_agents;
+	float agentPos[3];
+	dtPolyRef agentRef = ag->corridor.getFirstPoly();
+	dtVcopy(agentPos, ag->npos);
+	if (!m_navMeshQuery->isValidPolyRef(agentRef, &m_filter))
 	{
-		if (agentsIdx[i] < 0 || agentsIdx[i] > m_maxAgents)
-			continue;
+		// Current location is not valid, try to reposition.
+		// TODO: this can snap agents, how to handle that?
+		float nearest[3];
+		agentRef = 0;
+		m_navMeshQuery->findNearestPoly(ag->npos, m_ext, &m_filter, &agentRef, nearest);
+		dtVcopy(agentPos, nearest);
 
-		dtCrowdAgent* ag = agents[agentsIdx[i]];
-
-		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
-			continue;
-
-		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
-			continue;
-
-		ag->targetReplanTime += dt;
-
-		bool replan = false;
-
-		// First check that the current location is valid.
-		const int idx = ag - m_agents;
-		float agentPos[3];
-		dtPolyRef agentRef = ag->corridor.getFirstPoly();
-		dtVcopy(agentPos, ag->npos);
-		if (!m_navMeshQuery->isValidPolyRef(agentRef, &m_filter))
+		if (!agentRef)
 		{
-			// Current location is not valid, try to reposition.
-			// TODO: this can snap agents, how to handle that?
-			float nearest[3];
-			agentRef = 0;
-			m_navMeshQuery->findNearestPoly(ag->npos, m_ext, &m_filter, &agentRef, nearest);
-			dtVcopy(agentPos, nearest);
-
-			if (!agentRef)
-			{
-				// Could not find location in navmesh, set state to invalid.
-				ag->corridor.reset(0, agentPos);
-				ag->boundary.reset();
-				ag->state = DT_CROWDAGENT_STATE_INVALID;
-				continue;
-			}
-
-			// Make sure the first polygon is valid, but leave other valid
-			// polygons in the path so that replanner can adjust the path better.
-			ag->corridor.fixPathStart(agentRef, agentPos);
-			//			ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
+			// Could not find location in navmesh, set state to invalid.
+			ag->corridor.reset(0, agentPos);
 			ag->boundary.reset();
-			dtVcopy(ag->npos, agentPos);
+			ag->state = DT_CROWDAGENT_STATE_INVALID;
+			return;
+		}
 
+		// Make sure the first polygon is valid, but leave other valid
+		// polygons in the path so that replanner can adjust the path better.
+		ag->corridor.fixPathStart(agentRef, agentPos);
+		//			ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
+		ag->boundary.reset();
+		dtVcopy(ag->npos, agentPos);
+
+		replan = true;
+	}
+		
+	// Try to recover move request position.
+	if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED)
+	{
+		if (!m_navMeshQuery->isValidPolyRef(ag->targetRef, &m_filter))
+		{
+			// Current target is not valid, try to reposition.
+			float nearest[3];
+			m_navMeshQuery->findNearestPoly(ag->targetPos, m_ext, &m_filter, &ag->targetRef, nearest);
+			dtVcopy(ag->targetPos, nearest);
 			replan = true;
 		}
-
-		// Try to recover move request position.
-		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED)
+		if (!ag->targetRef)
 		{
-			if (!m_navMeshQuery->isValidPolyRef(ag->targetRef, &m_filter))
-			{
-				// Current target is not valid, try to reposition.
-				float nearest[3];
-				m_navMeshQuery->findNearestPoly(ag->targetPos, m_ext, &m_filter, &ag->targetRef, nearest);
-				dtVcopy(ag->targetPos, nearest);
-				replan = true;
-			}
-			if (!ag->targetRef)
-			{
-				// Failed to reposition target, fail moverequest.
-				ag->corridor.reset(agentRef, agentPos);
-				ag->targetState = DT_CROWDAGENT_TARGET_NONE;
-			}
+			// Failed to reposition target, fail moverequest.
+			ag->corridor.reset(agentRef, agentPos);
+			ag->targetState = DT_CROWDAGENT_TARGET_NONE;
 		}
+	}
 
-		// If nearby corridor is not valid, replan.
-		if (!ag->corridor.isValid(CHECK_LOOKAHEAD, m_navMeshQuery, &m_filter))
-		{
-			// Fix current path.
-			//			ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
-			//			ag->boundary.reset();
+	// If nearby corridor is not valid, replan.
+	if (!ag->corridor.isValid(CHECK_LOOKAHEAD, m_navMeshQuery, &m_filter))
+	{
+		// Fix current path.
+		// ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
+		// ag->boundary.reset();
+		replan = true;
+	}
+
+	// If the end of the path is near and it is not the requested location, replan.
+	if (ag->targetState == DT_CROWDAGENT_TARGET_VALID)
+	{
+		if (ag->targetReplanTime > TARGET_REPLAN_DELAY &&
+			ag->corridor.getPathCount() < CHECK_LOOKAHEAD &&
+			ag->corridor.getLastPoly() != ag->targetRef)
 			replan = true;
-		}
+	}
 
-		// If the end of the path is near and it is not the requested location, replan.
-		if (ag->targetState == DT_CROWDAGENT_TARGET_VALID)
+	// Try to replan path to goal.
+	if (replan)
+	{
+		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE)
 		{
-			if (ag->targetReplanTime > TARGET_REPLAN_DELAY &&
-				ag->corridor.getPathCount() < CHECK_LOOKAHEAD &&
-				ag->corridor.getLastPoly() != ag->targetRef)
-				replan = true;
-		}
-
-		// Try to replan path to goal.
-		if (replan)
-		{
-			if (ag->targetState != DT_CROWDAGENT_TARGET_NONE)
-			{
-				requestMoveTargetReplan(idx, ag->targetRef, ag->targetPos);
-			}
+			requestMoveTargetReplan(idx, ag->targetRef, ag->targetPos);
 		}
 	}
 }
@@ -815,11 +722,11 @@ bool dtPathFollowing::overOffmeshConnection(const dtCrowdAgent* ag, const float 
 	return false;
 }
 
-void dtPathFollowing::update(dtCrowdAgent** agents, int* agentsIdx, const int nbIdx, dtCrowdAgentAnimation* m_agentAnims, 
-							 const float dt, dtCrowdAgentDebugInfo* debug)
+void dtPathFollowing::update(dtCrowdAgent* ag, dtCrowdAgentAnimation* m_agentAnims, 
+	const float dt, dtCrowdAgentDebugInfo* debug, int index)
 {
-	prepare(agents, agentsIdx, nbIdx, dt);
-	getNextCorner(agents, agentsIdx, nbIdx, debug);
-	triggerOffMeshConnections(agents, agentsIdx, nbIdx, m_agentAnims);
-	getVelocity(agents, agentsIdx, nbIdx);
+	prepare(ag, dt);
+	getNextCorner(ag, debug, index);
+	triggerOffMeshConnections(ag, m_agentAnims);
+	getVelocity(ag);
 }

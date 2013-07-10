@@ -21,6 +21,13 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 SET(
   detourcrowdtest_SRCS
   Source/DetourCrowdTest.cpp
+  Source/DetourCrowdTestUtils.cpp
+  )
+  
+SET(
+  detourcrowdtest_HDRS
+  Include/DetourBehaviorsTests.h
+  Include/DetourCrowdTestUtils.h
   )
   
 SET(catch_INC Contrib/catch/include)
@@ -36,11 +43,11 @@ INCLUDE_DIRECTORIES(
 	${catch_INC}
 	)
 	
-SOURCE_GROUP(sources FILES ${detourcrowdtest_SRCS})
+SOURCE_GROUP(sources FILES ${detourcrowdtest_SRCS} ${detourcrowdtest_HDRS})
 SOURCE_GROUP(externals\\catch FILES ${catch_INC})
 SOURCE_GROUP(cmake FILES CMakeLists.txt)
 
-ADD_EXECUTABLE(DetourCrowdTest ${detourcrowdtest_SRCS})
+ADD_EXECUTABLE(DetourCrowdTest ${detourcrowdtest_SRCS} ${detourcrowdtest_HDRS})
 
 SET_PROPERTY(TARGET DetourCrowdTest PROPERTY DEBUG_POSTFIX -gd)
 SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${RecastNavigation_SOURCE_DIR}/DetourCrowdTest/Bin)

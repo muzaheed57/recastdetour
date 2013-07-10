@@ -30,11 +30,11 @@
 
 /// This class is used to create a complete scene (navigation mesh and agents) 
 /// from a file.
-class DetourSceneCreator
+class dtSceneCreator
 {
 public:
-    DetourSceneCreator();
-    ~DetourSceneCreator();
+    dtSceneCreator();
+    ~dtSceneCreator();
     
 	/// Load informations from the given file.
 	bool createFromFile(const char* fileName);

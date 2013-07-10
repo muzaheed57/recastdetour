@@ -302,6 +302,18 @@ inline float dtVperp2D(const float* u, const float* v)
 	return u[2]*v[0] - u[0]*v[2];
 }
 
+/// The length of v will be clamped to the given values;
+///  @param[out]	v		A vector [(x, y, z)]
+///  @param[in]		min		The minimal value
+///  @param[in]		max		The maximal value
+inline void dtVclamp(float* v, float min, float max)
+{
+	float length = dtVlen(v);
+
+	dtVnormalize(v);
+	dtVscale(v, v, dtClamp(length, min, max));
+}
+
 /// @}
 /// @name Computational geometry helper functions.
 /// @{

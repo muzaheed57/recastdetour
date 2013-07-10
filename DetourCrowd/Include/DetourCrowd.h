@@ -19,12 +19,19 @@
 #ifndef DETOURCROWD_H
 #define DETOURCROWD_H
 
-#include "DetourNavMeshQuery.h"
 #include "DetourCollisionAvoidance.h"
 #include "DetourLocalBoundary.h"
 #include "DetourPathCorridor.h"
 #include "DetourProximityGrid.h"
 #include "DetourPathQueue.h"
+
+class dtSeekBehavior;
+class dtFlockingBehavior;
+class dtGoToBehavior;
+class dtSeparationBehavior;
+class dtAlignmentBehavior;
+class dtCohesionBehavior;
+
 
 /// The maximum number of neighbors that a crowd agent can take into account
 /// for steering decisions.
@@ -44,6 +51,27 @@ static const int DT_CROWDAGENT_MAX_CORNERS = 4;
 /// @see dtObstacleAvoidanceParams, dtCrowd::setObstacleAvoidanceParams(), dtCrowd::getObstacleAvoidanceParams(),
 ///		 dtCrowdAgentParams::obstacleAvoidanceType
 static const int DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS = 8;
+
+template <typename T>
+T* dtAllocBehavior()
+{
+	void* mem = dtAlloc(sizeof(T), DT_ALLOC_PERM);
+
+	if (mem)
+		return new(mem) T;
+
+	return 0;
+}
+
+template <typename T>
+void dtFreeBehavior(T* ptr)
+{
+	if (!ptr)
+		return;
+
+	ptr->~T();
+	dtFree(ptr);
+}
 
 /// Provides neighbor data for agents managed by the crowd.
 /// @ingroup crowd
@@ -67,6 +95,17 @@ enum CrowdAgentState
 /// @ingroup crowd
 struct dtCrowdAgentParams
 {
+	dtFlockingBehavior* flockingBehavior;
+	dtSeekBehavior* seekBehavior;
+	dtSeparationBehavior* separationBehavior;
+	dtAlignmentBehavior* alignmentBehavior;
+	dtCohesionBehavior* cohesionBehavior;
+	dtGoToBehavior* gotoBehavior;
+
+	// Parameters for the flocking behavior.
+	int* toFlockWith;			///< Indices of the agents to flock with.
+	int nbFlockingNeighbors;	///< Number of agents to flock with.
+
 	float radius;						///< Agent radius. [Limit: >= 0]
 	float height;						///< Agent height. [Limit: > 0]
 	float maxAcceleration;				///< Maximum allowed acceleration. [Limit: >= 0]
@@ -76,9 +115,6 @@ struct dtCrowdAgentParams
 	float collisionQueryRange;
 
 	float pathOptimizationRange;		///< The path visibility optimization range. [Limit: > 0]
-
-	/// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
-	float separationWeight;
 
 	/// Flags that impact steering behavior. (See: #UpdateFlags)
 	unsigned char updateFlags;
@@ -238,12 +274,26 @@ public:
 	/// Gets the specified agent from the pool.
 	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	/// @return The requested agent.
-	const dtCrowdAgent* getAgent(const int idx);
+	const dtCrowdAgent* getAgent(const int idx) const;
+
+	/// Gets the specified agent from the pool.
+	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
+	/// @return The requested agent.
+	dtCrowdAgent* getAgent(const int idx);
 
 	/// The maximum number of agents that can be managed by the object.
 	/// @return The maximum number of agents.
 	const int getAgentCount() const;
-	
+
+	/// Gets the list of agents inside the crowd (active or not)
+	dtCrowdAgent* getAgents() const { return m_agents; }
+
+	/// Indicates whether the agent is moving or not.
+	/// An agent is moving when:
+	/// - its desired speed is > 0
+	/// - its velocity is not a nil vector
+	bool agentIsMoving(int index) const;
+
 	/// Adds a new agent to the crowd.
 	///  @param[in]		pos		The requested position of the agent. [(x, y, z)]
 	///  @param[in]		params	The configutation of the agent.
@@ -322,7 +372,7 @@ public:
 	/// @param[in]	index		The index of the agent (must be >= 0 and < maxAgents)
 	/// @param[in]	position	The new desired position.
 	/// @return		False if the position is outside the navigation mesh or if the index is out of bound. True otherwise.
-	bool updateAgentPosition(int index, float* position);
+	bool updateAgentPosition(int index, const float* position);
 	
 	/// Gets the filter used by the crowd.
 	/// @return The filter used by the crowd.

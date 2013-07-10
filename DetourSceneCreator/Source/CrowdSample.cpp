@@ -21,6 +21,13 @@
 #include "InputGeom.h"
 #include "NavMeshCreator.h"
 #include "JSON.h"
+#include "DetourSeekBehavior.h"
+
+#include "DetourAlignmentBehavior.h"
+#include "DetourCohesionBehavior.h"
+#include "DetourFlockingBehavior.h"
+#include "DetourSeekBehavior.h"
+#include "DetourSeparationBehavior.h"
 
 #include <Recast.h>
 
@@ -33,6 +40,9 @@ CrowdSample::CrowdSample()
 , m_context(0)
 , m_maxRadius(0.f)
 , m_sceneFileName()
+, m_seekDist(0.f)
+, m_seekPredict(0.f)
+, m_separationWeight(0.f)
 {
     strcpy(m_sceneFileName,"");
 }
@@ -62,6 +72,46 @@ bool CrowdSample::loadFromBuffer( const char* data )
             }
         }
 
+		JSONValue* flocking = root->Child(L"flockings");
+
+		if (flocking && flocking->IsArray())
+		{
+			int nbFlocks = flocking->CountChildren();
+			m_flockingsGroups.resize(nbFlocks);
+
+			for (std::size_t i(0) ; i < (size_t)nbFlocks ; ++i)
+			{
+				JSONValue* flock = flocking->Child(i);
+
+				if (flock && flock->IsObject())
+				{
+					JSONValue* desiredSeparation = flock->Child(L"desiredSeparation");
+					if (desiredSeparation && desiredSeparation->IsNumber())
+					{
+						m_flockingsGroups.at(i).desiredSeparation = (float) desiredSeparation->AsNumber();
+					}
+
+					JSONValue* separationWeight = flock->Child(L"separationWeight");
+					if (separationWeight && separationWeight->IsNumber())
+					{
+						m_flockingsGroups.at(i).separationWeight = (float) separationWeight->AsNumber();
+					}
+
+					JSONValue* cohesionWeight = flock->Child(L"cohesionWeight");
+					if (cohesionWeight && cohesionWeight->IsNumber())
+					{
+						m_flockingsGroups.at(i).cohesionWeight = (float) cohesionWeight->AsNumber();
+					}
+
+					JSONValue* alignmentWeight = flock->Child(L"alignmentWeight");
+					if (alignmentWeight && alignmentWeight->IsNumber())
+					{
+						m_flockingsGroups.at(i).alignmentWeight = (float) alignmentWeight->AsNumber();
+					}
+				}
+			}
+		}
+		
         JSONValue* agents = root->Child(L"agents");
         if (agents && agents->IsArray())
         {
@@ -72,13 +122,13 @@ bool CrowdSample::loadFromBuffer( const char* data )
                 JSONValue* agent = agents->Child(iAgent);
                 if (agent && agent->IsObject())
                 {
-                    JSONValue* position = agent->Child(L"position");
-                    if (position && position->IsArray())
-                    {
-                        m_agentCfgs[iAgent].position[0] = (float)position->Child((size_t)0)->AsNumber();
-                        m_agentCfgs[iAgent].position[1] = (float)position->Child(1)->AsNumber();
-                        m_agentCfgs[iAgent].position[2] = (float)position->Child(2)->AsNumber();
-                    }
+					JSONValue* position = agent->Child(L"position");
+					if (position && position->IsArray())
+					{
+						m_agentCfgs[iAgent].position[0] = (float)position->Child((size_t)0)->AsNumber();
+						m_agentCfgs[iAgent].position[1] = (float)position->Child(1)->AsNumber();
+						m_agentCfgs[iAgent].position[2] = (float)position->Child(2)->AsNumber();
+					}
 
                     JSONValue* destination = agent->Child(L"destination");
                     if (destination && destination->IsArray())
@@ -127,12 +177,89 @@ bool CrowdSample::loadFromBuffer( const char* data )
 							m_agentCfgs[iAgent].parameters.pathOptimizationRange = (float)pathOptimizationRange->AsNumber();
 						}
 
-						JSONValue* separationWeight = parameters->Child(L"separationWeight");
-						if (separationWeight && separationWeight->IsNumber())
+						JSONValue* flockingNeighbors = parameters->Child(L"flockingNeighbors");
+						if (flockingNeighbors && flockingNeighbors->IsArray())
 						{
-							m_agentCfgs[iAgent].parameters.separationWeight = (float)separationWeight->AsNumber();
+							for (size_t j = 0; j < flockingNeighbors->CountChildren(); ++j)
+								if (flockingNeighbors->Child(j)->IsNumber())
+									m_agentsFlockingNeighbors[iAgent].push_back((int) flockingNeighbors->Child(j)->AsNumber());
 						}
 
+						JSONValue* behavior = parameters->Child(L"behavior");
+						if (behavior && behavior->IsObject())
+						{
+							JSONValue* type = behavior->Child(L"type");
+
+							// Seek behavior
+							if (type && type->IsString() && type->AsString() == L"seek")
+							{
+								m_agentCfgs[iAgent].parameters.seekBehavior = new dtSeekBehavior;
+
+								JSONValue* target = behavior->Child(L"targetIdx");
+								if (target && target->IsNumber())
+									m_seekTargets[iAgent] = (int) target->AsNumber();
+
+								JSONValue* dist = behavior->Child(L"minimalDistance");
+								if (dist && dist->IsNumber())
+									m_seekDist = (float) dist->AsNumber();
+
+								JSONValue* predict = behavior->Child(L"predictionFactor");
+								if (predict && predict->IsNumber())
+									m_seekPredict = (float) predict->AsNumber();
+							}
+							// Separation behavior
+							else if (type && type->IsString() && type->AsString() == L"separation")
+							{												
+								JSONValue* weight = behavior->Child(L"weight");
+								if (weight && weight->IsNumber())
+									m_separationWeight = (float) weight->AsNumber();
+
+								JSONValue* targets = behavior->Child(L"targets");
+								if (targets && targets->IsArray())
+								{
+									for (std::size_t i(0), size(targets->CountChildren()) ; i < size ; ++i)
+									{
+										JSONValue* index = targets->Child(i);
+							
+										if (index && index->IsNumber())
+											m_separationTargets.push_back(index->AsNumber());
+									}
+								}
+							}
+							// Alignment behavior
+							else if (type && type->IsString() && type->AsString() == L"alignment")
+							{				
+								m_agentCfgs[iAgent].parameters.alignmentBehavior = new dtAlignmentBehavior;
+								JSONValue* targets = behavior->Child(L"targets");
+								if (targets && targets->IsArray())
+								{
+									for (std::size_t i(0), size(targets->CountChildren()) ; i < size ; ++i)
+									{
+										JSONValue* index = targets->Child(i);
+
+										if (index && index->IsNumber())
+											m_alignmentTargets.push_back(index->AsNumber());
+									}
+								}
+							}
+							// Cohesion behavior
+							else if (type && type->IsString() && type->AsString() == L"cohesion")
+							{				
+								m_agentCfgs[iAgent].parameters.cohesionBehavior = new dtCohesionBehavior;
+								JSONValue* targets = behavior->Child(L"targets");
+								if (targets && targets->IsArray())
+								{
+									for (std::size_t i(0), size(targets->CountChildren()) ; i < size ; ++i)
+									{
+										JSONValue* index = targets->Child(i);
+
+										if (index && index->IsNumber())
+											m_cohesionTargets.push_back(index->AsNumber());
+									}
+								}
+							}
+						}
+						
                         JSONValue* updateFlags = parameters->Child(L"updateFlags");
                         if (updateFlags && updateFlags->IsArray())
                         {
@@ -280,9 +407,75 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
     crowd->init(m_agentCount, m_maxRadius, &navmesh);
     
     dtStatus status;
-    
-    for (int i(0) ; i < m_agentCount ; ++i)
+
+	for (int i(0) ; i < m_agentCount ; ++i)
     {
+		// Seeking behavior
+		if (m_agentCfgs[i].parameters.seekBehavior)
+		{
+			m_agentCfgs[i].parameters.seekBehavior->m_distance = m_seekDist;
+			m_agentCfgs[i].parameters.seekBehavior->m_predictionFactor = m_seekPredict;
+
+			if (m_seekTargets.find(i) != m_seekTargets.end())
+				m_agentCfgs[i].parameters.seekBehavior->setTarget(crowd->getAgent(m_seekTargets[i]));
+		}
+
+		// Separation behavior
+		if (!m_separationTargets.empty())
+		{
+			m_agentCfgs[i].parameters.separationBehavior = new dtSeparationBehavior;
+			m_agentCfgs[i].parameters.separationBehavior->m_separationWeight = m_separationWeight;
+			m_agentCfgs[i].parameters.separationBehavior->setAgents(crowd->getAgents());
+			int* targets = (int*) dtAlloc(sizeof(int) * m_separationTargets.size(), DT_ALLOC_PERM);
+
+			std::copy(m_separationTargets.begin(), m_separationTargets.end(), targets);
+
+			m_agentCfgs[i].parameters.separationBehavior->setTargets(targets, m_separationTargets.size());
+		}
+
+		// alignment behavior
+		if (m_agentCfgs[i].parameters.alignmentBehavior)
+		{
+			m_agentCfgs[i].parameters.alignmentBehavior->setAgents(crowd->getAgents());
+
+			if (!m_alignmentTargets.empty())
+			{
+				int* targets = (int*) dtAlloc(sizeof(int) * m_alignmentTargets.size(), DT_ALLOC_PERM);
+
+				std::copy(m_alignmentTargets.begin(), m_alignmentTargets.end(), targets);
+
+				m_agentCfgs[i].parameters.alignmentBehavior->setTargets(targets, m_alignmentTargets.size());
+			}
+		}
+
+		// cohesion behavior
+		if (m_agentCfgs[i].parameters.cohesionBehavior)
+		{
+			m_agentCfgs[i].parameters.cohesionBehavior->setAgents(crowd->getAgents());
+
+			if (!m_cohesionTargets.empty())
+			{
+				int* targets = (int*) dtAlloc(sizeof(int) * m_cohesionTargets.size(), DT_ALLOC_PERM);
+
+				std::copy(m_cohesionTargets.begin(), m_cohesionTargets.end(), targets);
+
+				m_agentCfgs[i].parameters.cohesionBehavior->setTargets(targets, m_cohesionTargets.size());
+			}
+		}
+
+		// Flocking behavior targets
+		if (m_agentsFlockingNeighbors[i].empty() == false)
+		{
+			std::vector<int>& v = m_agentsFlockingNeighbors.at(i);
+			int* flockingNeighbList = new int[v.size()];
+
+			for (int j = 0; j < v.size(); ++j)
+				flockingNeighbList[j] = v.at(j);
+
+			m_agentCfgs[i].parameters.toFlockWith = flockingNeighbList;
+			m_agentCfgs[i].parameters.nbFlockingNeighbors = v.size();
+		}
+
         m_agentCfgs[i].index = crowd->addAgent(m_agentCfgs[i].position, &m_agentCfgs[i].parameters);
         
         status = crowd->getNavMeshQuery()->findNearestPoly(m_agentCfgs[i].destination,crowd->getQueryExtents(),crowd->getFilter(),&m_agentCfgs[i].destinationPoly,0);
@@ -299,5 +492,22 @@ bool CrowdSample::initializeCrowd(dtNavMesh& navmesh, dtCrowd* crowd)
             return false;
         }
     }
+
+	// Flocking behavior
+	m_flockingBehaviors.resize(m_flockingsGroups.size());
+
+	for (std::vector<Flocking>::const_iterator it = m_flockingsGroups.begin(); it < m_flockingsGroups.end(); ++it)
+	{
+		dtFlockingBehavior* fb = new dtFlockingBehavior(it->desiredSeparation, 
+														it->separationWeight, it->cohesionWeight, it->alignmentWeight, 
+														crowd->getAgents());
+
+		for (int i(0) ; i < m_agentCount ; ++i)
+			if (m_agentsFlockingNeighbors[i].empty() == false)
+				crowd->getAgent(i)->params.flockingBehavior = fb;
+
+		m_flockingBehaviors.push_back(fb);
+	}
+
     return true; 
 }
