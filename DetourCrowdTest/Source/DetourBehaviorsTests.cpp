@@ -16,15 +16,29 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURBEHAVIORSTESTS_H
-#define DETOURBEHAVIORSTESTS_H
+#include "DetourCrowdTestUtils.h"
 
-#include "DetourPipelineTest.h"
+#include "DetourAlignmentBehavior.h"
+#include "DetourCohesionBehavior.h"
+#include "DetourGoToBehavior.h"
+#include "DetourPathFollowing.h"
+#include "DetourSeekBehavior.h"
+#include "DetourSeparationBehavior.h"
+
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#include <catch.hpp>
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
+#include <catch.hpp>
+#pragma GCC diagnostic pop
+#endif
 
 #include <cstring>
 
-
-TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors behave correctly")
+TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behaviors behave correctly")
 {
 	TestScene ts;
 	dtCrowd* crowd = ts.createSquareScene(20, 0.5f);
@@ -49,7 +63,6 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 
 		ts.defaultInitializeAgent(*crowd, ag1.id);
 		ts.defaultInitializeAgent(*crowd, ag2.id);
-
 
 		crowd->setAgentBehavior(ag1.id, seek);
 				
@@ -459,5 +472,3 @@ TEST_CASE("DetourCrowdTest/CustomBehavior", "Test whether the custom behaviors b
 		dtArriveBehavior::free(go);
 	}
 }
-
-#endif

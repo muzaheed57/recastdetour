@@ -25,7 +25,6 @@
 #include "InputGeom.h"
 #include "DetourSceneCreator.h"
 
-
 /// Class used to create a scene from vertices and triangles.
 class TestScene
 {

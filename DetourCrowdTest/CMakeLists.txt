@@ -22,13 +22,13 @@ SET(
   detourcrowdtest_SRCS
   Source/DetourCrowdTest.cpp
   Source/DetourCrowdTestUtils.cpp
+  Source/DetourPipelineTest.cpp
+  Source/DetourBehaviorsTests.cpp
   )
   
 SET(
   detourcrowdtest_HDRS
-  Include/DetourBehaviorsTests.h
   Include/DetourCrowdTestUtils.h
-  Include/DetourPipelineTest.h
   )
   
 SET(catch_INC Contrib/catch/include)
@@ -51,8 +51,15 @@ SOURCE_GROUP(cmake FILES CMakeLists.txt)
 ADD_EXECUTABLE(DetourCrowdTest ${detourcrowdtest_SRCS} ${detourcrowdtest_HDRS})
 
 SET_PROPERTY(TARGET DetourCrowdTest PROPERTY DEBUG_POSTFIX -gd)
-SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG Bin)
-SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE Bin)
+SET(DETOURCROWDTEST_BIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Bin)
+SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${DETOURCROWDTEST_BIN_DIR})
+SET_PROPERTY(TARGET DetourCrowdTest PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${DETOURCROWDTEST_BIN_DIR})
+IF(MSVC)
+  # Enable some linker optimisations
+  SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_RELEASE "/OPT:REF /OPT:ICF")
+  SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_MINSIZEREL "/OPT:REF /OPT:ICF")
+  SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_RELWITHDEBINFO "/OPT:REF /OPT:ICF")
+ENDIF(MSVC)
 
 TARGET_LINK_LIBRARIES(
   DetourCrowdTest
@@ -64,14 +71,18 @@ TARGET_LINK_LIBRARIES(
   )
 
 ADD_TEST(
-  NAME DetourCrowdTest 
-  CONFIGURATIONS Debug Release 
-  WORKING_DIRECTORY Bin
+  NAME DetourCrowdTest
+  WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
   COMMAND DetourCrowdTest -t DetourCrowdTest/*)
 
-IF(MSVC)
-  # Enable some linker optimisations
-  SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_RELEASE "/OPT:REF /OPT:ICF")
-	SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_MINSIZEREL "/OPT:REF /OPT:ICF")
-	SET_PROPERTY(TARGET DetourCrowdTest PROPERTY LINK_FLAGS_RELWITHDEBINFO "/OPT:REF /OPT:ICF")
-ENDIF(MSVC)
+ADD_TEST(
+  NAME DetourBehaviorsTest 
+  CONFIGURATIONS Debug Release 
+  WORKING_DIRECTORY Bin
+  COMMAND DetourCrowdTest -t DetourBehaviorsTests/*)
+
+ADD_TEST(
+  NAME DetourPipelineTest 
+  WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
+  COMMAND DetourCrowdTest -t DetourPipelineTest/*)
+

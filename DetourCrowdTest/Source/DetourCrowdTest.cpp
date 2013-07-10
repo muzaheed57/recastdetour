@@ -16,7 +16,24 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "DetourBehaviorsTests.h"
+#include "DetourCrowdTestUtils.h"
+
+#include "DetourAlignmentBehavior.h"
+#include "DetourPathFollowing.h"
+#include "DetourSeekBehavior.h"
+
+#define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
+
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#include <catch.hpp>
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
+#include <catch.hpp>
+#pragma GCC diagnostic pop
+#endif
 
 TEST_CASE("DetourCrowdTest/UpdateAgentPosition", "We want to dynamically update the position of an agent with error checking")
 {

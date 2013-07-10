@@ -16,10 +16,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef DETOURPIPELINETEST_H
-#define DETOURPIPELINETEST_H
+#include "DetourCrowdTestUtils.h"
 
-#define CATCH_CONFIG_MAIN
+#include "DetourPathFollowing.h"
 
 #ifdef _MSC_VER
 #pragma warning(push, 0)
@@ -28,24 +27,11 @@
 #else
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wall"
+#include <catch.hpp>
 #pragma GCC diagnostic pop
 #endif
 
-#include "DetourCrowdTestUtils.h"
-
-#include "DetourParametrizedBehavior.h"
-#include "DetourAlignmentBehavior.h"
-#include "DetourCohesionBehavior.h"
-#include "DetourCommon.h"
-#include "DetourFlockingBehavior.h"
-#include "DetourGoToBehavior.h"
-#include "DetourPathFollowing.h"
-#include "DetourPipelineBehavior.h"
-#include "DetourSeekBehavior.h"
-#include "DetourSeparationBehavior.h"
-
-
-TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
+TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 {
 	TestScene ts;
 	dtCrowd* crowd = ts.createSquareScene(20, 0.5);
@@ -125,5 +111,3 @@ TEST_CASE("DetourCrowdTest/Pipeline", "Tests about the pipeline behavior")
 		dtPipelineBehavior::free(pipeline);
 	}
 }
-
-#endif
