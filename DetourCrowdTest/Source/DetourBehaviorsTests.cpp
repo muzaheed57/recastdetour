@@ -100,18 +100,12 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		REQUIRE(crowd->addAgent(ag5, posLeader));
 
 		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(4)->id);
-		pfParams->init(256);
+		pfParams->init(256, crowd->getAgent(4)->position, *crowd->getCrowdQuery());
 
 		dtFlockingBehaviorParams* flockParams = flocking->getBehaviorParams(crowd->getAgent(0)->id);
 		dtFlockingBehaviorParams* flockParams2 = flocking->getBehaviorParams(crowd->getAgent(1)->id);
 		dtFlockingBehaviorParams* flockParams3 = flocking->getBehaviorParams(crowd->getAgent(2)->id);
 		dtFlockingBehaviorParams* flockParams4 = flocking->getBehaviorParams(crowd->getAgent(3)->id);
-
-		dtPolyRef polyLeader;
-		float posLeaderNavMesh[3];
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posLeader, crowd->getCrowdQuery()->getQueryExtents(), 
-			crowd->getCrowdQuery()->getQueryFilter(), &polyLeader, posLeaderNavMesh);
-		pfParams->corridor.reset(polyLeader, posLeaderNavMesh);
 		
 		ts.defaultInitializeAgent(*crowd, ag1.id);
 		ts.defaultInitializeAgent(*crowd, ag2.id);
@@ -281,18 +275,11 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		dtPathFollowing* pf1 = dtPathFollowing::allocate(2);
 		dtPathFollowingParams* pfParams = pf1->getBehaviorParams(crowd->getAgent(ag1.id)->id);
 		dtPathFollowingParams* pfParams2 = pf1->getBehaviorParams(crowd->getAgent(ag2.id)->id);
-		pfParams->init(256);
-		pfParams2->init(256);
+		pfParams->init(256, crowd->getAgent(ag1.id)->position, *crowd->getCrowdQuery());
+		pfParams2->init(256, crowd->getAgent(ag2.id)->position, *crowd->getCrowdQuery());
 
 		crowd->setAgentBehavior(ag1.id, pf1);
 		crowd->setAgentBehavior(ag2.id, pf1);
-
-		dtPolyRef poly1, poly2;
-		float pos1NavMesh[3], pos2NavMesh[3];
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
-		pfParams->corridor.reset(poly1, pos1NavMesh);
-		pfParams2->corridor.reset(poly2, pos2NavMesh);
 
 		pf1->init(*crowd->getCrowdQuery());
 		
@@ -337,15 +324,8 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		dtPathFollowing* pf1 = dtPathFollowing::allocate(2);
 		dtPathFollowingParams* pfParams = pf1->getBehaviorParams(crowd->getAgent(ag2.id)->id);
 		dtPathFollowingParams* pfParams2 = pf1->getBehaviorParams(crowd->getAgent(ag3.id)->id);
-		pfParams->init(256);
-		pfParams2->init(256);
-
-		dtPolyRef poly1, poly2;
-		float pos1NavMesh[3], pos2NavMesh[3];
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly1, pos1NavMesh);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt2, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &poly2, pos2NavMesh);
-		pfParams->corridor.reset(poly1, pos1NavMesh);
-		pfParams2->corridor.reset(poly2, pos2NavMesh);
+		pfParams->init(256, crowd->getAgent(ag2.id)->position, *crowd->getCrowdQuery());
+		pfParams2->init(256, crowd->getAgent(ag3.id)->position, *crowd->getCrowdQuery());
 
 		pf1->init(*crowd->getCrowdQuery());
 		

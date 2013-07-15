@@ -797,7 +797,14 @@ dtPathFollowingParams::dtPathFollowingParams()
 {
 }
 
-void dtPathFollowingParams::init(unsigned maxPathResults)
+void dtPathFollowingParams::init(unsigned maxPathResults, const float* position, const dtCrowdQuery& query)
 {
 	corridor.init(maxPathResults);
+
+	dtPolyRef dest;
+	float nearest[3];
+
+	query.getNavMeshQuery()->findNearestPoly(position, query.getQueryExtents(), query.getQueryFilter(), &dest, nearest);
+
+	corridor.reset(dest, nearest);
 }

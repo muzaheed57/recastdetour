@@ -63,14 +63,12 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 
 		dtPathFollowing* pf = dtPathFollowing::allocate(5);
 		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(0)->id);
-		pfParams->init(256);
+		pfParams->init(256, crowd->getAgent(0)->position, *crowd->getCrowdQuery());
 
 		// Set the destination
-		dtPolyRef dest, firstPoly;
-		float nearest[3], firstPos[3];
+		dtPolyRef dest;
+		float nearest[3];
 		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(destAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &dest, nearest);
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(posAgt1, crowd->getCrowdQuery()->getQueryExtents(), crowd->getCrowdQuery()->getQueryFilter(), &firstPoly, firstPos);
-		pfParams->corridor.reset(firstPoly, firstPos);
 
 		REQUIRE(dest != 0);		
 		REQUIRE(pf->init(*crowd->getCrowdQuery()));

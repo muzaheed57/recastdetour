@@ -278,16 +278,10 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 
 		if (params)
 		{
-			params->init(256);
+			params->init(256, m_agentCfgs[iAgent].position, *crowd->getCrowdQuery());
 			params->debugInfos = 0;
 			params->debugIndex = iAgent;
 		}
-
-		dtPolyRef dest;
-		float nearest[3];
-		crowd->getCrowdQuery()->getNavMeshQuery()->findNearestPoly(m_agentCfgs[iAgent].position, crowd->getCrowdQuery()->getQueryExtents(), 
-			crowd->getCrowdQuery()->getQueryFilter(), &dest, nearest);
-		params->corridor.reset(dest, nearest);
 
 		JSONValue* pathOpti = behavior->Child(L"pathOptimizationRange");
 		if (pathOpti && pathOpti->IsNumber())
