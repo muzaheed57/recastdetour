@@ -19,15 +19,35 @@
 #ifndef DETOURCOMMON_H
 #define DETOURCOMMON_H
 
+
 /**
+
 @defgroup detour Detour
 
 Members in this module are used to create, manipulate, and query navigation 
 meshes.
 
+Detour allows the use to perform pathfinding on a navigation mesh.
+
+When you query the path from one location to another, Detour will generate a list of polygons from the navigation mesh that must be crossed (you can set a maximum size for this list). Detour also supports efficient pathfinding when the original path is modified (for instance an obstacle appears on the map and the path is no longer valid). You can also use what is called off-mesh connections. This represents things like teleporters, elevators, the ability to jump, etc.
+
+Here is a quick class diagram showing how the components work together:
+
+@image html Detour.png
+
+- dtNavMeshQuery: This is the class you will use if you want to perform pathfinding queries on the navigation mesh (which it contains). 
+You can query for normal, straight or slices path. It is also possible to get some miscellaneous informations such as the distance to the closest wall.
+- dtNavMesh: A navigation mesh is composed of one or several tiles of convex polygons. These tiles define three types of data:
+	- A polygon mesh which defines the navigation graph
+	- A detail mesh used for determining surface height on the polygon mesh
+	- Off-mesh connections, which define custom point-to-point edges within the navigation graph
+
 @note This is a summary list of members.  Use the index or search 
 feature to find minor members.
 */
+
+/// Used for floating computations
+static const float EPSILON = 0.00001f;
 
 /// @name General helper functions
 /// @{
@@ -258,12 +278,23 @@ inline float dtVdist2DSqr(const float* v1, const float* v2)
 
 /// Normalizes the vector.
 ///  @param[in,out]	v	The vector to normalize. [(x, y, z)]
-inline void dtVnormalize(float* v)
+/// @return The previous norm of the vector
+inline float dtVnormalize(float* v)
 {
-	float d = 1.0f / dtSqrt(dtSqr(v[0]) + dtSqr(v[1]) + dtSqr(v[2]));
+	float d;
+	float length = dtVlen(v);
+
+	if (length < EPSILON)
+		d = 0.f;
+	else
+		// Because of floating precision problems on some compilers, we have to redo the computation
+		d = 1.0f / dtSqrt(dtSqr(v[0]) + dtSqr(v[1]) + dtSqr(v[2]));
+
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;
+
+	return length;
 }
 
 /// Performs a 'sloppy' colocation check of the specified points.
@@ -300,6 +331,17 @@ inline float dtVdot2D(const float* u, const float* v)
 inline float dtVperp2D(const float* u, const float* v)
 {
 	return u[2]*v[0] - u[0]*v[2];
+}
+
+/// The length of v will be clamped to the given values;
+///  @param[out]	v		A vector [(x, y, z)]
+///  @param[in]		min		The minimal value
+///  @param[in]		max		The maximal value
+inline void dtVclamp(float* v, float min, float max)
+{
+	float length = dtVnormalize(v);
+
+	dtVscale(v, v, dtClamp(length, min, max));
 }
 
 /// @}

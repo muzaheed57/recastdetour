@@ -1,0 +1,19 @@
+language: cpp
+compiler:
+    - gcc
+    - clang
+script: 
+    - cmake ./
+    - make all
+    - ctest -C Release --output-on-failure
+
+notifications:
+  email:
+    recipients:
+        - recastdetour@masagroup.net
+    on_success: change
+    on_failure: always
+
+branches:
+  except:
+    - gh-pages

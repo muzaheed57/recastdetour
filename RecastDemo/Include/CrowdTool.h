@@ -21,9 +21,11 @@
 
 #include "Sample.h"
 #include "DetourNavMesh.h"
-#include "DetourObstacleAvoidance.h"
+#include "DetourCollisionAvoidance.h"
 #include "ValueHistory.h"
 #include "DetourCrowd.h"
+
+class dtPathFollowing;
 
 // Tool to create crowds.
 
@@ -63,7 +65,6 @@ class CrowdToolState : public SampleToolState
 	float m_targetPos[3];
 	dtPolyRef m_targetRef;
 
-	dtCrowdAgentDebugInfo m_agentDebug;
 	dtObstacleAvoidanceDebugData* m_vod;
 	
 	static const int AGENT_MAX_TRAIL = 64;
@@ -81,6 +82,7 @@ class CrowdToolState : public SampleToolState
 	CrowdToolParams m_toolParams;
 
 	bool m_run;
+	dtPathFollowing* m_pf;
 
 public:
 	CrowdToolState();

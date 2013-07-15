@@ -1,0 +1,12 @@
+#Cmake generation results
+build/*
+
+# Bin content
+*/Bin/
+!/Bin/*.ttf
+!/Bin/Meshes/
+!/Bin/Samples/
+!/Bin/Tests/
+
+# Doxygen generation output
+Docs/out
