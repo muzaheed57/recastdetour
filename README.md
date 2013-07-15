@@ -89,7 +89,7 @@ The Detour Crowd module provides you with features for agents handling and behav
 # Release Notes #
 
 ## Recast 2.0 ##
-**To be released**
+**Released July 15th, 2013**
 
 - The interface for the dtCrowd class has been completely rebuild.
 - Implementation of the notion of behaviors for the agents.
