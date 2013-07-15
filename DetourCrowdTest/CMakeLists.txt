@@ -73,15 +73,15 @@ TARGET_LINK_LIBRARIES(
 ADD_TEST(
   NAME DetourCrowdTest
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest -t DetourCrowdTest/*)
+  COMMAND DetourCrowdTest DetourCrowdTest/*)
 
 ADD_TEST(
   NAME DetourBehaviorsTest 
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest -t DetourBehaviorsTests/*)
+  COMMAND DetourCrowdTest DetourBehaviorsTests/*)
 
 ADD_TEST(
   NAME DetourPipelineTest 
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest -t DetourPipelineTest/*)
+  COMMAND DetourCrowdTest DetourPipelineTest/*)
 
