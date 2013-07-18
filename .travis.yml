@@ -6,6 +6,7 @@ script:
     - cmake ./
     - make all
     - ctest -C Release --output-on-failure
+    - make install
 
 notifications:
   email:

@@ -119,13 +119,15 @@ IF(BUILD_RECAST_DEMO)
 	)
 
 	IF(MSVC)
-		INSTALL(
-			FILES Bin/DroidSans.ttf Bin/SDL.dll
-			DESTINATION bin/${PLATFORM_STR}
-		)
+		# Retrieve the SDL dll directory
+        GET_FILENAME_COMPONENT(SDL_LIB_DIR ${SDLMAIN_LIBRARY} PATH)
+        INSTALL(
+            FILES Bin/DroidSans.ttf ${SDL_LIB_DIR}/SDL.dll
+            DESTINATION bin/${PLATFORM_STR}
+        )
 	else()
 		INSTALL(
-			FILES Bin/DroidSans.ttf Bin/SDL.dll
+			FILES Bin/DroidSans.ttf
 			DESTINATION bin/${PLATFORM_STR}
 		)
 	endif()
