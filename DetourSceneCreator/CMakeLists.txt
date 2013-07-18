@@ -66,7 +66,7 @@ INSTALL(FILES ${DetourSceneCreator_HDRS}
     DESTINATION include/DetourSceneCreator
 )
 
-INSTALL(TARGETS DetourSceneCreator EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+INSTALL(TARGETS DetourSceneCreator EXPORT "RecastDetourTargets-${PLATFORM_STR}"
     RUNTIME DESTINATION bin/${PLATFORM_STR}
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}

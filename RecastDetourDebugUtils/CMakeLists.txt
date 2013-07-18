@@ -26,7 +26,7 @@ INSTALL(FILES ${recastdetourdebugutils_HDRS}
     DESTINATION include/recastDetourDebugUtils
 )
 
-INSTALL(TARGETS RecastDetourDebugUtils EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+INSTALL(TARGETS RecastDetourDebugUtils EXPORT "RecastDetourTargets-${PLATFORM_STR}"
     RUNTIME DESTINATION bin/${PLATFORM_STR}
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}

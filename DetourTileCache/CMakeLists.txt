@@ -21,7 +21,7 @@ INSTALL(FILES ${detourtilecache_HDRS}
     DESTINATION include/detourTileCache
 )
 
-INSTALL(TARGETS DetourTileCache EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+INSTALL(TARGETS DetourTileCache EXPORT "RecastDetourTargets-${PLATFORM_STR}"
     RUNTIME DESTINATION bin/${PLATFORM_STR}
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}

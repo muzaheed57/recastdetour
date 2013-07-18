@@ -71,9 +71,10 @@ ADD_SUBDIRECTORY(Docs)
 INSTALL(FILES PlatformStr.cmake DESTINATION build/cmake)
 
 # Configure and install the cmake package configuration
-CONFIGURE_FILE(RecastNavigationConfig.cmake.in "${PROJECT_BINARY_DIR}/RecastNavigationConfig.cmake" @ONLY)
-INSTALL(FILES "${PROJECT_BINARY_DIR}/RecastNavigationConfig.cmake" DESTINATION build/cmake)
-INSTALL(EXPORT "RecastNavigationTargets-${PLATFORM_STR}" DESTINATION build/cmake)
+GET_FILENAME_COMPONENT(CONFIGURED_RECAST_DETOUR_CONFIGURATION ${CMAKE_CURRENT_BINARY_DIR}/RecastDetourConfig.cmake ABSOLUTE)
+CONFIGURE_FILE(RecastDetourConfig.cmake.in ${CONFIGURED_RECAST_DETOUR_CONFIGURATION} @ONLY)
+INSTALL(FILES ${CONFIGURED_RECAST_DETOUR_CONFIGURATION} DESTINATION build/cmake)
+INSTALL(EXPORT "RecastDetourTargets-${PLATFORM_STR}" DESTINATION build/cmake)
 
 # CPack configuration, builds a zip package using the target 'package' in 
 SET(CPACK_GENERATOR "ZIP")
