@@ -221,9 +221,13 @@ void dtCrowd::purge()
 	dtFree(m_agentsToUpdate);
 	m_agentsToUpdate = 0;
 
-	dtFree(m_crowdQuery);
-	m_crowdQuery = 0;
-
+	if (m_crowdQuery)
+	{
+		m_crowdQuery->~dtCrowdQuery();
+		dtFree(m_crowdQuery);
+		m_crowdQuery = 0;
+	}
+	
 	dtFree(m_agentsEnv);
 	m_agentsEnv = 0;
 }

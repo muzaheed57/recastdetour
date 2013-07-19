@@ -63,7 +63,8 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 
 		dtPathFollowing* pf = dtPathFollowing::allocate(5);
 		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(0)->id);
-		pfParams->init(256, crowd->getAgent(0)->position, *crowd->getCrowdQuery());
+		pfParams->init(256);
+		pfParams->preparePath(crowd->getAgent(0)->position, *crowd->getCrowdQuery());
 
 		// Set the destination
 		dtPolyRef dest;

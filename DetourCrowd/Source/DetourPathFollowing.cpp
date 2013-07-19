@@ -797,14 +797,25 @@ dtPathFollowingParams::dtPathFollowingParams()
 {
 }
 
-void dtPathFollowingParams::init(unsigned maxPathResults, const float* position, const dtCrowdQuery& query)
+bool dtPathFollowingParams::preparePath(const float* position, const dtCrowdQuery& query)
 {
-	corridor.init(maxPathResults);
+	if (!corridor.getPath())
+		return false;
 
 	dtPolyRef dest;
 	float nearest[3];
 
 	query.getNavMeshQuery()->findNearestPoly(position, query.getQueryExtents(), query.getQueryFilter(), &dest, nearest);
 
+	if (!dest)
+		return false;
+
 	corridor.reset(dest, nearest);
+
+	return true;
+}
+
+bool dtPathFollowingParams::init(unsigned maxPathResults)
+{
+	return corridor.init(maxPathResults);
 }
