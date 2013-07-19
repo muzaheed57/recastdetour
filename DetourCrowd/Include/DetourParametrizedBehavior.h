@@ -118,6 +118,7 @@ dtParametrizedBehavior<T>::~dtParametrizedBehavior()
 		{
 			Node* toDelete = n->next;
 			n->next = n->next->next;
+			toDelete->~Node();
 			dtFree(toDelete);
 		}
 	}
