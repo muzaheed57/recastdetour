@@ -17,6 +17,15 @@ INCLUDE_DIRECTORIES(Include
 
 ADD_LIBRARY(DetourTileCache ${detourtilecache_SRCS} ${detourtilecache_HDRS})
 
+IF (APPLE)
+    IF (NOT DEFINED BUILD_RECASTDETOUR_FAT_LIBRARIES)
+        OPTION(BUILD_RECASTDETOUR_FAT_LIBRARIES "If selected, built libraries will contain both 32 and 64 bits versions." OFF)
+    ENDIF()
+    IF (BUILD_RECASTDETOUR_FAT_LIBRARIES)
+    	SET_TARGET_PROPERTIES(DetourTileCache PROPERTIES OSX_ARCHITECTURES "i386;x86_64")
+    ENDIF()
+ENDIF()
+
 INSTALL(FILES ${detourtilecache_HDRS}
     DESTINATION ${RECASTDETOUR_INSTALL_PREFIX}/include/detourTileCache
 )
