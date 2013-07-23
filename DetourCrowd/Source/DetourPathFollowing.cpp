@@ -197,7 +197,7 @@ void dtPathFollowing::triggerOffMeshConnections(const dtCrowdQuery& query, const
 			agParams->ncorners = 0;
 			return;
 		}
-		else
+		else 
 		{
 			// Path validity check will ensure that bad/blocked connections will be replanned.
 		}

@@ -560,32 +560,35 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-
-		ag->offmeshElaspedTime += dt;
-		if (ag->offmeshElaspedTime > ag->offmeshTotalTime)
+		if (ag->state == DT_CROWDAGENT_STATE_OFFMESH && ag->offmeshTotalTime > EPSILON)
 		{
-			// Prepare agent for walking.
-			ag->state = DT_CROWDAGENT_STATE_WALKING;
-			continue;
-		}
+			ag->offmeshElaspedTime += dt;
 
-		// Update position
-		const float ta = ag->offmeshTotalTime * 0.15f;
-		const float tb = ag->offmeshTotalTime;
-		if (ag->offmeshElaspedTime < ta)
-		{
-			const float u = tween(ag->offmeshTotalTime, 0.0, ta);
-			dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
-		}
-		else
-		{
-			const float u = tween(ag->offmeshTotalTime, ta, tb);
-			dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
-		}
+			if (ag->offmeshElaspedTime > ag->offmeshTotalTime)
+			{
+				// Prepare agent for walking.
+				ag->state = DT_CROWDAGENT_STATE_WALKING;
+				continue;
+			}
 
-		// Update velocity.
-		dtVset(ag->velocity, 0,0,0);
-		dtVset(ag->desiredVelocity, 0,0,0);
+			// Update position
+			const float ta = ag->offmeshTotalTime * 0.15f;
+			const float tb = ag->offmeshTotalTime;
+			if (ag->offmeshElaspedTime < ta)
+			{
+				const float u = tween(ag->offmeshTotalTime, 0.0, ta);
+				dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
+			}
+			else
+			{
+				const float u = tween(ag->offmeshTotalTime, ta, tb);
+				dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
+			}
+
+			// Update velocity.
+			dtVset(ag->velocity, 0,0,0);
+			dtVset(ag->desiredVelocity, 0,0,0);
+		}
 	}
 
 	dtFree(currentPosPoly);
