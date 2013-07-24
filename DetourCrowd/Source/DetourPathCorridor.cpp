@@ -215,10 +215,13 @@ dtPathCorridor::dtPathCorridor(const dtPathCorridor& o) :
 	m_npath = o.m_npath;
 	m_maxPath = o.m_maxPath;
 
-	m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
+    if (m_maxPath)
+    {
+        m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
 
-	for (unsigned i = 0; i < m_maxPath; ++i)
-		m_path[i] = o.m_path[i];
+        for (unsigned i = 0; i < m_maxPath; ++i)
+            m_path[i] = o.m_path[i];
+    }
 }
 
 
