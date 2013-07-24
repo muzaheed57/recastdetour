@@ -584,11 +584,8 @@ bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 		if (!m_pipeline[i].empty())
 		{
 			dtPipelineBehavior* pipeline = dtPipelineBehavior::allocate();
-			dtBehavior** behaviors = (dtBehavior**) dtAlloc(sizeof(dtBehavior*) * m_pipeline[i].size(), DT_ALLOC_PERM);
-			std::copy(m_pipeline[i].begin(), m_pipeline[i].end(), behaviors);
 
-			pipeline->setBehaviors(behaviors, m_pipeline[i].size());
-
+			pipeline->setBehaviors(m_pipeline[i].data(), m_pipeline[i].size());
 			m_agentCfgs[i].steeringBehavior = pipeline;
 		}
 

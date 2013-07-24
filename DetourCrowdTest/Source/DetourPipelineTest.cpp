@@ -75,7 +75,7 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 		REQUIRE(pf->init(*crowd->getCrowdQuery()));
 		REQUIRE(pf->requestMoveTarget(ag.id, dest, destAgt1));
 
-		pipeline->setBehaviors(0, 1);
+		CHECK_FALSE(pipeline->setBehaviors(0, 1));
 
 		// Still no behavior was given (null pointer), so nothing should have moved.
 		crowd->update(0.5, 0);
@@ -88,7 +88,7 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 		dtBehavior* behavior = pf;
 
 		// This time we affect the right behavior but with a size of 0
-		pipeline->setBehaviors(&behavior, 0);
+		CHECK_FALSE(pipeline->setBehaviors(&behavior, 0));
 
 		crowd->update(0.5, 0);
 
@@ -97,7 +97,7 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 		CHECK(dtVequal(agt1NewPos, posAgt1));
 
 		// This time we affect the behavior with the right size
-		pipeline->setBehaviors(&behavior, 1);
+		CHECK(pipeline->setBehaviors(&behavior, 1));
 
 		crowd->update(0.5, 0);
 

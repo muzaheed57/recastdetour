@@ -47,10 +47,13 @@ public:
 	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt);
 
 	/// Affects the given behaviors to the pipeline
+	/// The behaviors are not copied, but their references are.
 	///
 	/// @param[in]	behaviors	The behaviors we want to affect to the pipeline
 	/// @param[in]	nbBehaviors	The number of behaviors we want to affect to the pipeline
-	void setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors);
+	///
+	/// @return	False if behaviors is null or if nbBehaviors == 0. True otherwise
+	bool setBehaviors(dtBehavior const * const * behaviors, unsigned nbBehaviors);
 
 private:
 	void recursiveUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, unsigned remainingBehaviors);
