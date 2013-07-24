@@ -48,11 +48,12 @@ public:
 
 	/// Affects the given behaviors to the pipeline
 	/// The behaviors are not copied, but their references are.
+	/// In order to clear the behaviors of the pipeline, give the 0 value to one of the parameters.
 	///
 	/// @param[in]	behaviors	The behaviors we want to affect to the pipeline
 	/// @param[in]	nbBehaviors	The number of behaviors we want to affect to the pipeline
 	///
-	/// @return	False if behaviors is null or if nbBehaviors == 0. True otherwise
+	/// @return	False if the memory for the behaviors could not be allocated. True otherwise
 	bool setBehaviors(dtBehavior const * const * behaviors, unsigned nbBehaviors);
 
 private:

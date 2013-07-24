@@ -73,8 +73,10 @@ void dtPipelineBehavior::recursiveUpdate(const dtCrowdQuery& query, const dtCrow
 	if (remainingBehaviors == 0)
 		return;
 
-	if (m_behaviors[m_nbBehaviors - remainingBehaviors])
-		m_behaviors[m_nbBehaviors - remainingBehaviors]->update(query, oldAgent, newAgent, dt);
+	dtBehavior* behavior = m_behaviors[m_nbBehaviors - remainingBehaviors];
+
+	if (behavior)
+		behavior->update(query, oldAgent, newAgent, dt);
 
 	dtCrowdAgent ag = newAgent;
 
@@ -84,14 +86,15 @@ void dtPipelineBehavior::recursiveUpdate(const dtCrowdQuery& query, const dtCrow
 
 bool dtPipelineBehavior::setBehaviors(dtBehavior const * const * behaviors, unsigned nbBehaviors)
 {
-	if (!behaviors || !nbBehaviors)
-		return false;
-
-	if (m_behaviors)
+	if (m_behaviors || !behaviors || !nbBehaviors)
 	{
 		dtFree(m_behaviors);
 		m_behaviors = 0;
 	}
+
+	// The behavior list has been reseted
+	if (!behaviors || !nbBehaviors)
+		return true;
 
 	m_behaviors = (dtBehavior**) dtAlloc(sizeof(dtBehavior*) * nbBehaviors, DT_ALLOC_PERM);
 
