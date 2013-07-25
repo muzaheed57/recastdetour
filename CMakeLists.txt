@@ -38,8 +38,8 @@ ENDIF()
 SET(CMAKE_DEBUG_POSTFIX "-gd")
 
 # Compute platform string
-INCLUDE(PlatformStr.cmake)
-COMPUTE_PLATFORM_STR(PLATFORM_STR)
+INCLUDE(platform.cmake)
+compute_platform_str(PLATFORM_STR)
 
 IF(MSVC)
 	OPTION(USE_MSVC_FAST_FLOATINGPOINT "Use MSVC /fp:fast option" ON)
@@ -71,8 +71,8 @@ ADD_SUBDIRECTORY(DetourSceneCreator)
 ADD_SUBDIRECTORY(DetourCrowdTest)
 ADD_SUBDIRECTORY(Docs)
 
-# Install the platform string computation module
-INSTALL(FILES PlatformStr.cmake DESTINATION ${RECASTDETOUR_INSTALL_PREFIX}/build/cmake)
+# install the platform string computation module
+INSTALL(FILES platform.cmake DESTINATION ${RECASTDETOUR_INSTALL_PREFIX}/build/cmake)
 
 # Configure and install the cmake package configuration
 GET_FILENAME_COMPONENT(CONFIGURED_RECASTDETOUR_CONFIGURATION ${CMAKE_CURRENT_BINARY_DIR}/RecastDetourConfig.cmake ABSOLUTE)
