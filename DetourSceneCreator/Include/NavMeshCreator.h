@@ -45,6 +45,20 @@ namespace navigationFlags
     };
 }
 
+// Structure used to create offMesh connections before the creation of the navmesh
+struct OffMeshConnectionCreator
+{
+	OffMeshConnectionCreator();
+
+	float vert[6 * 100];		// start & end position [s1, s2, s3, e1, e2, e3]
+	float radius[100];		
+	unsigned char bidir[100];	// Is the connection bi directional?
+	unsigned char areas[100];
+	unsigned short flags[100];
+	unsigned ids[100];			
+	int count;
+};
+
 class NavMeshCreator
 {
 public:
@@ -97,6 +111,8 @@ public:
     
     unsigned char* m_outputNavMeshBuffer;
     int m_outputNavMeshBufferSize;
+
+	OffMeshConnectionCreator m_offMeshConnectionCreator;
 };
 
 #endif

@@ -844,6 +844,60 @@ const dtCrowdAgentEnvironment* dtCrowdQuery::getAgentEnvironment(unsigned id) co
 	return 0;
 }
 
+dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist) const
+{
+	// Check validity of the ID
+	if (id >= m_maxAgents || dist < 0.f)
+		return 0;
+
+	const dtCrowdAgent ag = *getAgent(id);
+	dtPolyRef agentPolyRef;
+	float nearest[3];
+
+	// Get the polygon reference the agent is on
+	m_navMeshQuery->findNearestPoly(ag.position, m_ext, &m_filter, &agentPolyRef, nearest);
+
+	if (!agentPolyRef)
+		return 0;
+
+	dtPoly* poly = new dtPoly;
+	dtMeshTile* tile = new dtMeshTile;
+
+	// Get the tile the agent is on
+	if (dtStatusFailed(m_navMeshQuery->getAttachedNavMesh()->getTileAndPolyByRef(agentPolyRef, (const dtMeshTile**)&tile, (const dtPoly**)&poly)))
+		return 0;
+
+	if (tile->header->offMeshConCount <= 0)
+		return 0;
+
+	unsigned nbOffMeshConnections = tile->header->offMeshConCount;
+	dtOffMeshConnection* offMeshConnections = tile->offMeshCons;
+
+	// For every offMesh connections located in this tile
+	for (unsigned i = 0; i < nbOffMeshConnections; ++i)
+	{
+		dtPolyRef polysIDs[256];
+		int nbPolys = 0;
+		dtOffMeshConnection& offMeshCo = offMeshConnections[i];
+
+		// Find every polygons reached by the offMesh connection and its radius
+		if (dtStatusFailed(m_navMeshQuery->findPolysAroundCircle(agentPolyRef, offMeshCo.pos, offMeshCo.rad, &m_filter, polysIDs, 0, 0, &nbPolys, 256)))
+			continue;
+
+		if (nbPolys <= 0)
+			continue;
+
+		// For every polygons touched by the offMesh connection, we check if one of them is the one the agent is on.
+		// If so, we check the distance from the agent to the center of the offMesh connection (taking into account the extra distance)
+		for (int j = 0; j < nbPolys; ++j)
+			if (polysIDs[j] == agentPolyRef)
+				if (dtVdist(ag.position, offMeshCo.pos) < offMeshCo.rad + dist)
+					return &offMeshCo;
+	}
+
+	return 0;
+}
+
 dtCrowdAgentEnvironment::dtCrowdAgentEnvironment() 
 	: nbNeighbors(0) 
 {

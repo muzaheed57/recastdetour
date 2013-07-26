@@ -158,6 +158,14 @@ public:
 	/// @param[in]	id	The id of the agent
 	/// @return Returns the environment of the given agent
 	const dtCrowdAgentEnvironment* getAgentEnvironment(unsigned id) const;
+
+	/// Get the offMesh connection the agent is on or close to.
+	/// The user can specify an additional distance if he wants to know if an offMesh connection
+	/// is located at a certain distance of the agent.
+	/// @param[in]	id		The id of the agent
+	/// @param[in]	dist	The additional distance
+	/// @return 0 if no offMesh connection have been detected. Otherwise returns the offMesh connection
+	dtOffMeshConnection* getOffMeshConnection(unsigned id, float dist = 0.f) const;
 	/// @}
 
 private:

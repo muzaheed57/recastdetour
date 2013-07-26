@@ -19,7 +19,6 @@
 #include "CrowdSample.h"
 
 #include "InputGeom.h"
-#include "NavMeshCreator.h"
 #include "JSON.h"
 
 #include "DetourParametrizedBehavior.h"
@@ -551,22 +550,21 @@ bool CrowdSample::initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh)
 	if (!m_context)
 		return false;
 
-    NavMeshCreator creator;
-    creator.initParameters();
-    creator.m_context = m_context;
-    creator.m_inputVertices = scene.getMesh()->getVerts();
-    creator.m_inputVerticesCount = scene.getMesh()->getVertCount();
-    creator.m_inputTriangles = scene.getMesh()->getTris();
-    creator.m_inputTrianglesCount = scene.getMesh()->getTriCount();
-    rcVcopy(creator.m_min, scene.getMeshBoundsMin());
-    rcVcopy(creator.m_max, scene.getMeshBoundsMax());
-    creator.m_minimumObstacleClearance = m_maxRadius;
-    creator.allocIntermediateResults();
-    creator.computeNavMesh();
+    m_creator.initParameters();
+    m_creator.m_context = m_context;
+    m_creator.m_inputVertices = scene.getMesh()->getVerts();
+    m_creator.m_inputVerticesCount = scene.getMesh()->getVertCount();
+    m_creator.m_inputTriangles = scene.getMesh()->getTris();
+    m_creator.m_inputTrianglesCount = scene.getMesh()->getTriCount();
+    rcVcopy(m_creator.m_min, scene.getMeshBoundsMin());
+    rcVcopy(m_creator.m_max, scene.getMeshBoundsMax());
+    m_creator.m_minimumObstacleClearance = m_maxRadius;
+    m_creator.allocIntermediateResults();
+    m_creator.computeNavMesh();
         
-    if (creator.m_success)
+    if (m_creator.m_success)
     {
-        return dtStatusSucceed(navMesh->init(creator.m_outputNavMeshBuffer, creator.m_outputNavMeshBufferSize, DT_TILE_FREE_DATA));
+        return dtStatusSucceed(navMesh->init(m_creator.m_outputNavMeshBuffer, m_creator.m_outputNavMeshBufferSize, DT_TILE_FREE_DATA));
     }
     else 
     {

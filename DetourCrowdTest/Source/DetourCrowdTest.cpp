@@ -22,6 +22,7 @@
 #include "DetourPathFollowing.h"
 #include "DetourSeekBehavior.h"
 
+
 #define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
 
 #ifdef _MSC_VER
