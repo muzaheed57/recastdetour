@@ -177,7 +177,7 @@ private:
 
 	/// Update async move request and path finder.
 	void updateMoveRequest(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
-		const dtPathFollowingParams& currentParams, dtPathFollowingParams& newParams);
+		dtPathFollowingParams& newParams);
 
 	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 		const dtPathFollowingParams& currentParams, dtPathFollowingParams& newParams, float dt);
@@ -194,20 +194,20 @@ private:
 	/// @param[in]		ag			The agent to work on.
 	/// @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void prepare(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, const dtPathFollowingParams& currentParam, dtPathFollowingParams& newParam);
+	void prepare(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt,dtPathFollowingParams& newParam);
 
 	/// Computes the new velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///
 	/// @param[in]		oldAgent	The agent whose velocity must be updated.
 	/// @param[out]		newAgent	The agent storing the new parameters.
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, dtPathFollowingParams* agParams);
+	void getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, dtPathFollowingParams& agParams);
 
 	/// Finds the next corner the agent should aim to
 	/// 
 	/// @param[in]		ag			The agent to work on.
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& ag, dtPathFollowingParams* agParams);
+	void getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& ag, dtPathFollowingParams& agParams);
 
 	/// Checks whether the agent is on an offmesh connection. If so, the path is adjusted.
 	/// 
