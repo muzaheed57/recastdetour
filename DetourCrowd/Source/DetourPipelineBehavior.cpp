@@ -33,6 +33,11 @@ dtPipelineBehavior::dtPipelineBehavior()
 
 dtPipelineBehavior::~dtPipelineBehavior()
 {
+	if (m_behaviors)
+	{
+		dtFree(m_behaviors);
+		m_behaviors = 0;
+	}
 }
 
 dtPipelineBehavior* dtPipelineBehavior::allocate()
@@ -68,15 +73,37 @@ void dtPipelineBehavior::recursiveUpdate(const dtCrowdQuery& query, const dtCrow
 	if (remainingBehaviors == 0)
 		return;
 
-	m_behaviors[m_nbBehaviors - remainingBehaviors]->update(query, oldAgent, newAgent, dt);
+	dtBehavior* behavior = m_behaviors[m_nbBehaviors - remainingBehaviors];
+
+	if (behavior)
+		behavior->update(query, oldAgent, newAgent, dt);
+
 	dtCrowdAgent ag = newAgent;
 
 	recursiveUpdate(query, newAgent, ag, dt, remainingBehaviors - 1);
 	newAgent = ag;
 }
 
-void dtPipelineBehavior::setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors)
+bool dtPipelineBehavior::setBehaviors(dtBehavior const * const * behaviors, unsigned nbBehaviors)
 {
-	m_behaviors = behaviors;
+	if (m_behaviors || !behaviors || !nbBehaviors)
+	{
+		dtFree(m_behaviors);
+		m_behaviors = 0;
+	}
+
+	// The behavior list has been reseted
+	if (!behaviors || !nbBehaviors)
+		return true;
+
+	m_behaviors = (dtBehavior**) dtAlloc(sizeof(dtBehavior*) * nbBehaviors, DT_ALLOC_PERM);
+
+	if (!m_behaviors)
+		return false;
+
+	memcpy(m_behaviors, behaviors, sizeof(dtBehavior*) * nbBehaviors);
+
 	m_nbBehaviors = nbBehaviors;
+
+	return true;
 }

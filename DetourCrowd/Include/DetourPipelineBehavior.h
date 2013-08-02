@@ -47,10 +47,14 @@ public:
 	virtual void update(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt);
 
 	/// Affects the given behaviors to the pipeline
+	/// The behaviors are not copied, but their references are.
+	/// In order to clear the behaviors of the pipeline, give the 0 value to one of the parameters.
 	///
 	/// @param[in]	behaviors	The behaviors we want to affect to the pipeline
 	/// @param[in]	nbBehaviors	The number of behaviors we want to affect to the pipeline
-	void setBehaviors(dtBehavior** behaviors, unsigned nbBehaviors);
+	///
+	/// @return	False if the memory for the behaviors could not be allocated. True otherwise
+	bool setBehaviors(dtBehavior const * const * behaviors, unsigned nbBehaviors);
 
 private:
 	void recursiveUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, unsigned remainingBehaviors);
