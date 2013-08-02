@@ -631,7 +631,7 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 				m_crowdQuery->getNavMeshQuery(), m_crowdQuery->getQueryFilter());
 		}
 		// Query neighbour agents
-		m_agentsEnv[ag->id].nbNeighbors = this->getNeighbors(ag->id);
+		m_agentsEnv[ag->id].nbNeighbors = this->computeNeighbors(ag->id);
 
 		for (unsigned j = 0; j < m_agentsEnv[ag->id].nbNeighbors; j++)
 			m_agentsEnv[ag->id].neighbors[j].idx = getAgentIndex(&m_agents[m_agentsEnv[ag->id].neighbors[j].idx]);
@@ -722,7 +722,7 @@ unsigned dtCrowd::getAgents(const unsigned* ids, unsigned size, const dtCrowdAge
 	return m_crowdQuery->getAgents(ids, size, agents);
 }
 
-unsigned dtCrowd::getNeighbors(unsigned id)
+unsigned dtCrowd::computeNeighbors(unsigned id)
 {
 	unsigned n = 0;
 	const dtCrowdAgent* agent = m_crowdQuery->getAgent(id);
@@ -731,13 +731,14 @@ unsigned dtCrowd::getNeighbors(unsigned id)
 	{
 		dtCrowdAgent* target = 0;
 
+		// Check if the agent is active and is not the tested one
 		if (!getActiveAgent(&target, i) || target->id == agent->id)
 			continue;
-
-		// Check for overlap.
+				
 		float diff[3];
 		dtVsub(diff, agent->position, target->position);
 
+		// Check if the agent are on the same level
 		if (fabsf(diff[1]) > (agent->height + target->height) / 2.f)
 			continue;
 

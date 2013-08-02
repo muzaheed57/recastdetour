@@ -205,7 +205,7 @@ class dtCrowd
 	///
 	/// @param[in]	id	ID of the agent
 	/// @return	The number of neighbors found
-	unsigned getNeighbors(unsigned id);
+	unsigned computeNeighbors(unsigned id);
 
 	/// Cleans the crowd so it can be used for a fresh start
 	void purge();
