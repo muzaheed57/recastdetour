@@ -344,7 +344,7 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		// Checking if the neighbourhood of an agent is correctly updated
 		// For that we create another agent next to an already existing agent.
 		float posAgt3[3] = {crowd->getAgent(ag1.id)->position[0] + 1, 
-							0, 
+							0 ,
 							crowd->getAgent(ag1.id)->position[2] + 1};
 		dtCrowdAgent ag3;
 
@@ -362,6 +362,17 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 1);
 		// The other agents on the other hand haven't updated their environment, and therefore should have no neighbors
 		CHECK(crowd->getAgentEnvironment(ag1.id)->nbNeighbors == 0);
+
+		// The agent has no perception
+		crowd->fetchAgent(ag3, ag3.id);
+		ag3.perceptionDistance = 0.f;
+		crowd->applyAgent(ag3);
+
+		crowd->updateEnvironment();
+		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 0);
+
+		ag3.perceptionDistance = 4.f;
+		crowd->applyAgent(ag3);
 
 		// Now we update everyone's environment, thus every agent has one neighbor
 		crowd->updateEnvironment();

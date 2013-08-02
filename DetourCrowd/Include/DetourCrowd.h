@@ -23,7 +23,6 @@
 #include "DetourLocalBoundary.h"
 #include "DetourNavMeshQuery.h"
 #include "DetourPipelineBehavior.h"
-#include "DetourProximityGrid.h"
 
 class dtObstacleAvoidanceDebugData;
 class dtPathFollowing;
@@ -88,6 +87,7 @@ struct dtCrowdAgent
 	float height;				///< Agent height. [Limit: > 0]
 	float maxAcceleration;		///< Maximum allowed acceleration. [Limit: >= 0]
 	float maxSpeed;				///< Maximum allowed speed. [Limit: >= 0]
+	float perceptionDistance;	///< 2D distance defining how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 
 	unsigned char updateFlags;	///< Flags that impact steering behavior. (See: #UpdateFlags)
 
@@ -131,12 +131,10 @@ public:
 	float* getQueryExtents();
 	dtNavMeshQuery* getNavMeshQuery();
 	dtQueryFilter* getQueryFilter();
-	dtProximityGrid* getProximityGrid();
 
 	const float* getQueryExtents() const;
 	const dtNavMeshQuery* getNavMeshQuery() const;
 	const dtQueryFilter* getQueryFilter() const;
-	const dtProximityGrid* getProximityGrid() const;
 
 	/// Gets a const access to the specified agent from the pool.
 	///	 @param[in]		id	The agent id.
@@ -166,7 +164,6 @@ private:
 	float m_ext[3];								///< The query filters used for navigation queries.
 	dtNavMeshQuery* m_navMeshQuery;				///< Used to perform queries on the navigation mesh.
 	dtQueryFilter m_filter;						///< Defines polygon filtering and traversal costs for navigation mesh query operations.
-	dtProximityGrid* m_grid;					///< The proximity grid of the crowd.
 	const dtCrowdAgent* m_agents;				///< The agents of the crowd
 	unsigned m_maxAgents;						///< Max number of agents in the crowd
 	const dtCrowdAgentEnvironment* m_agentsEnv;	///< The environments of the agents
@@ -192,7 +189,6 @@ class dtCrowd
 	unsigned m_maxCommonNodes;				///< Maximal number of search nodes for the navigation mesh
 
 	float** m_disp;							///< Used to prevent agents from bumping into each other
-	float m_collisionQueryRange;			///< Defines how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 	
 	/// Returns the index of the given agent
 	inline unsigned getAgentIndex(const dtCrowdAgent* agent) const  { return agent - m_agents; }
@@ -202,6 +198,14 @@ class dtCrowd
 	/// param[in]	id	the id of the agent we want to fetch
 	/// @return	False if the agent is not active or if the id is out of bound. True otherwise
 	bool getActiveAgent(dtCrowdAgent** ag, int id);
+
+	/// Gets the neighbors of  the given agent.
+	/// Uses the field of view of the agent for that.
+	/// The neighbors will be stored in the agent environment
+	///
+	/// @param[in]	id	ID of the agent
+	/// @return	The number of neighbors found
+	unsigned getNeighbors(unsigned id);
 
 	/// Cleans the crowd so it can be used for a fresh start
 	void purge();
@@ -214,9 +218,8 @@ public:
 	///  @param[in]		maxAgents		The maximum number of agents the crowd can manage. [Limit: >= 1]
 	///  @param[in]		maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
 	///  @param[in]		nav				The navigation mesh to use for planning.
-	///  @param[in]		collisionRange	Defines how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 	/// @return True if the initialization succeeded.
-	bool init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav, float collisionRange);	
+	bool init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav);	
 
 	/// @name Data access
 	/// @{
@@ -255,8 +258,6 @@ public:
 
 	const dtCrowdQuery* getCrowdQuery() const { return m_crowdQuery; }
 	dtCrowdQuery* getCrowdQuery() { return m_crowdQuery; }
-
-	float getCollisionRange() const;
 	/// @}
 
 	/// @name Data modifiers

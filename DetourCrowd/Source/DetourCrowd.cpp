@@ -105,46 +105,6 @@ static int addNeighbour(const int idx, const float dist,
 	return dtMin(nneis+1, maxNeis);
 }
 
-static int getNeighbours(const float* pos, const float height, const float range,
-						 const dtCrowdAgent* skip, dtCrowdNeighbour* result, const int maxResult,
-						 dtCrowdAgent* agents, const int /*nagents*/, dtProximityGrid* grid)
-{
-	int n = 0;
-	
-	static const int MAX_NEIS = 32;
-	unsigned short ids[MAX_NEIS];
-	int nids = grid->queryItems(pos[0]-range, pos[2]-range,
-								pos[0]+range, pos[2]+range,
-								ids, MAX_NEIS);
-	
-	for (int i = 0; i < nids; ++i)
-	{
-		const dtCrowdAgent* ag = &agents[ids[i]];
-
-		if (!ag->active)
-			continue;
-		
-		if (ag == skip) continue;
-		
-		// Check for overlap.
-		float diff[3];
-		dtVsub(diff, pos, ag->position);
-
-		if (fabsf(diff[1]) >= (height+ag->height)/2.0f)
-			continue;
-
-		diff[1] = 0;
-		const float distSqr = dtVlenSqr(diff);
-
-		if (distSqr > dtSqr(range))
-			continue;
-		
-		n = addNeighbour(ids[i], distSqr, result, n, maxResult);
-	}
-
-	return n;
-}
-
 
 /**
 @class dtCrowd
@@ -183,8 +143,7 @@ dtCrowd::dtCrowd() :
 	m_agentsToUpdate(0),
 	m_maxAgentRadius(0),
 	m_maxCommonNodes(512),
-	m_disp(0),
-	m_collisionQueryRange(4)
+	m_disp(0)
 {
 }
 
@@ -235,12 +194,11 @@ void dtCrowd::purge()
 /// @par
 ///
 /// May be called more than once to purge and re-initialize the crowd.
-bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav, float collisionRange)
+bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav)
 {
 	purge();
 
 	m_disp = (float**) dtAlloc(sizeof(float*) * maxAgents, DT_ALLOC_PERM);
-	m_collisionQueryRange = collisionRange;
 
 	for (unsigned i = 0; i < maxAgents; ++i)
 		m_disp[i] = (float*) dtAlloc(sizeof(float) * 3, DT_ALLOC_PERM);
@@ -275,12 +233,6 @@ bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMe
 	m_crowdQuery = new(mem) dtCrowdQuery(maxAgents, m_agents, m_agentsEnv);
 
 	if (dtStatusFailed(m_crowdQuery->getNavMeshQuery()->init(nav, m_maxCommonNodes)))
-		return false;
-
-	if (!m_crowdQuery->getProximityGrid())
-		return false;
-
-	if (!m_crowdQuery->getProximityGrid()->init(m_maxAgents*4, maxAgentRadius*3))
 		return false;
 	
 	m_activeAgents = (dtCrowdAgent**)dtAlloc(sizeof(dtCrowdAgent*) * m_maxAgents, DT_ALLOC_PERM);
@@ -649,20 +601,7 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 		nbIdx = m_maxAgents;
 	}
 
-	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;	
-	m_crowdQuery->getProximityGrid()->clear();
-
-	for (int i = 0; i < m_maxAgents; ++i)
-	{
-		dtCrowdAgent* ag = 0;
-
-		if (!getActiveAgent(&ag, i))
-			continue;
-
-		const float* p = ag->position;
-		const float r = ag->radius;
-		m_crowdQuery->getProximityGrid()->addItem((unsigned short)i, p[0]-r, p[2]-r, p[0]+r, p[2]+r);
-	}
+	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
 
 	// Get nearby navmesh segments and agents to collide with.
 	for (unsigned i = 0; i < nbIdx; ++i)
@@ -680,7 +619,7 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 
 		// Update the collision boundary after certain distance has been passed or
 		// if it has become invalid.
-		const float updateThr = m_collisionQueryRange * 0.25f;
+		const float updateThr = ag->perceptionDistance * 0.25f;
 		if (dtVdist2DSqr(ag->position, m_agentsEnv[ag->id].boundary.getCenter()) > dtSqr(updateThr) ||
 			!m_agentsEnv[ag->id].boundary.isValid(m_crowdQuery->getNavMeshQuery(), m_crowdQuery->getQueryFilter()))
 		{
@@ -688,13 +627,11 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 			float nearest[3];
 			m_crowdQuery->getNavMeshQuery()->findNearestPoly(ag->position, m_crowdQuery->getQueryExtents(), m_crowdQuery->getQueryFilter(), &ref, nearest);
 
-			m_agentsEnv[ag->id].boundary.update(ref, ag->position, m_collisionQueryRange, 
+			m_agentsEnv[ag->id].boundary.update(ref, ag->position, ag->perceptionDistance, 
 				m_crowdQuery->getNavMeshQuery(), m_crowdQuery->getQueryFilter());
 		}
 		// Query neighbour agents
-		m_agentsEnv[ag->id].nbNeighbors = getNeighbours(ag->position, ag->height, m_collisionQueryRange,
-			ag, m_agentsEnv[ag->id].neighbors, DT_CROWDAGENT_MAX_NEIGHBOURS,
-			m_agents, m_nbActiveAgents, m_crowdQuery->getProximityGrid());
+		m_agentsEnv[ag->id].nbNeighbors = this->getNeighbors(ag->id);
 
 		for (unsigned j = 0; j < m_agentsEnv[ag->id].nbNeighbors; j++)
 			m_agentsEnv[ag->id].neighbors[j].idx = getAgentIndex(&m_agents[m_agentsEnv[ag->id].neighbors[j].idx]);
@@ -785,16 +722,39 @@ unsigned dtCrowd::getAgents(const unsigned* ids, unsigned size, const dtCrowdAge
 	return m_crowdQuery->getAgents(ids, size, agents);
 }
 
-float dtCrowd::getCollisionRange() const
+unsigned dtCrowd::getNeighbors(unsigned id)
 {
-	return m_collisionQueryRange;
+	unsigned n = 0;
+	const dtCrowdAgent* agent = m_crowdQuery->getAgent(id);
+
+	for (unsigned i = 0; i < m_maxAgents; ++i)
+	{
+		dtCrowdAgent* target = 0;
+
+		if (!getActiveAgent(&target, i) || target->id == agent->id)
+			continue;
+
+		// Check for overlap.
+		float diff[3];
+		dtVsub(diff, agent->position, target->position);
+
+		if (fabsf(diff[1]) > (agent->height + target->height) / 2.f)
+			continue;
+
+		diff[1] = 0;
+		const float dist2D = dtVlenSqr(diff);
+
+		if (dist2D > dtSqr(agent->perceptionDistance))
+			continue;
+
+		n = addNeighbour(target->id, dist2D, m_agentsEnv[agent->id].neighbors, n, DT_CROWDAGENT_MAX_NEIGHBOURS);
+	}
+
+	return n;
 }
 
 dtCrowdQuery::~dtCrowdQuery()
 {
-	dtFreeProximityGrid(m_grid);
-	m_grid = 0;
-
 	dtFreeNavMeshQuery(m_navMeshQuery);
 	m_navMeshQuery = 0;
 }
@@ -805,7 +765,6 @@ dtCrowdQuery::dtCrowdQuery(unsigned maxAgents, const dtCrowdAgent* agents, const
 	m_agentsEnv(env)
 {
 	m_navMeshQuery = dtAllocNavMeshQuery();
-	m_grid = dtAllocProximityGrid();
 }
 
 float* dtCrowdQuery::getQueryExtents() 
@@ -823,11 +782,6 @@ dtQueryFilter* dtCrowdQuery::getQueryFilter()
 	return &m_filter; 
 }
 
-dtProximityGrid* dtCrowdQuery::getProximityGrid() 
-{ 
-	return m_grid; 
-}
-
 const float* dtCrowdQuery::getQueryExtents() const
 { 
 	return m_ext; 
@@ -841,11 +795,6 @@ const dtNavMeshQuery* dtCrowdQuery::getNavMeshQuery() const
 const dtQueryFilter* dtCrowdQuery::getQueryFilter() const
 { 
 	return &m_filter; 
-}
-
-const dtProximityGrid* dtCrowdQuery::getProximityGrid() const
-{ 
-	return m_grid; 
 }
 
 const dtCrowdAgent* dtCrowdQuery::getAgent(const unsigned id) const

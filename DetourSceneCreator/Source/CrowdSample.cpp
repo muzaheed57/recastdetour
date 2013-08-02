@@ -511,7 +511,7 @@ bool CrowdSample::initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMes
     else if (!initializeNavmesh(*scene, navMesh))
         return false;
 
-	crowd->init(m_agentCount, m_maxRadius, navMesh, 4);
+	crowd->init(m_agentCount, m_maxRadius, navMesh);
 	parseCrowd(crowd);
 
     if (!initializeCrowd(crowd))
@@ -607,6 +607,7 @@ bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 		ag.height = m_agentCfgs[i].height;
 		ag.behavior = m_agentCfgs[i].steeringBehavior;
 		ag.updateFlags = m_agentCfgs[i].updateFlags;
+		ag.perceptionDistance = m_agentCfgs[i].collisionQueryRange;
 
 		crowd->applyAgent(ag);
     }

@@ -5,7 +5,6 @@ SET(detourcrowd_SRCS
 	Source/DetourLocalBoundary.cpp
 	Source/DetourPathQueue.cpp
 	Source/DetourCrowd.cpp
-	Source/DetourProximityGrid.cpp
 	Source/DetourCollisionAvoidance.cpp
 	Source/DetourPathFollowing.cpp
 	Source/DetourFlockingBehavior.cpp
@@ -22,7 +21,6 @@ SET(detourcrowd_HDRS
 	Include/DetourPathCorridor.h
 	Include/DetourCrowd.h
 	Include/DetourLocalBoundary.h
-	Include/DetourProximityGrid.h
 	Include/DetourPathQueue.h
 	Include/DetourCollisionAvoidance.h
 	Include/DetourPathFollowing.h
