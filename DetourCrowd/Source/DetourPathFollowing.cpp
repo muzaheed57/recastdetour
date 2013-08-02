@@ -759,7 +759,13 @@ bool dtPathFollowing::overOffmeshConnection(const dtCrowdAgent& ag, const float 
 void dtPathFollowing::doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 	const dtPathFollowingParams& /*currentParams*/, dtPathFollowingParams& newParams, float dt)
 {
-	// Update the corridor
+	// If the corridor isn't initialized, then do it
+	if (!newParams.corridor.getPath() || !newParams.corridor.isSet())
+	{
+		newParams.init(m_maxPathRes);
+		newParams.preparePath(oldAgent.position, query);
+	}
+
 	newParams.corridor.movePosition(oldAgent.position, query.getNavMeshQuery(), query.getQueryFilter());
 	
 	prepare(query, oldAgent, newAgent, dt, newParams);

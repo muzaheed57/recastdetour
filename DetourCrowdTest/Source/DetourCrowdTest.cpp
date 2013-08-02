@@ -134,10 +134,6 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	dtPathFollowing* pf1 = dtPathFollowing::allocate(5);
 	dtPathFollowingParams* 	params = pf1->getBehaviorParams(crowd->getAgent(0)->id);
 	dtPathFollowingParams* params2 = pf1->getBehaviorParams(crowd->getAgent(1)->id);
-	params->init(256);
-	params2->init(256);
-	params->preparePath(crowd->getAgent(0)->position, *crowd->getCrowdQuery());
-	params2->preparePath(crowd->getAgent(1)->position, *crowd->getCrowdQuery());
 
 	pf1->init(*crowd->getCrowdQuery());
 
@@ -287,10 +283,6 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		pf1->init(*crowd->getCrowdQuery());
 		dtPathFollowingParams* params3 = pf1->getBehaviorParams(ag3.id);
 		dtPathFollowingParams* params4 = pf1->getBehaviorParams(ag4.id);
-		params3->init(256);
-		params4->init(256);
-		params3->preparePath(crowd->getAgent(ag3.id)->position, *crowd->getCrowdQuery());
-		params4->preparePath(crowd->getAgent(ag4.id)->position, *crowd->getCrowdQuery());
 
 		crowd->setAgentBehavior(ag3.id, pf1);
 		crowd->setAgentBehavior(ag4.id, pf1);
