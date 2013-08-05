@@ -275,9 +275,6 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		dtPathFollowingParams* pfParams = pf1->getBehaviorParams(crowd->getAgent(ag1.id)->id);
 		dtPathFollowingParams* pfParams2 = pf1->getBehaviorParams(crowd->getAgent(ag2.id)->id);
 
-		// Cannot prepare the path is the corridor hasn't been initialized before
-		REQUIRE_FALSE(pfParams->preparePath(crowd->getAgent(ag1.id)->position, *crowd->getCrowdQuery()));
-
 		// Initializing the path with an incorrect position
 		float wrongPosition[] = {-99, -99, -99};
 

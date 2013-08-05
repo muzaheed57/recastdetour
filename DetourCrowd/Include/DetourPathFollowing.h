@@ -55,6 +55,8 @@ struct dtCrowdAgentDebugInfo
 };
 
 /// Parameters for the path following behavior
+/// The parameters will be automatically initialized when used for the first time by the PathFollowing behavior.
+/// However the user still has the possibility to do it himself. For that he must call the init() method.
 /// @ingroup behavior
 struct dtPathFollowingParams
 {
@@ -92,16 +94,13 @@ struct dtPathFollowingParams
 	///< The path corridor the agent is using.
 	dtPathCorridor corridor;
 
-	/// Initializes the corridor.
+	/// Initializes the parameters.
+	/// The corridor will be initialized according to the given position
 	/// @param[in]	maxPathResult	The maximum number of polygons that can be stored in a corridor.
-	/// @return	True if the initialization was successful, false otherwise
-	bool init(unsigned maxPathResults);
-
-	/// Configure the corridor that is used to represent the path.
-	/// This creates the first polygon of the corridor according to the position of the agent
 	/// @param[in]	position	The position of the agent. Used to determine which polygon it is on.
 	/// @param[in]	query		Used to access the navigation mesh query in order to get the polygon the agent is on.
-	bool preparePath(const float* position, const dtCrowdQuery& query);
+	/// @return	True if the initialization was successful, false otherwise
+	bool init(unsigned maxPathResults, const float* position, const dtCrowdQuery& query);
 };
 
 /// Defines a behavior for pathfollowing.
