@@ -62,10 +62,8 @@ TEST_CASE("DetourPipelineTest/Pipeline", "Tests about the pipeline behavior")
 	// Since no behavior is affected to the pipeline, the agent must not have moved
 	CHECK(dtVequal(agt1NewPos, posAgt1));
 
-	dtPathFollowing* pf = dtPathFollowing::allocate(5);
-	dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(0)->id);
-	pfParams->init(256);
-	pfParams->preparePath(crowd->getAgent(0)->position, *crowd->getCrowdQuery());
+		dtPathFollowing* pf = dtPathFollowing::allocate(5);
+		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(0)->id);
 
 	// Set the destination
 	dtPolyRef dest;

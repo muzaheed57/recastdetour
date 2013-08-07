@@ -200,28 +200,34 @@ may be needed.  E.g. If you move the target, check #getLastPoly() to see if it i
 dtPathCorridor::dtPathCorridor() :
 	m_path(0),
 	m_npath(0),
-	m_maxPath(0)
+	m_maxPath(0),
+	m_isSet(false)
 {
 }
 
 dtPathCorridor::dtPathCorridor(const dtPathCorridor& o) :
 	m_path(0),
 	m_npath(0),
-	m_maxPath(0)
+	m_maxPath(0),
+	m_isSet(false)
 {
-	dtVcopy(m_pos, o.m_pos);
-	dtVcopy(m_target, o.m_target);
+	if (this != &o)
+	{
+		dtVcopy(m_pos, o.m_pos);
+		dtVcopy(m_target, o.m_target);
 
-	m_npath = o.m_npath;
-	m_maxPath = o.m_maxPath;
+		m_npath = o.m_npath;
+		m_maxPath = o.m_maxPath;
+		m_isSet = o.m_isSet;
 
-    if (m_maxPath)
-    {
-        m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
+		if (m_maxPath)
+		{
+			m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
 
-        for (unsigned i = 0; i < m_maxPath; ++i)
-            m_path[i] = o.m_path[i];
-    }
+			for (unsigned i = 0; i < m_maxPath; ++i)
+				m_path[i] = o.m_path[i];
+		}
+	}	
 }
 
 
@@ -234,6 +240,7 @@ dtPathCorridor& dtPathCorridor::operator=(const dtPathCorridor& o)
 
 		m_npath = o.m_npath;
 		m_maxPath = o.m_maxPath;
+		m_isSet = o.m_isSet;
 		
 		if (m_path)
 			dtFree(m_path);
@@ -264,10 +271,13 @@ bool dtPathCorridor::init(const int maxPath)
 {
 	dtAssert(!m_path);
 	m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef)*maxPath, DT_ALLOC_PERM);
+
 	if (!m_path)
 		return false;
+
 	m_npath = 0;
 	m_maxPath = maxPath;
+
 	return true;
 }
 
@@ -282,6 +292,7 @@ void dtPathCorridor::reset(dtPolyRef ref, const float* pos)
 	dtVcopy(m_target, pos);
 	m_path[0] = ref;
 	m_npath = 1;
+	m_isSet = true;
 }
 
 /**
@@ -556,6 +567,7 @@ void dtPathCorridor::setCorridor(const float* target, const dtPolyRef* path, con
 	dtVcopy(m_target, target);
 	memcpy(m_path, path, sizeof(dtPolyRef)*npath);
 	m_npath = npath;
+	m_isSet = true;
 }
 
 bool dtPathCorridor::fixPathStart(dtPolyRef safeRef, const float* safePos)

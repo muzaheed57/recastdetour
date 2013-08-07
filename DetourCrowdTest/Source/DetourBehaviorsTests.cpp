@@ -100,8 +100,6 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		REQUIRE(crowd->addAgent(ag5, posLeader));
 
 		dtPathFollowingParams* pfParams = pf->getBehaviorParams(crowd->getAgent(4)->id);
-		pfParams->init(256);
-		pfParams->preparePath(crowd->getAgent(4)->position, *crowd->getCrowdQuery());
 
 		dtFlockingBehaviorParams* flockParams = flocking->getBehaviorParams(crowd->getAgent(0)->id);
 		dtFlockingBehaviorParams* flockParams2 = flocking->getBehaviorParams(crowd->getAgent(1)->id);
@@ -277,18 +275,8 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		dtPathFollowingParams* pfParams = pf1->getBehaviorParams(crowd->getAgent(ag1.id)->id);
 		dtPathFollowingParams* pfParams2 = pf1->getBehaviorParams(crowd->getAgent(ag2.id)->id);
 
-		// Cannot prepare the path is the corridor hasn't been initialized before
-		REQUIRE_FALSE(pfParams->preparePath(crowd->getAgent(ag1.id)->position, *crowd->getCrowdQuery()));
-
-		REQUIRE(pfParams->init(256));
-		REQUIRE(pfParams2->init(256));
-
 		// Initializing the path with an incorrect position
 		float wrongPosition[] = {-99, -99, -99};
-		REQUIRE_FALSE(pfParams->preparePath(wrongPosition, *crowd->getCrowdQuery()));
-
-		REQUIRE(pfParams->preparePath(crowd->getAgent(ag1.id)->position, *crowd->getCrowdQuery()));
-		REQUIRE(pfParams2->preparePath(crowd->getAgent(ag2.id)->position, *crowd->getCrowdQuery()));
 
 		crowd->setAgentBehavior(ag1.id, pf1);
 		crowd->setAgentBehavior(ag2.id, pf1);
@@ -336,10 +324,6 @@ TEST_CASE("DetourBehaviorsTests/CustomBehavior", "Test whether the custom behavi
 		dtPathFollowing* pf1 = dtPathFollowing::allocate(2);
 		dtPathFollowingParams* pfParams = pf1->getBehaviorParams(crowd->getAgent(ag2.id)->id);
 		dtPathFollowingParams* pfParams2 = pf1->getBehaviorParams(crowd->getAgent(ag3.id)->id);
-		pfParams->init(256);
-		pfParams2->init(256);
-		pfParams->preparePath(crowd->getAgent(ag2.id)->position, *crowd->getCrowdQuery());
-		pfParams2->preparePath(crowd->getAgent(ag3.id)->position, *crowd->getCrowdQuery());
 
 		pf1->init(*crowd->getCrowdQuery());
 		

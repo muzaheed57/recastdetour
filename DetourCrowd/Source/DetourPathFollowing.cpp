@@ -759,7 +759,10 @@ bool dtPathFollowing::overOffmeshConnection(const dtCrowdAgent& ag, const float 
 void dtPathFollowing::doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 	const dtPathFollowingParams& /*currentParams*/, dtPathFollowingParams& newParams, float dt)
 {
-	// Update the corridor
+	// If the corridor isn't initialized, then do it
+	if (!newParams.corridor.getPath() || !newParams.corridor.isSet())
+		newParams.init(m_maxPathRes, oldAgent.position, query);
+
 	newParams.corridor.movePosition(oldAgent.position, query.getNavMeshQuery(), query.getQueryFilter());
 	
 	prepare(query, oldAgent, newAgent, dt, newParams);
@@ -797,9 +800,9 @@ dtPathFollowingParams::dtPathFollowingParams()
 {
 }
 
-bool dtPathFollowingParams::preparePath(const float* position, const dtCrowdQuery& query)
+bool dtPathFollowingParams::init( unsigned maxPathResults, const float* position, const dtCrowdQuery& query )
 {
-	if (!corridor.getPath())
+	if (!corridor.init(maxPathResults))
 		return false;
 
 	dtPolyRef dest;
@@ -813,9 +816,4 @@ bool dtPathFollowingParams::preparePath(const float* position, const dtCrowdQuer
 	corridor.reset(dest, nearest);
 
 	return true;
-}
-
-bool dtPathFollowingParams::init(unsigned maxPathResults)
-{
-	return corridor.init(maxPathResults);
 }

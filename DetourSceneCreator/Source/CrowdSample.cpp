@@ -278,8 +278,6 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 
 		if (params)
 		{
-			params->init(256);
-			params->preparePath(m_agentCfgs[iAgent].position, *crowd->getCrowdQuery());
 			params->debugInfos = 0;
 			params->debugIndex = iAgent;
 		}
