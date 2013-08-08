@@ -404,7 +404,7 @@ void dtCrowd::updateVelocity(const float dt, unsigned* agentsIdx, unsigned nbIdx
 
 		if (ds > maxDelta)
 			dtVscale(dv, dv, maxDelta/ds);
-
+		
 		dtVadd(ag->velocity, ag->velocity, dv);
 	}
 }
@@ -560,11 +560,12 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-		if (ag->state == DT_CROWDAGENT_STATE_OFFMESH && ag->offmeshTotalTime > EPSILON)
+		float offmeshTotalTime = ag->offmeshInitToStartTime + ag->offmeshStartToEndTime;
+		if (ag->state == DT_CROWDAGENT_STATE_OFFMESH && offmeshTotalTime > EPSILON)
 		{
 			ag->offmeshElaspedTime += dt;
 
-			if (ag->offmeshElaspedTime > ag->offmeshTotalTime)
+			if (ag->offmeshElaspedTime > offmeshTotalTime)
 			{
 				// Prepare agent for walking.
 				ag->state = DT_CROWDAGENT_STATE_WALKING;
@@ -572,16 +573,14 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 			}
 
 			// Update position
-			const float ta = ag->offmeshTotalTime * 0.15f;
-			const float tb = ag->offmeshTotalTime;
-			if (ag->offmeshElaspedTime < ta)
+			if (ag->offmeshElaspedTime < ag->offmeshInitToStartTime)
 			{
-				const float u = tween(ag->offmeshTotalTime, 0.0, ta);
+				const float u = tween(ag->offmeshElaspedTime, 0.0, ag->offmeshInitToStartTime);
 				dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
 			}
 			else
 			{
-				const float u = tween(ag->offmeshTotalTime, ta, tb);
+				const float u = tween(ag->offmeshElaspedTime, ag->offmeshInitToStartTime, ag->offmeshStartToEndTime);
 				dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
 			}
 
@@ -905,7 +904,8 @@ void dtCrowdQuery::startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConne
 	dtVcopy(ag.offmeshEndPos, connection.pos + 3);
 
 	ag.offmeshElaspedTime = 0.f;
-	ag.offmeshTotalTime = (dtVdist2D(ag.offmeshStartPos, ag.offmeshEndPos) / ag.maxSpeed) * 0.5f;
+	ag.offmeshStartToEndTime = (dtVdist2D(ag.offmeshStartPos, ag.offmeshEndPos) / ag.maxSpeed);
+	ag.offmeshInitToStartTime = (dtVdist2D(ag.offmeshInitPos, ag.offmeshStartPos) / ag.maxSpeed);
 
 	ag.state = DT_CROWDAGENT_STATE_OFFMESH;
 }

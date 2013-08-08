@@ -120,7 +120,7 @@ SCENARIO("DetourCrowdTest/OffMeshConnections", "[OffMesh] Check if the agents kn
 
 			THEN("After several updates it reaches the other side")
 			{
-				for (unsigned i = 0; i < 20; ++i)
+				for (unsigned i = 0; i < 100; ++i)
 					crowd->updatePosition(0.1f);
 
 				crowd->fetchAgent(ag, ag.id);
