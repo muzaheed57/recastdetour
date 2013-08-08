@@ -93,9 +93,9 @@ struct dtCrowdAgent
 
 	float offmeshInitPos[3];
 	float offmeshStartPos[3];
-	float offmeshEndPos[3];			///< initial, starting and ending position of the animation
-	float offmeshElaspedTime;		///< Elapsed time of the animation
-	float offmeshTotalTime;			///< Maximum duration of the animation
+	float offmeshEndPos[3];		///< initial, starting and ending position of the animation
+	float offmeshElaspedTime;	///< Elapsed time of the animation
+	float offmeshTotalTime;		///< Maximum duration of the animation
 
 	void* userData;				///< User defined data attached to the agent.
 };
@@ -167,6 +167,11 @@ public:
 	/// @return 0 if no offMesh connection have been detected. Otherwise returns the offMesh connection
 	dtOffMeshConnection* getOffMeshConnection(unsigned id, float dist = 0.f) const;
 	/// @}
+
+	/// Makes the given agent start using the given offmesh connection.
+	/// @param[in]	ag			The given agent
+	/// @param[in]	connection	The offMesh connection to use
+	void startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConnection& connection) const;
 
 private:
 	float m_ext[3];								///< The query filters used for navigation queries.

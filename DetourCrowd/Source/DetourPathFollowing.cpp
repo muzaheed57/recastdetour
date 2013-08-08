@@ -183,17 +183,15 @@ void dtPathFollowing::triggerOffMeshConnections(const dtCrowdQuery& query, const
 	const float triggerRadius = oldAgent.radius * 2.25f;
 	if (overOffmeshConnection(oldAgent, triggerRadius, agParams))
 	{
+		dtOffMeshConnection* connection = query.getOffMeshConnection(newAgent.id, newAgent.radius);
+
 		// Adjust the path over the off-mesh connection.
 		dtPolyRef refs[2];
-		if (agParams->corridor.moveOverOffmeshConnection(agParams->cornerPolys[agParams->ncorners-1], refs,
+		if (connection && agParams->corridor.moveOverOffmeshConnection(agParams->cornerPolys[agParams->ncorners-1], refs,
 			newAgent.offmeshStartPos, newAgent.offmeshEndPos, query.getNavMeshQuery()))
 		{
-			dtVcopy(newAgent.offmeshInitPos, oldAgent.position);
+			query.startOffMeshConnection(newAgent, *connection);
 
-			newAgent.offmeshElaspedTime = 0.0f;
-			newAgent.offmeshTotalTime = (dtVdist2D(newAgent.offmeshStartPos, newAgent.offmeshEndPos) / oldAgent.maxSpeed) * 0.5f;
-
-			newAgent.state = DT_CROWDAGENT_STATE_OFFMESH;
 			agParams->ncorners = 0;
 			return;
 		}

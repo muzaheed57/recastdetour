@@ -898,6 +898,18 @@ dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist)
 	return 0;
 }
 
+void dtCrowdQuery::startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConnection& connection) const
+{
+	dtVcopy(ag.offmeshInitPos, ag.position);
+	dtVcopy(ag.offmeshStartPos, connection.pos);
+	dtVcopy(ag.offmeshEndPos, connection.pos + 3);
+
+	ag.offmeshElaspedTime = 0.f;
+	ag.offmeshTotalTime = (dtVdist2D(ag.offmeshStartPos, ag.offmeshEndPos) / ag.maxSpeed) * 0.5f;
+
+	ag.state = DT_CROWDAGENT_STATE_OFFMESH;
+}
+
 dtCrowdAgentEnvironment::dtCrowdAgentEnvironment() 
 	: nbNeighbors(0) 
 {

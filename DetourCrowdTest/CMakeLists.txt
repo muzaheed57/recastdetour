@@ -24,6 +24,7 @@ SET(
   Source/DetourCrowdTestUtils.cpp
   Source/DetourPipelineTest.cpp
   Source/DetourBehaviorsTests.cpp
+  Source/DetourOffMeshConnectionsTest.cpp
   )
   
 SET(
