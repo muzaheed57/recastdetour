@@ -580,7 +580,7 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 			}
 			else
 			{
-				const float u = tween(ag->offmeshElaspedTime, ag->offmeshInitToStartTime, ag->offmeshStartToEndTime);
+				const float u = tween(ag->offmeshElaspedTime, ag->offmeshInitToStartTime, offmeshTotalTime);
 				dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
 			}
 
@@ -859,8 +859,8 @@ dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist)
 	if (!agentPolyRef)
 		return 0;
 
-	const dtPoly poly;
-	const dtMeshTile tile;
+	dtPoly poly;
+	dtMeshTile tile;
 	const dtPoly* ptrPoly = &poly;
 	const dtMeshTile* ptrTile = &tile;
 
