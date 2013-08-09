@@ -859,18 +859,22 @@ dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist)
 	if (!agentPolyRef)
 		return 0;
 
-	dtPoly* poly = new dtPoly;
-	dtMeshTile* tile = new dtMeshTile;
+	const dtPoly poly;
+	const dtMeshTile tile;
+	const dtPoly* ptrPoly = &poly;
+	const dtMeshTile* ptrTile = &tile;
 
 	// Get the tile the agent is on
-	if (dtStatusFailed(m_navMeshQuery->getAttachedNavMesh()->getTileAndPolyByRef(agentPolyRef, (const dtMeshTile**)&tile, (const dtPoly**)&poly)))
+	if (dtStatusFailed(m_navMeshQuery->getAttachedNavMesh()->getTileAndPolyByRef(agentPolyRef, 
+																				(const dtMeshTile**)(&ptrTile), 
+																				(const dtPoly**)(&ptrPoly))))
 		return 0;
 
-	if (tile->header->offMeshConCount <= 0)
+	if (ptrTile->header->offMeshConCount <= 0)
 		return 0;
 
-	unsigned nbOffMeshConnections = tile->header->offMeshConCount;
-	dtOffMeshConnection* offMeshConnections = tile->offMeshCons;
+	unsigned nbOffMeshConnections = ptrTile->header->offMeshConCount;
+	dtOffMeshConnection* offMeshConnections = ptrTile->offMeshCons;
 
 	// For every offMesh connections located in this tile
 	for (unsigned i = 0; i < nbOffMeshConnections; ++i)
