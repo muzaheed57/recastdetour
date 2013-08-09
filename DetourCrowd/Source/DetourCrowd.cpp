@@ -404,7 +404,7 @@ void dtCrowd::updateVelocity(const float dt, unsigned* agentsIdx, unsigned nbIdx
 
 		if (ds > maxDelta)
 			dtVscale(dv, dv, maxDelta/ds);
-
+		
 		dtVadd(ag->velocity, ag->velocity, dv);
 	}
 }
@@ -560,32 +560,34 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-
-		ag->offmeshElaspedTime += dt;
-		if (ag->offmeshElaspedTime > ag->offmeshTotalTime)
+		float offmeshTotalTime = ag->offmeshInitToStartTime + ag->offmeshStartToEndTime;
+		if (ag->state == DT_CROWDAGENT_STATE_OFFMESH && offmeshTotalTime > EPSILON)
 		{
-			// Prepare agent for walking.
-			ag->state = DT_CROWDAGENT_STATE_WALKING;
-			continue;
-		}
+			ag->offmeshElaspedTime += dt;
 
-		// Update position
-		const float ta = ag->offmeshTotalTime * 0.15f;
-		const float tb = ag->offmeshTotalTime;
-		if (ag->offmeshElaspedTime < ta)
-		{
-			const float u = tween(ag->offmeshTotalTime, 0.0, ta);
-			dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
-		}
-		else
-		{
-			const float u = tween(ag->offmeshTotalTime, ta, tb);
-			dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
-		}
+			if (ag->offmeshElaspedTime > offmeshTotalTime)
+			{
+				// Prepare agent for walking.
+				ag->state = DT_CROWDAGENT_STATE_WALKING;
+				continue;
+			}
 
-		// Update velocity.
-		dtVset(ag->velocity, 0,0,0);
-		dtVset(ag->desiredVelocity, 0,0,0);
+			// Update position
+			if (ag->offmeshElaspedTime < ag->offmeshInitToStartTime)
+			{
+				const float u = tween(ag->offmeshElaspedTime, 0.0, ag->offmeshInitToStartTime);
+				dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
+			}
+			else
+			{
+				const float u = tween(ag->offmeshElaspedTime, ag->offmeshInitToStartTime, offmeshTotalTime);
+				dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
+			}
+
+			// Update velocity.
+			dtVset(ag->velocity, 0,0,0);
+			dtVset(ag->desiredVelocity, 0,0,0);
+		}
 	}
 
 	dtFree(currentPosPoly);
@@ -839,6 +841,77 @@ const dtCrowdAgentEnvironment* dtCrowdQuery::getAgentEnvironment(unsigned id) co
 		return &m_agentsEnv[id];
 
 	return 0;
+}
+
+dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist) const
+{
+	// Check validity of the ID
+	if (id >= m_maxAgents || dist < 0.f)
+		return 0;
+
+	const dtCrowdAgent ag = *getAgent(id);
+	dtPolyRef agentPolyRef;
+	float nearest[3];
+
+	// Get the polygon reference the agent is on
+	m_navMeshQuery->findNearestPoly(ag.position, m_ext, &m_filter, &agentPolyRef, nearest);
+
+	if (!agentPolyRef)
+		return 0;
+
+	dtPoly poly;
+	dtMeshTile tile;
+	const dtPoly* ptrPoly = &poly;
+	const dtMeshTile* ptrTile = &tile;
+
+	// Get the tile the agent is on
+	if (dtStatusFailed(m_navMeshQuery->getAttachedNavMesh()->getTileAndPolyByRef(agentPolyRef, 
+																				(const dtMeshTile**)(&ptrTile), 
+																				(const dtPoly**)(&ptrPoly))))
+		return 0;
+
+	if (ptrTile->header->offMeshConCount <= 0)
+		return 0;
+
+	unsigned nbOffMeshConnections = ptrTile->header->offMeshConCount;
+	dtOffMeshConnection* offMeshConnections = ptrTile->offMeshCons;
+
+	// For every offMesh connections located in this tile
+	for (unsigned i = 0; i < nbOffMeshConnections; ++i)
+	{
+		dtPolyRef polysIDs[256];
+		int nbPolys = 0;
+		dtOffMeshConnection& offMeshCo = offMeshConnections[i];
+
+		// Find every polygons reached by the offMesh connection and its radius
+		if (dtStatusFailed(m_navMeshQuery->findPolysAroundCircle(agentPolyRef, offMeshCo.pos, offMeshCo.rad, &m_filter, polysIDs, 0, 0, &nbPolys, 256)))
+			continue;
+
+		if (nbPolys <= 0)
+			continue;
+
+		// For every polygons touched by the offMesh connection, we check if one of them is the one the agent is on.
+		// If so, we check the distance from the agent to the center of the offMesh connection (taking into account the extra distance)
+		for (int j = 0; j < nbPolys; ++j)
+			if (polysIDs[j] == agentPolyRef)
+				if (dtVdist(ag.position, offMeshCo.pos) < offMeshCo.rad + dist)
+					return &offMeshCo;
+	}
+
+	return 0;
+}
+
+void dtCrowdQuery::startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConnection& connection) const
+{
+	dtVcopy(ag.offmeshInitPos, ag.position);
+	dtVcopy(ag.offmeshStartPos, connection.pos);
+	dtVcopy(ag.offmeshEndPos, connection.pos + 3);
+
+	ag.offmeshElaspedTime = 0.f;
+	ag.offmeshStartToEndTime = (dtVdist2D(ag.offmeshStartPos, ag.offmeshEndPos) / ag.maxSpeed);
+	ag.offmeshInitToStartTime = (dtVdist2D(ag.offmeshInitPos, ag.offmeshStartPos) / ag.maxSpeed);
+
+	ag.state = DT_CROWDAGENT_STATE_OFFMESH;
 }
 
 dtCrowdAgentEnvironment::dtCrowdAgentEnvironment() 

@@ -18,6 +18,7 @@
 
 #include "DetourCrowdTestUtils.h"
 
+
 TestScene::TestScene()
 	: m_crowd(0)
 {
@@ -78,3 +79,9 @@ bool TestScene::defaultInitializeAgent(dtCrowd& crowd, int index) const
 
 	return true;
 }
+
+OffMeshConnectionCreator* TestScene::getOffMeshCreator()
+{
+	return &m_cs.m_creator.m_offMeshConnectionCreator;
+}
+

@@ -25,6 +25,8 @@
 #include <DetourCrowd.h>
 #include <DetourFlockingBehavior.h>
 
+#include "NavMeshCreator.h"
+
 #include <map>
 #include <vector>
 #include <string>
@@ -81,6 +83,7 @@ public:
 	rcContext* m_context;
 	char m_sceneFileName[maxPathLen];
 	float m_maxRadius;
+	NavMeshCreator m_creator;
     
 private:
 	void parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd* crowd, bool pipeline);

@@ -22,6 +22,7 @@
 #include "DetourPathFollowing.h"
 #include "DetourSeekBehavior.h"
 
+
 #define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
 
 #ifdef _MSC_VER
@@ -147,6 +148,16 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 
 	pf1->requestMoveTarget(ag1.id, dest1, destAgt1);
 	pf1->requestMoveTarget(ag2.id, dest2, destAgt2);
+
+	SECTION("Error Case, dt is nil", "Updating the crowd with a dt equals to 0")
+	{
+		crowd->update(0.f);
+
+		CHECK(crowd->getAgent(ag1.id)->position[0] == posAgt1[0]);
+		CHECK(crowd->getAgent(ag1.id)->position[2] == posAgt1[2]);
+		CHECK(crowd->getAgent(ag2.id)->position[0] == posAgt2[0]);
+		CHECK(crowd->getAgent(ag2.id)->position[2] == posAgt2[2]);
+	}
 
 	SECTION("Edit Agents", "Acessing and modifying agents through the dtCrowd interface")
 	{

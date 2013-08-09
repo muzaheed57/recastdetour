@@ -73,15 +73,15 @@ struct dtCrowdAgentEnvironment
 /// @ingroup crowd
 struct dtCrowdAgent
 {	
-	unsigned id;				///< Unique identifier of the agent
-	unsigned char active;		///< 1 if the agent is active, or 0 if the agent is in an unused slot in the agent pool.
-	unsigned char state;		///< The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
+	unsigned id;					///< Unique identifier of the agent
+	unsigned char active;			///< 1 if the agent is active, or 0 if the agent is in an unused slot in the agent pool.
+	unsigned char state;			///< The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
 	
-	float position[3];			///< The current agent position. [(x, y, z)]
-	float desiredVelocity[3];	///< The desired velocity of the agent. [(x, y, z)]
-	float velocity[3];			///< The actual velocity of the agent. [(x, y, z)]
+	float position[3];				///< The current agent position. [(x, y, z)]
+	float desiredVelocity[3];		///< The desired velocity of the agent. [(x, y, z)]
+	float velocity[3];				///< The actual velocity of the agent. [(x, y, z)]
 			
-	dtBehavior* behavior;		///< The behavior used by the agent
+	dtBehavior* behavior;			///< The behavior used by the agent
 
 	float radius;				///< Agent radius. [Limit: >= 0]
 	float height;				///< Agent height. [Limit: > 0]
@@ -89,15 +89,16 @@ struct dtCrowdAgent
 	float maxSpeed;				///< Maximum allowed speed. [Limit: >= 0]
 	float perceptionDistance;	///< 2D distance defining how close a collision element must be before it is considered as an obstacle (Must be greater than 0)
 
-	unsigned char updateFlags;	///< Flags that impact steering behavior. (See: #UpdateFlags)
+	unsigned char updateFlags;		///< Flags that impact steering behavior. (See: #UpdateFlags)
 
 	float offmeshInitPos[3];
 	float offmeshStartPos[3];
 	float offmeshEndPos[3];			///< initial, starting and ending position of the animation
 	float offmeshElaspedTime;		///< Elapsed time of the animation
-	float offmeshTotalTime;			///< Maximum duration of the animation
+	float offmeshInitToStartTime;	///< How to join the start of the connection?
+	float offmeshStartToEndTime;	///< How long to cross the connection?
 
-	void* userData;				///< User defined data attached to the agent.
+	void* userData;					///< User defined data attached to the agent.
 };
 
 /// Crowd agent update flags.
@@ -158,7 +159,20 @@ public:
 	/// @param[in]	id	The id of the agent
 	/// @return Returns the environment of the given agent
 	const dtCrowdAgentEnvironment* getAgentEnvironment(unsigned id) const;
+
+	/// Get the offMesh connection the agent is on or close to.
+	/// The user can specify an additional distance if he wants to know if an offMesh connection
+	/// is located at a certain distance of the agent.
+	/// @param[in]	id		The id of the agent
+	/// @param[in]	dist	The additional distance
+	/// @return 0 if no offMesh connection have been detected. Otherwise returns the offMesh connection
+	dtOffMeshConnection* getOffMeshConnection(unsigned id, float dist = 0.f) const;
 	/// @}
+
+	/// Makes the given agent start using the given offmesh connection.
+	/// @param[in]	ag			The given agent
+	/// @param[in]	connection	The offMesh connection to use
+	void startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConnection& connection) const;
 
 private:
 	float m_ext[3];								///< The query filters used for navigation queries.

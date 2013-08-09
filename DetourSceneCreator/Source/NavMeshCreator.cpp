@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cstring>
 
+
 void NavMeshCreator::initParameters()
 {
     m_voxelSize = 0.1f;
@@ -215,13 +216,15 @@ void NavMeshCreator::computeNavMesh()
         m_intermediateNavMeshCreateParams->detailVertsCount = m_intermediatePolyMeshDetail->nverts;
         m_intermediateNavMeshCreateParams->detailTris = m_intermediatePolyMeshDetail->tris;
         m_intermediateNavMeshCreateParams->detailTriCount = m_intermediatePolyMeshDetail->ntris;
-        m_intermediateNavMeshCreateParams->offMeshConVerts = 0;
-        m_intermediateNavMeshCreateParams->offMeshConRad = 0;
-        m_intermediateNavMeshCreateParams->offMeshConDir = 0;
-        m_intermediateNavMeshCreateParams->offMeshConAreas = 0;
-        m_intermediateNavMeshCreateParams->offMeshConFlags = 0;
-        m_intermediateNavMeshCreateParams->offMeshConUserID = 0;
-        m_intermediateNavMeshCreateParams->offMeshConCount = 0;
+
+        m_intermediateNavMeshCreateParams->offMeshConVerts = m_offMeshConnectionCreator.vert;
+        m_intermediateNavMeshCreateParams->offMeshConRad = m_offMeshConnectionCreator.radius;
+        m_intermediateNavMeshCreateParams->offMeshConDir = m_offMeshConnectionCreator.bidir;
+        m_intermediateNavMeshCreateParams->offMeshConAreas = m_offMeshConnectionCreator.areas;
+        m_intermediateNavMeshCreateParams->offMeshConFlags = m_offMeshConnectionCreator.flags;
+        m_intermediateNavMeshCreateParams->offMeshConUserID = m_offMeshConnectionCreator.ids;
+        m_intermediateNavMeshCreateParams->offMeshConCount = m_offMeshConnectionCreator.count;
+
         m_intermediateNavMeshCreateParams->walkableHeight = m_minimumCeilingClearance;
         m_intermediateNavMeshCreateParams->walkableRadius = m_minimumObstacleClearance;
         m_intermediateNavMeshCreateParams->walkableClimb = m_maximumStepHeight;
@@ -308,4 +311,16 @@ void NavMeshCreator::freeIntermediateResults()
     
     rcFreePolyMeshDetail(m_intermediatePolyMeshDetail);
     m_intermediatePolyMeshDetail = 0;
+}
+
+OffMeshConnectionCreator::OffMeshConnectionCreator()
+{
+	memset(vert, 0, sizeof(float) * 6 * 100);
+	memset(radius, 0, sizeof(float) * 100);
+	memset(bidir, 0, sizeof(unsigned char) * 100);
+	memset(areas, 0, sizeof(unsigned char) * 100);
+	memset(flags, 0, sizeof(unsigned short) * 100);
+	memset(ids, 0, sizeof(unsigned) * 100);
+
+	count = 0;
 }
