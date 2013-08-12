@@ -224,7 +224,7 @@ dtPathCorridor::dtPathCorridor(const dtPathCorridor& o) :
 		{
 			m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
 
-			for (unsigned i = 0; i < m_maxPath; ++i)
+			for (int i = 0; i < m_maxPath; ++i)
 				m_path[i] = o.m_path[i];
 		}
 	}	
@@ -251,7 +251,7 @@ dtPathCorridor& dtPathCorridor::operator=(const dtPathCorridor& o)
 		{
 			m_path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPath, DT_ALLOC_PERM);
 
-			for (unsigned i = 0; i < m_maxPath; ++i)
+			for (int i = 0; i < m_maxPath; ++i)
 				m_path[i] = o.m_path[i];
 		}
 	}

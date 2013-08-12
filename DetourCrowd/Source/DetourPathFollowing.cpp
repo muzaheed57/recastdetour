@@ -228,7 +228,7 @@ void dtPathFollowing::getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrow
 		agParams.corridor.optimizePathVisibility(target, pathOptRange, crowdQuery.getNavMeshQuery(), crowdQuery.getQueryFilter());
 
 		// Copy data for debug purposes.
-		if (debugIdx == this->getBehaviorParams(ag.id)->debugIndex)
+		if (debugIdx == static_cast<int>(this->getBehaviorParams(ag.id)->debugIndex))
 		{
 			dtVcopy(debug->optStart, agParams.corridor.getPos());
 			dtVcopy(debug->optEnd, target);
@@ -237,7 +237,7 @@ void dtPathFollowing::getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrow
 	else
 	{
 		// Copy data for debug purposes.
-		if (debugIdx == getBehaviorParams(ag.id)->debugIndex)
+		if (debugIdx == static_cast<int>(getBehaviorParams(ag.id)->debugIndex))
 		{
 			dtVset(debug->optStart, 0,0,0);
 			dtVset(debug->optEnd, 0,0,0);
@@ -278,7 +278,7 @@ int dtPathFollowing::addToOptQueue(const dtCrowdAgent& newag, dtCrowdAgent** age
 		return 0;
 
 	// Insert neighbour based on greatest time.
-	int slot = 0;
+	unsigned slot = 0;
 	if (!nagents)
 	{
 		slot = nagents;
@@ -291,7 +291,7 @@ int dtPathFollowing::addToOptQueue(const dtCrowdAgent& newag, dtCrowdAgent** age
 	}
 	else
 	{
-		int i;
+		unsigned i;
 		for (i = 0; i < nagents; ++i)
 		{
 			dtPathFollowingParams* pfParams = getBehaviorParams(agents[i]->id);
@@ -302,8 +302,8 @@ int dtPathFollowing::addToOptQueue(const dtCrowdAgent& newag, dtCrowdAgent** age
 				break;
 		}
 
-		const int tgt = i+1;
-		const int n = dtMin(nagents-i, maxAgents-tgt);
+		const unsigned tgt = i+1;
+		const unsigned n = dtMin(nagents-i, maxAgents-tgt);
 
 		dtAssert(tgt+n <= maxAgents);
 
@@ -642,7 +642,7 @@ void dtPathFollowing::updateMoveRequest(const dtCrowdQuery& crowdQuery, const dt
 					if (npath > 1)
 					{
 						// Make space for the old path.
-						if ((npath-1)+nres > m_maxPathRes)
+						if ((npath-1)+nres > static_cast<int>(m_maxPathRes))
 							nres = m_maxPathRes - (npath-1);
 
 						memmove(res+npath-1, res, sizeof(dtPolyRef)*nres);
@@ -705,7 +705,7 @@ int dtPathFollowing::addToPathQueue(const dtCrowdAgent& newag, dtCrowdAgent** ag
 		return 0;
 
 	// Insert neighbour based on greatest time.
-	int slot = 0;
+	unsigned slot = 0;
 	if (!nagents)
 	{
 		slot = nagents;
@@ -718,13 +718,13 @@ int dtPathFollowing::addToPathQueue(const dtCrowdAgent& newag, dtCrowdAgent** ag
 	}
 	else
 	{
-		int i;
+		unsigned i;
 		for (i = 0; i < nagents; ++i)
 			if (pfParams->targetReplanTime >= getBehaviorParams(agents[i]->id)->targetReplanTime)
 				break;
 
-		const int tgt = i+1;
-		const int n = dtMin(nagents-i, maxAgents-tgt);
+		const unsigned tgt = i+1;
+		const unsigned n = dtMin(nagents-i, maxAgents-tgt);
 
 		dtAssert(tgt+n <= maxAgents);
 

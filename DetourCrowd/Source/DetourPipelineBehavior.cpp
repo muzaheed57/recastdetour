@@ -22,7 +22,7 @@
 #include "DetourCrowd.h"
 
 #include <new>
-
+#include <string.h>
 
 dtPipelineBehavior::dtPipelineBehavior()
 	: dtBehavior()

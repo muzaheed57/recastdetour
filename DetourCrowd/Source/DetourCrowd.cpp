@@ -340,7 +340,7 @@ void dtCrowd::removeAgent(unsigned id)
 
 unsigned dtCrowd::getActiveAgents(const dtCrowdAgent** agents, const unsigned maxAgents)
 {
-	int n = 0;
+	unsigned n = 0;
 	for (unsigned i = 0; i < m_maxAgents; ++i)
 	{
 		if (!m_agents[i].active) continue;
@@ -352,7 +352,7 @@ unsigned dtCrowd::getActiveAgents(const dtCrowdAgent** agents, const unsigned ma
 
 bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
 {
-	if (id >= 0 && id < m_maxAgents)
+	if (id >= 0 && id < static_cast<unsigned>(m_maxAgents))
 	{
 		if (m_agents[id].active)
 		{

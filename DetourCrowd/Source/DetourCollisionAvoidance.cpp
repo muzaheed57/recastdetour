@@ -116,7 +116,7 @@ void dtCollisionAvoidance::addObtacles(const dtCrowdAgent& ag, const dtCrowdQuer
 	const dtCrowdAgentEnvironment* agEnv = query.getAgentEnvironment(ag.id);
 
 	// Add neighbours as obstacles.
-	for (int j = 0; j < agEnv->nbNeighbors; ++j)
+	for (unsigned j = 0; j < agEnv->nbNeighbors; ++j)
 	{
 		const dtCrowdAgent& nei = *query.getAgent(agEnv->neighbors[j].idx);
 		addCircle(nei.position, nei.radius, nei.velocity, nei.desiredVelocity);
