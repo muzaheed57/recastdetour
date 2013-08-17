@@ -72,17 +72,22 @@ TARGET_LINK_LIBRARIES(
   )
 
 ADD_TEST(
-  NAME DetourCrowdTest
+  NAME DetourCrowd
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest DetourCrowdTest/*)
+  COMMAND $<TARGET_FILE:DetourCrowdTest> DetourCrowdTest/*)
 
 ADD_TEST(
-  NAME DetourBehaviorsTest 
+  NAME DetourBehavior
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest DetourBehaviorsTests/*)
+  COMMAND $<TARGET_FILE:DetourCrowdTest> DetourBehaviorsTests/*)
 
 ADD_TEST(
-  NAME DetourPipelineTest 
+  NAME DetourPipelineBehavior
   WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
-  COMMAND DetourCrowdTest DetourPipelineTest/*)
+  COMMAND $<TARGET_FILE:DetourCrowdTest> DetourPipelineTest/*)
+
+ADD_TEST(
+  NAME OffMeshConnections
+  WORKING_DIRECTORY ${DETOURCROWDTEST_BIN_DIR}
+  COMMAND $<TARGET_FILE:DetourCrowdTest> [offmesh])
 

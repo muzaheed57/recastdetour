@@ -31,7 +31,7 @@
 #endif
 
 
-SCENARIO("DetourCrowdTest/OffMeshConnections", "[OffMesh] Check if the agents know when they are walking on offMesh connections or using them")
+SCENARIO("DetourCrowdTest/OffMeshConnections", "[offmesh] Check if the agents know when they are walking on offMesh connections or using them")
 {
 	GIVEN("An offMesh connection at (0, 0, 0) with a radius of 1")
 	{
