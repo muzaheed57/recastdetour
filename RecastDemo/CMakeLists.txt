@@ -95,10 +95,12 @@ IF(BUILD_RECAST_DEMO)
 		${SDL_INCLUDE_DIR}
 	)
 
-	IF(XCODE)
+	IF(APPLE)
 		ADD_EXECUTABLE(RecastDemo MACOSX_BUNDLE Source/SDLMain.m Include/SDLMain.h ${recastdemo_SRCS} ${recastdemo_HDRS})
-	ELSE()
+	ELSEIF(MSVC)
 		ADD_EXECUTABLE(RecastDemo WIN32 ${recastdemo_SRCS} ${recastdemo_HDRS})
+	ELSE()
+		ADD_EXECUTABLE(RecastDemo ${recastdemo_SRCS} ${recastdemo_HDRS})
 	ENDIF()
 
 	SET_PROPERTY(TARGET RecastDemo PROPERTY DEBUG_POSTFIX -gd)

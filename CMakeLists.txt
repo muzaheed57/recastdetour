@@ -26,12 +26,6 @@ SET(RECASTDETOUR_VERSION_MAJOR 2)
 SET(RECASTDETOUR_VERSION_MINOR 0)
 SET(RECASTDETOUR_VERSION_PATCH 1)
 
-# prevent make install to work under linux as CMAKE_BUILD_TYPE would not be set and try to find a RecastDetourTargets-linux-noconfig.cmake file
-#IF(NOT CMAKE_BUILD_TYPE)
-#   SET(CMAKE_BUILD_TYPE "Debug")
-#    SET(CMAKE_BUILD_TYPE "Release")
-#ENDIF(NOT CMAKE_BUILD_TYPE)
-
 SET(CMAKE_DEBUG_POSTFIX "-gd")
 
 # Compute platform string

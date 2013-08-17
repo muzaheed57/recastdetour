@@ -59,7 +59,7 @@ IF(BUILD_DETOURCROWD_DEMO)
 
     SET(sdl_DIR Contrib/SDL)
 
-    IF(XCODE)
+    IF(APPLE)
         SET(sdlmain_HDRS 
             Include/SDLMain.h
         )
@@ -93,10 +93,12 @@ IF(BUILD_DETOURCROWD_DEMO)
         Contrib
     )
 
-    IF(XCODE)
+    IF(APPLE)
         ADD_EXECUTABLE(DetourCrowdDemo MACOSX_BUNDLE ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${sdlmain_HDRS} ${sdlmain_SRCS} ${fastlz_SRCS})
-    ELSE()
+    ELSEIF(MSVC)
         ADD_EXECUTABLE(DetourCrowdDemo WIN32 ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${fastlz_SRCS})
+    ELSE()
+        ADD_EXECUTABLE(DetourCrowdDemo ${recastdemo_SRCS} ${recastdemo_HDRS})
     ENDIF()
 
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY DEBUG_POSTFIX -gd)
