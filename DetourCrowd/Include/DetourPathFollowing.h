@@ -55,7 +55,8 @@ struct dtCrowdAgentDebugInfo
 };
 
 /// Parameters for the path following behavior
-/// @warning The `dtPathFollowingParams::init()` must be called before the parameter is used.
+/// The parameters will be automatically initialized when used for the first time by the PathFollowing behavior.
+/// However the user still has the possibility to do it himself. For that he must call the init() method.
 /// @ingroup behavior
 struct dtPathFollowingParams
 {
@@ -93,12 +94,13 @@ struct dtPathFollowingParams
 	///< The path corridor the agent is using.
 	dtPathCorridor corridor;
 
-	/// Initializes the corridor.
-	/// This method MUST be called before using the path following behavior with this parameter.
+	/// Initializes the parameters.
+	/// The corridor will be initialized according to the given position
 	/// @param[in]	maxPathResult	The maximum number of polygons that can be stored in a corridor.
-	/// @param[in]	position		The position of the agent. Used to determine which polygon it is on.
-	/// @param[in]	query			Used to access the navigation mesh query in order to get the polygon the agent is on.
-	void init(unsigned maxPathResults, const float* position, const dtCrowdQuery& query);
+	/// @param[in]	position	The position of the agent. Used to determine which polygon it is on.
+	/// @param[in]	query		Used to access the navigation mesh query in order to get the polygon the agent is on.
+	/// @return	True if the initialization was successful, false otherwise
+	bool init(unsigned maxPathResults, const float* position, const dtCrowdQuery& query);
 };
 
 /// Defines a behavior for pathfollowing.
@@ -162,6 +164,8 @@ private:
     dtPathFollowing(const dtPathFollowing&);
     dtPathFollowing& operator=(const dtPathFollowing&);
 
+	
+
 	/// Checks that the given agents still have valid paths.
 	/// 
 	/// @param[in]		ag				The agent to work on.
@@ -170,7 +174,7 @@ private:
 
 	/// Update async move request and path finder.
 	void updateMoveRequest(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
-		const dtPathFollowingParams& currentParams, dtPathFollowingParams& newParams);
+		dtPathFollowingParams& newParams);
 
 	virtual void doUpdate(const dtCrowdQuery& query, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, 
 		const dtPathFollowingParams& currentParams, dtPathFollowingParams& newParams, float dt);
@@ -187,20 +191,20 @@ private:
 	/// @param[in]		ag			The agent to work on.
 	/// @param[in]		dt			The time, in seconds, to update the simulation. [Limit: > 0]
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void prepare(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt, const dtPathFollowingParams& currentParam, dtPathFollowingParams& newParam);
+	void prepare(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, float dt,dtPathFollowingParams& newParam);
 
 	/// Computes the new velocity of the old agent according to its parameters, and puts the result into the new agent.
 	///
 	/// @param[in]		oldAgent	The agent whose velocity must be updated.
 	/// @param[out]		newAgent	The agent storing the new parameters.
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, dtPathFollowingParams* agParams);
+	void getVelocity(const dtCrowdAgent& oldAgent, dtCrowdAgent& newAgent, dtPathFollowingParams& agParams);
 
 	/// Finds the next corner the agent should aim to
 	/// 
 	/// @param[in]		ag			The agent to work on.
 	/// @param[in]		agParams	The parameters of the agent for this behavior
-	void getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& ag, dtPathFollowingParams* agParams);
+	void getNextCorner(const dtCrowdQuery& crowdQuery, const dtCrowdAgent& ag, dtPathFollowingParams& agParams);
 
 	/// Checks whether the agent is on an offmesh connection. If so, the path is adjusted.
 	/// 

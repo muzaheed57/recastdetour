@@ -18,8 +18,8 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
 
-FIND_PACKAGE(OpenGL REQUIRED)
-FIND_PACKAGE(SDL REQUIRED)
+FIND_PACKAGE(OpenGL)
+FIND_PACKAGE(SDL)
 INCLUDE(CMakeDependentOption)
 
 # Options
@@ -95,10 +95,12 @@ IF(BUILD_RECAST_DEMO)
 		${SDL_INCLUDE_DIR}
 	)
 
-	IF(XCODE)
+	IF(APPLE)
 		ADD_EXECUTABLE(RecastDemo MACOSX_BUNDLE Source/SDLMain.m Include/SDLMain.h ${recastdemo_SRCS} ${recastdemo_HDRS})
-	ELSE()
+	ELSEIF(MSVC)
 		ADD_EXECUTABLE(RecastDemo WIN32 ${recastdemo_SRCS} ${recastdemo_HDRS})
+	ELSE()
+		ADD_EXECUTABLE(RecastDemo ${recastdemo_SRCS} ${recastdemo_HDRS})
 	ENDIF()
 
 	SET_PROPERTY(TARGET RecastDemo PROPERTY DEBUG_POSTFIX -gd)
@@ -119,13 +121,15 @@ IF(BUILD_RECAST_DEMO)
 	)
 
 	IF(MSVC)
-		INSTALL(
-			FILES Bin/DroidSans.ttf Bin/SDL.dll
-			DESTINATION bin/${PLATFORM_STR}
-		)
+		# Retrieve the SDL dll directory
+        GET_FILENAME_COMPONENT(SDL_LIB_DIR ${SDLMAIN_LIBRARY} PATH)
+        INSTALL(
+            FILES Bin/DroidSans.ttf ${SDL_LIB_DIR}/SDL.dll
+            DESTINATION bin/${PLATFORM_STR}
+        )
 	else()
 		INSTALL(
-			FILES Bin/DroidSans.ttf Bin/SDL.dll
+			FILES Bin/DroidSans.ttf
 			DESTINATION bin/${PLATFORM_STR}
 		)
 	endif()

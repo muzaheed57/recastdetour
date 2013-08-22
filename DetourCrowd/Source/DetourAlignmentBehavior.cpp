@@ -50,7 +50,7 @@ void dtAlignmentBehavior::computeForce(const dtCrowdQuery& query, const dtCrowdA
 
 	int count = 0;
 
-	for (int i = 0; i < nbTargets; ++i)
+	for (unsigned i = 0; i < nbTargets; ++i)
 		if (agents[i]->active)
 		{
 			++ count;

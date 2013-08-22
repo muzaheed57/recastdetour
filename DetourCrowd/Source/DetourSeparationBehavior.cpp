@@ -73,7 +73,7 @@ void dtSeparationBehavior::computeForce(const dtCrowdQuery& query, const dtCrowd
 	float weight;
 	int count = 0;
 
-	for (int i = 0; i < nbTargets; ++i)
+	for (unsigned i = 0; i < nbTargets; ++i)
 	{
 		const dtCrowdAgent& target = *agents[i];
 

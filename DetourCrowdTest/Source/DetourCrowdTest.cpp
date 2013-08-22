@@ -22,6 +22,7 @@
 #include "DetourPathFollowing.h"
 #include "DetourSeekBehavior.h"
 
+
 #define CATCH_CONFIG_MAIN // Generate automatically the main (one occurrence only)
 
 #ifdef _MSC_VER
@@ -134,8 +135,6 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 	dtPathFollowing* pf1 = dtPathFollowing::allocate(5);
 	dtPathFollowingParams* 	params = pf1->getBehaviorParams(crowd->getAgent(0)->id);
 	dtPathFollowingParams* params2 = pf1->getBehaviorParams(crowd->getAgent(1)->id);
-	params->init(256, crowd->getAgent(0)->position, *crowd->getCrowdQuery());
-	params2->init(256, crowd->getAgent(1)->position, *crowd->getCrowdQuery());
 
 	pf1->init(*crowd->getCrowdQuery());
 
@@ -149,6 +148,16 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 
 	pf1->requestMoveTarget(ag1.id, dest1, destAgt1);
 	pf1->requestMoveTarget(ag2.id, dest2, destAgt2);
+
+	SECTION("Error Case, dt is nil", "Updating the crowd with a dt equals to 0")
+	{
+		crowd->update(0.f);
+
+		CHECK(crowd->getAgent(ag1.id)->position[0] == posAgt1[0]);
+		CHECK(crowd->getAgent(ag1.id)->position[2] == posAgt1[2]);
+		CHECK(crowd->getAgent(ag2.id)->position[0] == posAgt2[0]);
+		CHECK(crowd->getAgent(ag2.id)->position[2] == posAgt2[2]);
+	}
 
 	SECTION("Edit Agents", "Acessing and modifying agents through the dtCrowd interface")
 	{
@@ -285,8 +294,6 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		pf1->init(*crowd->getCrowdQuery());
 		dtPathFollowingParams* params3 = pf1->getBehaviorParams(ag3.id);
 		dtPathFollowingParams* params4 = pf1->getBehaviorParams(ag4.id);
-		params3->init(256, crowd->getAgent(ag3.id)->position, *crowd->getCrowdQuery());
-		params4->init(256, crowd->getAgent(ag4.id)->position, *crowd->getCrowdQuery());
 
 		crowd->setAgentBehavior(ag3.id, pf1);
 		crowd->setAgentBehavior(ag4.id, pf1);
@@ -340,7 +347,7 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		// Checking if the neighbourhood of an agent is correctly updated
 		// For that we create another agent next to an already existing agent.
 		float posAgt3[3] = {crowd->getAgent(ag1.id)->position[0] + 1, 
-							0, 
+							0 ,
 							crowd->getAgent(ag1.id)->position[2] + 1};
 		dtCrowdAgent ag3;
 
@@ -358,6 +365,17 @@ TEST_CASE("DetourCrowdTest/UpdateCrowd", "Test the different ways to update the 
 		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 1);
 		// The other agents on the other hand haven't updated their environment, and therefore should have no neighbors
 		CHECK(crowd->getAgentEnvironment(ag1.id)->nbNeighbors == 0);
+
+		// The agent has no perception
+		crowd->fetchAgent(ag3, ag3.id);
+		ag3.perceptionDistance = 0.f;
+		crowd->applyAgent(ag3);
+
+		crowd->updateEnvironment();
+		CHECK(crowd->getAgentEnvironment(ag3.id)->nbNeighbors == 0);
+
+		ag3.perceptionDistance = 4.f;
+		crowd->applyAgent(ag3);
 
 		// Now we update everyone's environment, thus every agent has one neighbor
 		crowd->updateEnvironment();

@@ -61,12 +61,26 @@ INCLUDE_DIRECTORIES(Include
 )
 
 ADD_LIBRARY(DetourSceneCreator ${DetourSceneCreator_SRCS} ${DetourSceneCreator_HDRS} ${simplejson_SRCS} ${simplejson_HDRS})
+IF(IOS)
+    # workaround a bug forbidding to install the built library (cf. http://www.cmake.org/Bug/view.php?id=12506)
+    SET_TARGET_PROPERTIES(DetourSceneCreator PROPERTIES 
+        ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}/Debug"
+        ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}/Release")
+ENDIF()
+
+INCLUDE(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(BUILD_RECASTDETOUR_FAT_LIBRARIES "Building binaries containing both 32 and 64 bits versions." 
+  ON "APPLE;NOT IOS" 
+  OFF)
+IF (BUILD_RECASTDETOUR_FAT_LIBRARIES)
+    SET_TARGET_PROPERTIES(DetourSceneCreator PROPERTIES OSX_ARCHITECTURES "i386;x86_64")
+ENDIF()
 
 INSTALL(FILES ${DetourSceneCreator_HDRS}
     DESTINATION include/DetourSceneCreator
 )
 
-INSTALL(TARGETS DetourSceneCreator EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+INSTALL(TARGETS DetourSceneCreator EXPORT "RecastDetourTargets-${PLATFORM_STR}"
     RUNTIME DESTINATION bin/${PLATFORM_STR}
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}

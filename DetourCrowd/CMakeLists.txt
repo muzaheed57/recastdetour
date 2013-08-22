@@ -5,7 +5,6 @@ SET(detourcrowd_SRCS
 	Source/DetourLocalBoundary.cpp
 	Source/DetourPathQueue.cpp
 	Source/DetourCrowd.cpp
-	Source/DetourProximityGrid.cpp
 	Source/DetourCollisionAvoidance.cpp
 	Source/DetourPathFollowing.cpp
 	Source/DetourFlockingBehavior.cpp
@@ -22,7 +21,6 @@ SET(detourcrowd_HDRS
 	Include/DetourPathCorridor.h
 	Include/DetourCrowd.h
 	Include/DetourLocalBoundary.h
-	Include/DetourProximityGrid.h
 	Include/DetourPathQueue.h
 	Include/DetourCollisionAvoidance.h
 	Include/DetourPathFollowing.h
@@ -45,12 +43,26 @@ INCLUDE_DIRECTORIES(Include
 )
 
 ADD_LIBRARY(DetourCrowd ${detourcrowd_SRCS} ${detourcrowd_HDRS})
+IF(IOS)
+    # workaround a bug forbidding to install the built library (cf. http://www.cmake.org/Bug/view.php?id=12506)
+    SET_TARGET_PROPERTIES(DetourCrowd PROPERTIES 
+        ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}/Debug"
+        ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}/Release")
+ENDIF()
+
+INCLUDE(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(BUILD_RECASTDETOUR_FAT_LIBRARIES "Building binaries containing both 32 and 64 bits versions." 
+  ON "APPLE;NOT IOS" 
+  OFF)
+IF (BUILD_RECASTDETOUR_FAT_LIBRARIES)
+    SET_TARGET_PROPERTIES(DetourCrowd PROPERTIES OSX_ARCHITECTURES "i386;x86_64")
+ENDIF()
 
 INSTALL(FILES ${detourcrowd_HDRS}
     DESTINATION include/detourCrowd
 )
 
-INSTALL(TARGETS DetourCrowd EXPORT "RecastNavigationTargets-${PLATFORM_STR}"
+INSTALL(TARGETS DetourCrowd EXPORT "RecastDetourTargets-${PLATFORM_STR}"
     RUNTIME DESTINATION bin/${PLATFORM_STR}
     LIBRARY DESTINATION lib/${PLATFORM_STR}
     ARCHIVE DESTINATION lib/${PLATFORM_STR}

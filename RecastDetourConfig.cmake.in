@@ -1,0 +1,39 @@
+### RecastNavigation package configuration ###
+# This module configure the Recast & Detour libs.
+#
+# It defines the following variables:
+#   - For Recast, RECAST_INCLUDE_DIRS (include directories) 
+# and the imported target Recast (static library);
+#   - For Detour, DETOUR_INCLUDE_DIRS (include directories) 
+# and the imported target Detour (static library);
+#   - For DetourTileCache, DETOURTILECACHE_INCLUDE_DIRS (include 
+# directories) and the imported target DetourTileCache (static library);
+#   - For DetourCrowd, DETOURCROWD_INCLUDE_DIRS (include 
+# directories) and the imported target DetourCrowd (static library);
+#   - For RecastDetourDebugUtils, RECASTDETOURDEBUGUTILS_INCLUDE_DIRS 
+# (include directories) and the imported target RecastDetourDebugUtils 
+# (static library);
+#   - RECASTDETOUR_INCLUDE_DIRS, the concatenation of all 
+# include directories.
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
+
+GET_FILENAME_COMPONENT(RECASTDETOUR_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+# Compute platform string
+INCLUDE("${CMAKE_CURRENT_LIST_DIR}/platform.cmake")
+compute_platform_str(PLATFORM_STR)
+
+# Include directories
+GET_FILENAME_COMPONENT(DETOUR_INCLUDE_DIRS "${RECASTDETOUR_ROOT}/include/detour" ABSOLUTE)
+GET_FILENAME_COMPONENT(DETOURCROWD_INCLUDE_DIRS "${RECASTDETOUR_ROOT}/include/detourCrowd" ABSOLUTE)
+GET_FILENAME_COMPONENT(DETOURTILECACHE_INCLUDE_DIRS "${RECASTDETOUR_ROOT}/include/detourTileCache" ABSOLUTE)
+GET_FILENAME_COMPONENT(RECAST_INCLUDE_DIRS "${RECASTDETOUR_ROOT}/include/recast" ABSOLUTE)
+GET_FILENAME_COMPONENT(RECASTDETOURDEBUGUTILS_INCLUDE_DIRS "${RECASTDETOUR_ROOT}/include/recastDetourDebugUtils" ABSOLUTE)
+SET(RECASTDETOUR_INCLUDE_DIRS ${DETOUR_INCLUDE_DIRS} ${DETOURCROWD_INCLUDE_DIRS}
+    ${DETOURTILECACHE_INCLUDE_DIRS} ${RECAST_INCLUDE_DIRS} ${RECASTDETOURDEBUGUTILS_INCLUDE_DIRS})
+
+GET_FILENAME_COMPONENT(RECASTDETOUR_LIB_DIR "${RECASTDETOUR_ROOT}/lib/${PLATFORM_STR}" ABSOLUTE)
+
+# Include generated targets
+INCLUDE("${CMAKE_CURRENT_LIST_DIR}/RecastDetourTargets-${PLATFORM_STR}.cmake")

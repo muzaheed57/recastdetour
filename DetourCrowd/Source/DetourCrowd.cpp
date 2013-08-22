@@ -105,46 +105,6 @@ static int addNeighbour(const int idx, const float dist,
 	return dtMin(nneis+1, maxNeis);
 }
 
-static int getNeighbours(const float* pos, const float height, const float range,
-						 const dtCrowdAgent* skip, dtCrowdNeighbour* result, const int maxResult,
-						 dtCrowdAgent* agents, const int /*nagents*/, dtProximityGrid* grid)
-{
-	int n = 0;
-	
-	static const int MAX_NEIS = 32;
-	unsigned short ids[MAX_NEIS];
-	int nids = grid->queryItems(pos[0]-range, pos[2]-range,
-								pos[0]+range, pos[2]+range,
-								ids, MAX_NEIS);
-	
-	for (int i = 0; i < nids; ++i)
-	{
-		const dtCrowdAgent* ag = &agents[ids[i]];
-
-		if (!ag->active)
-			continue;
-		
-		if (ag == skip) continue;
-		
-		// Check for overlap.
-		float diff[3];
-		dtVsub(diff, pos, ag->position);
-
-		if (fabsf(diff[1]) >= (height+ag->height)/2.0f)
-			continue;
-
-		diff[1] = 0;
-		const float distSqr = dtVlenSqr(diff);
-
-		if (distSqr > dtSqr(range))
-			continue;
-		
-		n = addNeighbour(ids[i], distSqr, result, n, maxResult);
-	}
-
-	return n;
-}
-
 
 /**
 @class dtCrowd
@@ -183,8 +143,7 @@ dtCrowd::dtCrowd() :
 	m_agentsToUpdate(0),
 	m_maxAgentRadius(0),
 	m_maxCommonNodes(512),
-	m_disp(0),
-	m_collisionQueryRange(4)
+	m_disp(0)
 {
 }
 
@@ -221,9 +180,13 @@ void dtCrowd::purge()
 	dtFree(m_agentsToUpdate);
 	m_agentsToUpdate = 0;
 
-	dtFree(m_crowdQuery);
-	m_crowdQuery = 0;
-
+	if (m_crowdQuery)
+	{
+		m_crowdQuery->~dtCrowdQuery();
+		dtFree(m_crowdQuery);
+		m_crowdQuery = 0;
+	}
+	
 	dtFree(m_agentsEnv);
 	m_agentsEnv = 0;
 }
@@ -231,12 +194,11 @@ void dtCrowd::purge()
 /// @par
 ///
 /// May be called more than once to purge and re-initialize the crowd.
-bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav, float collisionRange)
+bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMesh* nav)
 {
 	purge();
 
 	m_disp = (float**) dtAlloc(sizeof(float*) * maxAgents, DT_ALLOC_PERM);
-	m_collisionQueryRange = collisionRange;
 
 	for (unsigned i = 0; i < maxAgents; ++i)
 		m_disp[i] = (float*) dtAlloc(sizeof(float) * 3, DT_ALLOC_PERM);
@@ -271,12 +233,6 @@ bool dtCrowd::init(const unsigned maxAgents, const float maxAgentRadius, dtNavMe
 	m_crowdQuery = new(mem) dtCrowdQuery(maxAgents, m_agents, m_agentsEnv);
 
 	if (dtStatusFailed(m_crowdQuery->getNavMeshQuery()->init(nav, m_maxCommonNodes)))
-		return false;
-
-	if (!m_crowdQuery->getProximityGrid())
-		return false;
-
-	if (!m_crowdQuery->getProximityGrid()->init(m_maxAgents*4, maxAgentRadius*3))
 		return false;
 	
 	m_activeAgents = (dtCrowdAgent**)dtAlloc(sizeof(dtCrowdAgent*) * m_maxAgents, DT_ALLOC_PERM);
@@ -384,7 +340,7 @@ void dtCrowd::removeAgent(unsigned id)
 
 unsigned dtCrowd::getActiveAgents(const dtCrowdAgent** agents, const unsigned maxAgents)
 {
-	int n = 0;
+	unsigned n = 0;
 	for (unsigned i = 0; i < m_maxAgents; ++i)
 	{
 		if (!m_agents[i].active) continue;
@@ -396,7 +352,7 @@ unsigned dtCrowd::getActiveAgents(const dtCrowdAgent** agents, const unsigned ma
 
 bool dtCrowd::getActiveAgent(dtCrowdAgent** ag, int id)
 {
-	if (id >= 0 && id < m_maxAgents)
+	if (id >= 0 && id < static_cast<unsigned>(m_maxAgents))
 	{
 		if (m_agents[id].active)
 		{
@@ -448,7 +404,7 @@ void dtCrowd::updateVelocity(const float dt, unsigned* agentsIdx, unsigned nbIdx
 
 		if (ds > maxDelta)
 			dtVscale(dv, dv, maxDelta/ds);
-
+		
 		dtVadd(ag->velocity, ag->velocity, dv);
 	}
 }
@@ -604,32 +560,34 @@ void dtCrowd::updatePosition(const float dt, unsigned* agentsIdx, unsigned nbIdx
 		if (!getActiveAgent(&ag, agentsIdx[i]))
 			continue;
 
-
-		ag->offmeshElaspedTime += dt;
-		if (ag->offmeshElaspedTime > ag->offmeshTotalTime)
+		float offmeshTotalTime = ag->offmeshInitToStartTime + ag->offmeshStartToEndTime;
+		if (ag->state == DT_CROWDAGENT_STATE_OFFMESH && offmeshTotalTime > EPSILON)
 		{
-			// Prepare agent for walking.
-			ag->state = DT_CROWDAGENT_STATE_WALKING;
-			continue;
-		}
+			ag->offmeshElaspedTime += dt;
 
-		// Update position
-		const float ta = ag->offmeshTotalTime * 0.15f;
-		const float tb = ag->offmeshTotalTime;
-		if (ag->offmeshElaspedTime < ta)
-		{
-			const float u = tween(ag->offmeshTotalTime, 0.0, ta);
-			dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
-		}
-		else
-		{
-			const float u = tween(ag->offmeshTotalTime, ta, tb);
-			dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
-		}
+			if (ag->offmeshElaspedTime > offmeshTotalTime)
+			{
+				// Prepare agent for walking.
+				ag->state = DT_CROWDAGENT_STATE_WALKING;
+				continue;
+			}
 
-		// Update velocity.
-		dtVset(ag->velocity, 0,0,0);
-		dtVset(ag->desiredVelocity, 0,0,0);
+			// Update position
+			if (ag->offmeshElaspedTime < ag->offmeshInitToStartTime)
+			{
+				const float u = tween(ag->offmeshElaspedTime, 0.0, ag->offmeshInitToStartTime);
+				dtVlerp(ag->position, ag->offmeshInitPos, ag->offmeshStartPos, u);
+			}
+			else
+			{
+				const float u = tween(ag->offmeshElaspedTime, ag->offmeshInitToStartTime, offmeshTotalTime);
+				dtVlerp(ag->position, ag->offmeshStartPos, ag->offmeshEndPos, u);
+			}
+
+			// Update velocity.
+			dtVset(ag->velocity, 0,0,0);
+			dtVset(ag->desiredVelocity, 0,0,0);
+		}
 	}
 
 	dtFree(currentPosPoly);
@@ -645,20 +603,7 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 		nbIdx = m_maxAgents;
 	}
 
-	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;	
-	m_crowdQuery->getProximityGrid()->clear();
-
-	for (int i = 0; i < m_maxAgents; ++i)
-	{
-		dtCrowdAgent* ag = 0;
-
-		if (!getActiveAgent(&ag, i))
-			continue;
-
-		const float* p = ag->position;
-		const float r = ag->radius;
-		m_crowdQuery->getProximityGrid()->addItem((unsigned short)i, p[0]-r, p[2]-r, p[0]+r, p[2]+r);
-	}
+	nbIdx = (nbIdx < m_maxAgents) ? nbIdx : m_maxAgents;
 
 	// Get nearby navmesh segments and agents to collide with.
 	for (unsigned i = 0; i < nbIdx; ++i)
@@ -676,7 +621,7 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 
 		// Update the collision boundary after certain distance has been passed or
 		// if it has become invalid.
-		const float updateThr = m_collisionQueryRange * 0.25f;
+		const float updateThr = ag->perceptionDistance * 0.25f;
 		if (dtVdist2DSqr(ag->position, m_agentsEnv[ag->id].boundary.getCenter()) > dtSqr(updateThr) ||
 			!m_agentsEnv[ag->id].boundary.isValid(m_crowdQuery->getNavMeshQuery(), m_crowdQuery->getQueryFilter()))
 		{
@@ -684,13 +629,11 @@ void dtCrowd::updateEnvironment(unsigned* agentsIdx, unsigned nbIdx)
 			float nearest[3];
 			m_crowdQuery->getNavMeshQuery()->findNearestPoly(ag->position, m_crowdQuery->getQueryExtents(), m_crowdQuery->getQueryFilter(), &ref, nearest);
 
-			m_agentsEnv[ag->id].boundary.update(ref, ag->position, m_collisionQueryRange, 
+			m_agentsEnv[ag->id].boundary.update(ref, ag->position, ag->perceptionDistance, 
 				m_crowdQuery->getNavMeshQuery(), m_crowdQuery->getQueryFilter());
 		}
 		// Query neighbour agents
-		m_agentsEnv[ag->id].nbNeighbors = getNeighbours(ag->position, ag->height, m_collisionQueryRange,
-			ag, m_agentsEnv[ag->id].neighbors, DT_CROWDAGENT_MAX_NEIGHBOURS,
-			m_agents, m_nbActiveAgents, m_crowdQuery->getProximityGrid());
+		m_agentsEnv[ag->id].nbNeighbors = this->computeNeighbors(ag->id);
 
 		for (unsigned j = 0; j < m_agentsEnv[ag->id].nbNeighbors; j++)
 			m_agentsEnv[ag->id].neighbors[j].idx = getAgentIndex(&m_agents[m_agentsEnv[ag->id].neighbors[j].idx]);
@@ -781,16 +724,40 @@ unsigned dtCrowd::getAgents(const unsigned* ids, unsigned size, const dtCrowdAge
 	return m_crowdQuery->getAgents(ids, size, agents);
 }
 
-float dtCrowd::getCollisionRange() const
+unsigned dtCrowd::computeNeighbors(unsigned id)
 {
-	return m_collisionQueryRange;
+	unsigned n = 0;
+	const dtCrowdAgent* agent = m_crowdQuery->getAgent(id);
+
+	for (unsigned i = 0; i < m_maxAgents; ++i)
+	{
+		dtCrowdAgent* target = 0;
+
+		// Check if the agent is active and is not the tested one
+		if (!getActiveAgent(&target, i) || target->id == agent->id)
+			continue;
+				
+		float diff[3];
+		dtVsub(diff, agent->position, target->position);
+
+		// Check if the agent are on the same level
+		if (fabsf(diff[1]) > (agent->height + target->height) / 2.f)
+			continue;
+
+		diff[1] = 0;
+		const float dist2D = dtVlenSqr(diff);
+
+		if (dist2D > dtSqr(agent->perceptionDistance))
+			continue;
+
+		n = addNeighbour(target->id, dist2D, m_agentsEnv[agent->id].neighbors, n, DT_CROWDAGENT_MAX_NEIGHBOURS);
+	}
+
+	return n;
 }
 
 dtCrowdQuery::~dtCrowdQuery()
 {
-	dtFreeProximityGrid(m_grid);
-	m_grid = 0;
-
 	dtFreeNavMeshQuery(m_navMeshQuery);
 	m_navMeshQuery = 0;
 }
@@ -801,7 +768,6 @@ dtCrowdQuery::dtCrowdQuery(unsigned maxAgents, const dtCrowdAgent* agents, const
 	m_agentsEnv(env)
 {
 	m_navMeshQuery = dtAllocNavMeshQuery();
-	m_grid = dtAllocProximityGrid();
 }
 
 float* dtCrowdQuery::getQueryExtents() 
@@ -819,11 +785,6 @@ dtQueryFilter* dtCrowdQuery::getQueryFilter()
 	return &m_filter; 
 }
 
-dtProximityGrid* dtCrowdQuery::getProximityGrid() 
-{ 
-	return m_grid; 
-}
-
 const float* dtCrowdQuery::getQueryExtents() const
 { 
 	return m_ext; 
@@ -837,11 +798,6 @@ const dtNavMeshQuery* dtCrowdQuery::getNavMeshQuery() const
 const dtQueryFilter* dtCrowdQuery::getQueryFilter() const
 { 
 	return &m_filter; 
-}
-
-const dtProximityGrid* dtCrowdQuery::getProximityGrid() const
-{ 
-	return m_grid; 
 }
 
 const dtCrowdAgent* dtCrowdQuery::getAgent(const unsigned id) const
@@ -885,6 +841,77 @@ const dtCrowdAgentEnvironment* dtCrowdQuery::getAgentEnvironment(unsigned id) co
 		return &m_agentsEnv[id];
 
 	return 0;
+}
+
+dtOffMeshConnection* dtCrowdQuery::getOffMeshConnection(unsigned id, float dist) const
+{
+	// Check validity of the ID
+	if (id >= m_maxAgents || dist < 0.f)
+		return 0;
+
+	const dtCrowdAgent ag = *getAgent(id);
+	dtPolyRef agentPolyRef;
+	float nearest[3];
+
+	// Get the polygon reference the agent is on
+	m_navMeshQuery->findNearestPoly(ag.position, m_ext, &m_filter, &agentPolyRef, nearest);
+
+	if (!agentPolyRef)
+		return 0;
+
+	dtPoly poly;
+	dtMeshTile tile;
+	const dtPoly* ptrPoly = &poly;
+	const dtMeshTile* ptrTile = &tile;
+
+	// Get the tile the agent is on
+	if (dtStatusFailed(m_navMeshQuery->getAttachedNavMesh()->getTileAndPolyByRef(agentPolyRef, 
+																				(const dtMeshTile**)(&ptrTile), 
+																				(const dtPoly**)(&ptrPoly))))
+		return 0;
+
+	if (ptrTile->header->offMeshConCount <= 0)
+		return 0;
+
+	unsigned nbOffMeshConnections = ptrTile->header->offMeshConCount;
+	dtOffMeshConnection* offMeshConnections = ptrTile->offMeshCons;
+
+	// For every offMesh connections located in this tile
+	for (unsigned i = 0; i < nbOffMeshConnections; ++i)
+	{
+		dtPolyRef polysIDs[256];
+		int nbPolys = 0;
+		dtOffMeshConnection& offMeshCo = offMeshConnections[i];
+
+		// Find every polygons reached by the offMesh connection and its radius
+		if (dtStatusFailed(m_navMeshQuery->findPolysAroundCircle(agentPolyRef, offMeshCo.pos, offMeshCo.rad, &m_filter, polysIDs, 0, 0, &nbPolys, 256)))
+			continue;
+
+		if (nbPolys <= 0)
+			continue;
+
+		// For every polygons touched by the offMesh connection, we check if one of them is the one the agent is on.
+		// If so, we check the distance from the agent to the center of the offMesh connection (taking into account the extra distance)
+		for (int j = 0; j < nbPolys; ++j)
+			if (polysIDs[j] == agentPolyRef)
+				if (dtVdist(ag.position, offMeshCo.pos) < offMeshCo.rad + dist)
+					return &offMeshCo;
+	}
+
+	return 0;
+}
+
+void dtCrowdQuery::startOffMeshConnection(dtCrowdAgent& ag, const dtOffMeshConnection& connection) const
+{
+	dtVcopy(ag.offmeshInitPos, ag.position);
+	dtVcopy(ag.offmeshStartPos, connection.pos);
+	dtVcopy(ag.offmeshEndPos, connection.pos + 3);
+
+	ag.offmeshElaspedTime = 0.f;
+	ag.offmeshStartToEndTime = (dtVdist2D(ag.offmeshStartPos, ag.offmeshEndPos) / ag.maxSpeed);
+	ag.offmeshInitToStartTime = (dtVdist2D(ag.offmeshInitPos, ag.offmeshStartPos) / ag.maxSpeed);
+
+	ag.state = DT_CROWDAGENT_STATE_OFFMESH;
 }
 
 dtCrowdAgentEnvironment::dtCrowdAgentEnvironment() 

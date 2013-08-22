@@ -32,6 +32,8 @@ class dtPathCorridor
 	dtPolyRef* m_path;	///< The path as an array of polygon
 	int m_npath;		///< The number of polygon in the path
 	int m_maxPath;		///< The maximum path size the corridor can handle
+
+	bool m_isSet;		///< Has the start of the corridor been set with an agent position?
 	
 public:
 	dtPathCorridor();
@@ -142,6 +144,8 @@ public:
 	/// Gets the current target within the corridor. (In the last polygon.)
 	/// @return The current target within the corridor.
 	inline const float* getTarget() const { return m_target; }
+
+	inline bool isSet() const { return m_isSet; }
 	
 	/// The polygon reference id of the first polygon in the corridor, the polygon containing the position.
 	/// @return The polygon reference id of the first polygon in the corridor. (Or zero if there is no path.)

@@ -3,9 +3,10 @@ compiler:
     - gcc
     - clang
 script: 
-    - cmake ./
+    - cmake -DCMAKE_INSTALL_PREFIX=./out ./
     - make all
     - ctest -C Release --output-on-failure
+    - make install
 
 notifications:
   email:

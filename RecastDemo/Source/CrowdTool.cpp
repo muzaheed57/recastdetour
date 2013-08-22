@@ -149,7 +149,7 @@ void CrowdToolState::init(class Sample* sample)
 		m_nav = nav;
 		m_crowd = crowd;
 	
-		crowd->init(MAX_AGENTS, m_sample->getAgentRadius(), nav, 4);
+		crowd->init(MAX_AGENTS, m_sample->getAgentRadius(), nav);
 		
 		// Make polygons with 'disabled' flag invalid.
 		crowd->getCrowdQuery()->getQueryFilter()->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
@@ -249,25 +249,6 @@ void CrowdToolState::handleRender()
 			gridy = dtMax(gridy, pos[1]);
 		}
 		gridy += 1.0f;
-		
-		dd.begin(DU_DRAW_QUADS);
-		const dtProximityGrid* grid = crowd->getCrowdQuery()->getProximityGrid();
-		const int* bounds = grid->getBounds();
-		const float cs = grid->getCellSize();
-		for (int y = bounds[1]; y <= bounds[3]; ++y)
-		{
-			for (int x = bounds[0]; x <= bounds[2]; ++x)
-			{
-				const int count = grid->getItemCountAt(x,y); 
-				if (!count) continue;
-				unsigned int col = duRGBA(128,0,0,dtMin(count*40,255));
-				dd.vertex(x*cs, gridy, y*cs, col);
-				dd.vertex(x*cs, gridy, y*cs+cs, col);
-				dd.vertex(x*cs+cs, gridy, y*cs+cs, col);
-				dd.vertex(x*cs+cs, gridy, y*cs, col);
-			}
-		}
-		dd.end();
 	}
 	
 	// Trail
@@ -307,58 +288,11 @@ void CrowdToolState::handleRender()
 		const float radius = ag->radius;
 		const float* pos = ag->position;
 		
-		//if (m_toolParams.m_showCorners)
-		//{
-		//	if (ag->ncorners)
-		//	{
-		//		dd.begin(DU_DRAW_LINES, 2.0f);
-		//		for (int j = 0; j < ag->ncorners; ++j)
-		//		{
-		//			const float* va = j == 0 ? pos : &ag->cornerVerts[(j-1)*3];
-		//			const float* vb = &ag->cornerVerts[j*3];
-		//			dd.vertex(va[0],va[1]+radius,va[2], duRGBA(128,0,0,192));
-		//			dd.vertex(vb[0],vb[1]+radius,vb[2], duRGBA(128,0,0,192));
-		//		}
-		//		if (ag->ncorners && ag->cornerFlags[ag->ncorners-1] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
-		//		{
-		//			const float* v = &ag->cornerVerts[(ag->ncorners-1)*3];
-		//			dd.vertex(v[0],v[1],v[2], duRGBA(192,0,0,192));
-		//			dd.vertex(v[0],v[1]+radius*2,v[2], duRGBA(192,0,0,192));
-		//		}
-		//		
-		//		dd.end();
-		//		
-		//		
-		//		if (m_toolParams.m_anticipateTurns)
-		//		{
-		//			/*					float dvel[3], pos[3];
-		//			 calcSmoothSteerDirection(ag->pos, ag->cornerVerts, ag->ncorners, dvel);
-		//			 pos[0] = ag->pos[0] + dvel[0];
-		//			 pos[1] = ag->pos[1] + dvel[1];
-		//			 pos[2] = ag->pos[2] + dvel[2];
-		//			 
-		//			 const float off = ag->radius+0.1f;
-		//			 const float* tgt = &ag->cornerVerts[0];
-		//			 const float y = ag->pos[1]+off;
-		//			 
-		//			 dd.begin(DU_DRAW_LINES, 2.0f);
-		//			 
-		//			 dd.vertex(ag->pos[0],y,ag->pos[2], duRGBA(255,0,0,192));
-		//			 dd.vertex(pos[0],y,pos[2], duRGBA(255,0,0,192));
-		//			 
-		//			 dd.vertex(pos[0],y,pos[2], duRGBA(255,0,0,192));
-		//			 dd.vertex(tgt[0],y,tgt[2], duRGBA(255,0,0,192));
-		//			 
-		//			 dd.end();*/
-		//		}
-		//	}
-		//}
-		
 		if (m_toolParams.m_showCollisionSegments)
 		{
 			const float* center = m_crowd->getAgentEnvironment(ag->id)->boundary.getCenter();
 			duDebugDrawCross(&dd, center[0],center[1]+radius,center[2], 0.2f, duRGBA(192,0,128,255), 2.0f);
-			duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], crowd->getCollisionRange(),
+			duDebugDrawCircle(&dd, center[0],center[1]+radius,center[2], ag->perceptionDistance,
 							  duRGBA(192,0,128,128), 2.0f);
 			
 			dd.begin(DU_DRAW_LINES, 3.0f);
@@ -376,7 +310,7 @@ void CrowdToolState::handleRender()
 		
 		if (m_toolParams.m_showNeis)
 		{
-			duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], crowd->getCollisionRange(),
+			duDebugDrawCircle(&dd, pos[0],pos[1]+radius,pos[2], ag->perceptionDistance,
 							  duRGBA(0,192,128,128), 2.0f);
 			
 			dd.begin(DU_DRAW_LINES, 2.0f);

@@ -18,6 +18,7 @@
 
 #include "DetourCrowdTestUtils.h"
 
+
 TestScene::TestScene()
 	: m_crowd(0)
 {
@@ -52,7 +53,7 @@ dtCrowd* TestScene::createSquareScene(unsigned nbMaxAgents, float maxRadius)
 	if (!m_cs.initializeNavmesh(m_scene, &m_navMesh)) 
 		return 0;
 
-	if (!m_crowd->init(nbMaxAgents, maxRadius, &m_navMesh, 4)) 
+	if (!m_crowd->init(nbMaxAgents, maxRadius, &m_navMesh)) 
 		return 0;
 
 	return m_crowd;
@@ -72,8 +73,15 @@ bool TestScene::defaultInitializeAgent(dtCrowd& crowd, int index) const
 	ag.maxAcceleration = 10.0;
 	ag.updateFlags = DT_CROWD_OBSTACLE_AVOIDANCE;
 	ag.behavior = 0;
+	ag.perceptionDistance = 4.f;
 
 	crowd.applyAgent(ag);
 
 	return true;
 }
+
+OffMeshConnectionCreator* TestScene::getOffMeshCreator()
+{
+	return &m_cs.m_creator.m_offMeshConnectionCreator;
+}
+

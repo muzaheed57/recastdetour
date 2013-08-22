@@ -19,7 +19,6 @@
 #include "CrowdSample.h"
 
 #include "InputGeom.h"
-#include "NavMeshCreator.h"
 #include "JSON.h"
 
 #include "DetourParametrizedBehavior.h"
@@ -278,7 +277,6 @@ void CrowdSample::parseBehavior(JSONValue* behavior, std::size_t iAgent, dtCrowd
 
 		if (params)
 		{
-			params->init(256, m_agentCfgs[iAgent].position, *crowd->getCrowdQuery());
 			params->debugInfos = 0;
 			params->debugIndex = iAgent;
 		}
@@ -510,7 +508,7 @@ bool CrowdSample::initialize(InputGeom* scene, dtCrowd* crowd, dtNavMesh* navMes
     else if (!initializeNavmesh(*scene, navMesh))
         return false;
 
-	crowd->init(m_agentCount, m_maxRadius, navMesh, 4);
+	crowd->init(m_agentCount, m_maxRadius, navMesh);
 	parseCrowd(crowd);
 
     if (!initializeCrowd(crowd))
@@ -552,22 +550,21 @@ bool CrowdSample::initializeNavmesh(const InputGeom& scene, dtNavMesh* navMesh)
 	if (!m_context)
 		return false;
 
-    NavMeshCreator creator;
-    creator.initParameters();
-    creator.m_context = m_context;
-    creator.m_inputVertices = scene.getMesh()->getVerts();
-    creator.m_inputVerticesCount = scene.getMesh()->getVertCount();
-    creator.m_inputTriangles = scene.getMesh()->getTris();
-    creator.m_inputTrianglesCount = scene.getMesh()->getTriCount();
-    rcVcopy(creator.m_min, scene.getMeshBoundsMin());
-    rcVcopy(creator.m_max, scene.getMeshBoundsMax());
-    creator.m_minimumObstacleClearance = m_maxRadius;
-    creator.allocIntermediateResults();
-    creator.computeNavMesh();
+    m_creator.initParameters();
+    m_creator.m_context = m_context;
+    m_creator.m_inputVertices = scene.getMesh()->getVerts();
+    m_creator.m_inputVerticesCount = scene.getMesh()->getVertCount();
+    m_creator.m_inputTriangles = scene.getMesh()->getTris();
+    m_creator.m_inputTrianglesCount = scene.getMesh()->getTriCount();
+    rcVcopy(m_creator.m_min, scene.getMeshBoundsMin());
+    rcVcopy(m_creator.m_max, scene.getMeshBoundsMax());
+    m_creator.m_minimumObstacleClearance = m_maxRadius;
+    m_creator.allocIntermediateResults();
+    m_creator.computeNavMesh();
         
-    if (creator.m_success)
+    if (m_creator.m_success)
     {
-        return dtStatusSucceed(navMesh->init(creator.m_outputNavMeshBuffer, creator.m_outputNavMeshBufferSize, DT_TILE_FREE_DATA));
+        return dtStatusSucceed(navMesh->init(m_creator.m_outputNavMeshBuffer, m_creator.m_outputNavMeshBufferSize, DT_TILE_FREE_DATA));
     }
     else 
     {
@@ -583,11 +580,8 @@ bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 		if (!m_pipeline[i].empty())
 		{
 			dtPipelineBehavior* pipeline = dtPipelineBehavior::allocate();
-			dtBehavior** behaviors = (dtBehavior**) dtAlloc(sizeof(dtBehavior*) * m_pipeline[i].size(), DT_ALLOC_PERM);
-			std::copy(m_pipeline[i].begin(), m_pipeline[i].end(), behaviors);
 
-			pipeline->setBehaviors(behaviors, m_pipeline[i].size());
-
+			pipeline->setBehaviors(m_pipeline[i].data(), m_pipeline[i].size());
 			m_agentCfgs[i].steeringBehavior = pipeline;
 		}
 
@@ -606,6 +600,7 @@ bool CrowdSample::initializeCrowd(dtCrowd* crowd)
 		ag.height = m_agentCfgs[i].height;
 		ag.behavior = m_agentCfgs[i].steeringBehavior;
 		ag.updateFlags = m_agentCfgs[i].updateFlags;
+		ag.perceptionDistance = m_agentCfgs[i].collisionQueryRange;
 
 		crowd->applyAgent(ag);
     }

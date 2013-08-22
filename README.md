@@ -82,11 +82,22 @@ The Detour Crowd module provides you with features for agents handling and behav
 - Cameron Hart <cameron.hart@gmail.com>
 
 ## [MASA LIFE](http://www.masalife.net) team contributors ##
-- Jérémy Chanut <jeremy.chanut@masagroup.net>
 - Clodéric Mars <cloderic.mars@masagroup.net>
 - Damien Avrillon <damien.avrillon@masagroup.net>
+- Joel Joly <joel.joly@masagroup.net>
+
+## Other contributors ##
+- Jérémy Chanut <jeremy.chanut@gmail.com>
 
 # Release Notes #
+
+## Recast 2.0.1 ##
+**Released August 22nd, 2013**
+
+- Removing the proximity grid (doesn't handle overlapping agents and 3D levels)
+- Bug fixing on path following
+- Features to controle the offMesh connections
+- Path Following parameters no longer have to be initialized manually
 
 ## Recast 2.0 ##
 **Released July 15th, 2013**

@@ -10,3 +10,4 @@ build/*
 
 # Doxygen generation output
 Docs/out
+Docs/html/

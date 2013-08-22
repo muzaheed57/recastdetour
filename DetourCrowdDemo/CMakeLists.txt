@@ -18,8 +18,8 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
 
-FIND_PACKAGE(OpenGL REQUIRED)
-FIND_PACKAGE(SDL REQUIRED)
+FIND_PACKAGE(OpenGL)
+FIND_PACKAGE(SDL)
 INCLUDE(CMakeDependentOption)
 
 # Options
@@ -59,7 +59,7 @@ IF(BUILD_DETOURCROWD_DEMO)
 
     SET(sdl_DIR Contrib/SDL)
 
-    IF(XCODE)
+    IF(APPLE)
         SET(sdlmain_HDRS 
             Include/SDLMain.h
         )
@@ -93,10 +93,12 @@ IF(BUILD_DETOURCROWD_DEMO)
         Contrib
     )
 
-    IF(XCODE)
+    IF(APPLE)
         ADD_EXECUTABLE(DetourCrowdDemo MACOSX_BUNDLE ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${sdlmain_HDRS} ${sdlmain_SRCS} ${fastlz_SRCS})
-    ELSE()
+    ELSEIF(MSVC)
         ADD_EXECUTABLE(DetourCrowdDemo WIN32 ${detourcrowddemo_SRCS} ${detourcrowddemo_HDRS} ${fastlz_SRCS})
+    ELSE()
+        ADD_EXECUTABLE(DetourCrowdDemo ${recastdemo_SRCS} ${recastdemo_HDRS})
     ENDIF()
 
     SET_PROPERTY(TARGET DetourCrowdDemo PROPERTY DEBUG_POSTFIX -gd)
@@ -117,8 +119,10 @@ IF(BUILD_DETOURCROWD_DEMO)
     )
 
     IF(MSVC)
+        # Retrieve the SDL dll directory
+        GET_FILENAME_COMPONENT(SDL_LIB_DIR ${SDLMAIN_LIBRARY} PATH)
         INSTALL(
-            FILES Bin/DroidSans.ttf Bin/SDL.dll
+            FILES Bin/DroidSans.ttf ${SDL_LIB_DIR}/SDL.dll
             DESTINATION bin/${PLATFORM_STR}
         )
     ELSE()
