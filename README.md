@@ -71,8 +71,8 @@ The Detour Crowd module provides you with features for agents handling and behav
 # Support #
 
 - A Google Group is available [here](https://groups.google.com/forum/?fromgroups#!forum/recastnavigation)
-- There is a doxygen documentation as a project, just build and open Docs/index.html
-- If no notice a bug or something strange, please let us know about it on the Github repository, issues section
+- The online documentation of the latest stable version is available at [masagroup.github.io/recastdetour](http://masagroup.github.io/recastdetour/)
+- If you notice a bug or something strange, please let us know about it, create an [issue](https://github.com/masagroup/recastdetour/issues)
 
 # Contributors #
 
