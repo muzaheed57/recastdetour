@@ -180,6 +180,7 @@ var group__detour =
       [ "getPos", "classdtPathCorridor.html#a3c2eab7991f8921d2423b03c9d342b9e", null ],
       [ "getTarget", "classdtPathCorridor.html#a9da520d809ea8e1d201b25c7b9a8f50c", null ],
       [ "init", "classdtPathCorridor.html#a85b4c98157b68a57b9c3302f45d0ed7f", null ],
+      [ "isSet", "classdtPathCorridor.html#ac0d3ff483f8e73ceae5e322cbfc5b09c", null ],
       [ "isValid", "classdtPathCorridor.html#ab788c57a2092fc71ee682f6d2dfa1e86", null ],
       [ "moveOverOffmeshConnection", "classdtPathCorridor.html#ac27e4de69a7af8005fcb9c3271a4cbf7", null ],
       [ "movePosition", "classdtPathCorridor.html#a742045c35f5d8bae4d26d5f78457a0e2", null ],

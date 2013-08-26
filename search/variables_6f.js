@@ -12,8 +12,9 @@ var searchData=
   ['offmeshelaspedtime',['offmeshElaspedTime',['../structdtCrowdAgent.html#ab3806edb9c3d037de0c48129ce3c1743',1,'dtCrowdAgent']]],
   ['offmeshendpos',['offmeshEndPos',['../structdtCrowdAgent.html#a6f0794f4f253bfacf31ae8fc5238e366',1,'dtCrowdAgent']]],
   ['offmeshinitpos',['offmeshInitPos',['../structdtCrowdAgent.html#aef0936609cd0a640e8b6aef138391dd2',1,'dtCrowdAgent']]],
+  ['offmeshinittostarttime',['offmeshInitToStartTime',['../structdtCrowdAgent.html#ab87427d2d7a7ff768b58bc5502db058e',1,'dtCrowdAgent']]],
   ['offmeshstartpos',['offmeshStartPos',['../structdtCrowdAgent.html#a815c8febe6ab9412651afc0f68858e14',1,'dtCrowdAgent']]],
-  ['offmeshtotaltime',['offmeshTotalTime',['../structdtCrowdAgent.html#ab495cd70438ce775dd7133861cac1053',1,'dtCrowdAgent']]],
+  ['offmeshstarttoendtime',['offmeshStartToEndTime',['../structdtCrowdAgent.html#aa95730a25c02dbb1d2015a9ab04e0a79',1,'dtCrowdAgent']]],
   ['optend',['optEnd',['../structdtCrowdAgentDebugInfo.html#a2c3da33772d29888a52162695eaf37f8',1,'dtCrowdAgentDebugInfo']]],
   ['optstart',['optStart',['../structdtCrowdAgentDebugInfo.html#a83c0af535de2def34dbfe42e30b33fed',1,'dtCrowdAgentDebugInfo']]],
   ['orig',['orig',['../structdtNavMeshParams.html#a188d95f6d6dbd714b952578d71e3e115',1,'dtNavMeshParams::orig()'],['../structdtTileCacheParams.html#af9020a1528db6a1ac4e21d54c951e0e5',1,'dtTileCacheParams::orig()']]]

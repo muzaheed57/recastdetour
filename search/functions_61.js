@@ -2,7 +2,6 @@ var searchData=
 [
   ['addagent',['addAgent',['../classdtCrowd.html#a271954eb58f8ecb86f14cfcec790e669',1,'dtCrowd']]],
   ['addedge',['addEdge',['../RecastMeshDetail_8cpp.html#aff810577b2aaf1338c7051ad08435ce7',1,'RecastMeshDetail.cpp']]],
-  ['additem',['addItem',['../classdtProximityGrid.html#ad19f5adb495c35e386c6e1ba314a2b59',1,'dtProximityGrid']]],
   ['addneighbour',['addNeighbour',['../DetourCrowd_8cpp.html#a9e5491a91f795b81e724a48f8a4ee942',1,'DetourCrowd.cpp']]],
   ['addobstacle',['addObstacle',['../classdtTileCache.html#afe3b81a5356fec16ad99f2efe2548deb',1,'dtTileCache']]],
   ['addsample',['addSample',['../classdtObstacleAvoidanceDebugData.html#a54b01ec0a47c6efd95ebde459791b788',1,'dtObstacleAvoidanceDebugData']]],

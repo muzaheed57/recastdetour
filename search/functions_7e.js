@@ -22,7 +22,6 @@ var searchData=
   ['_7edtpathfollowing',['~dtPathFollowing',['../classdtPathFollowing.html#ab68d3e29c52015980d5752da75b7cc5a',1,'dtPathFollowing']]],
   ['_7edtpathqueue',['~dtPathQueue',['../classdtPathQueue.html#a3aed72cee418c920b5fbdc247845dae3',1,'dtPathQueue']]],
   ['_7edtpipelinebehavior',['~dtPipelineBehavior',['../classdtPipelineBehavior.html#a0b3d49d220c1f41c5cf2f12688ae6daf',1,'dtPipelineBehavior']]],
-  ['_7edtproximitygrid',['~dtProximityGrid',['../classdtProximityGrid.html#a7a68e3c6d5cd84034777c9dd0bc4a937',1,'dtProximityGrid']]],
   ['_7edtseekbehavior',['~dtSeekBehavior',['../classdtSeekBehavior.html#a943e96b1d392a7c8a9cba4125c943617',1,'dtSeekBehavior']]],
   ['_7edtseparationbehavior',['~dtSeparationBehavior',['../classdtSeparationBehavior.html#abe7b342cc7fce9a1d9d9514dc33d056b',1,'dtSeparationBehavior']]],
   ['_7edtsteeringbehavior',['~dtSteeringBehavior',['../classdtSteeringBehavior.html#a042d47accd352e117f0c8b6bc5b5e92c',1,'dtSteeringBehavior']]],

@@ -54,7 +54,6 @@ var searchData=
   ['dtpoly',['dtPoly',['../structdtPoly.html',1,'']]],
   ['dtpolydetail',['dtPolyDetail',['../structdtPolyDetail.html',1,'']]],
   ['dtpolystate',['dtPolyState',['../structdtPolyState.html',1,'']]],
-  ['dtproximitygrid',['dtProximityGrid',['../classdtProximityGrid.html',1,'']]],
   ['dtqueryfilter',['dtQueryFilter',['../classdtQueryFilter.html',1,'']]],
   ['dtseekbehavior',['dtSeekBehavior',['../classdtSeekBehavior.html',1,'']]],
   ['dtseekbehaviorparams',['dtSeekBehaviorParams',['../structdtSeekBehaviorParams.html',1,'']]],

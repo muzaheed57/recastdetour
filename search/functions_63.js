@@ -12,7 +12,7 @@ var searchData=
   ['canremovevertex',['canRemoveVertex',['../DetourTileCacheBuilder_8cpp.html#a79d489bfce99f1637549fdf8223a5352',1,'canRemoveVertex(dtTileCachePolyMesh &amp;mesh, const unsigned short rem):&#160;DetourTileCacheBuilder.cpp'],['../RecastMesh_8cpp.html#a837800b7a34e1106d7ad287b8cb7fc33',1,'canRemoveVertex(rcContext *ctx, rcPolyMesh &amp;mesh, const unsigned short rem):&#160;RecastMesh.cpp']]],
   ['circumcircle',['circumCircle',['../RecastMeshDetail_8cpp.html#a22704fbc4ce6a6d0aa11821bc4684f22',1,'RecastMeshDetail.cpp']]],
   ['classifyoffmeshpoint',['classifyOffMeshPoint',['../DetourNavMeshBuilder_8cpp.html#a9a7e6003820face64f333c968b5c0cdb',1,'DetourNavMeshBuilder.cpp']]],
-  ['clear',['clear',['../classdtNodePool.html#a4341af64b1f043b2775b7f1abae34d7b',1,'dtNodePool::clear()'],['../classdtNodeQueue.html#aa0f83a0d1f38b0b97fb549d1372c8be7',1,'dtNodeQueue::clear()'],['../classdtProximityGrid.html#abfbfdb91797c4414d1201d761d9c1a94',1,'dtProximityGrid::clear()']]],
+  ['clear',['clear',['../classdtNodePool.html#a4341af64b1f043b2775b7f1abae34d7b',1,'dtNodePool::clear()'],['../classdtNodeQueue.html#aa0f83a0d1f38b0b97fb549d1372c8be7',1,'dtNodeQueue::clear()']]],
   ['clippoly',['clipPoly',['../RecastRasterization_8cpp.html#a3ef587d7cabf49fa0be26f2a8adf769b',1,'RecastRasterization.cpp']]],
   ['closestpointonpoly',['closestPointOnPoly',['../classdtNavMeshQuery.html#ace375a2d8b236abcd3fc05c38def4810',1,'dtNavMeshQuery']]],
   ['closestpointonpolyboundary',['closestPointOnPolyBoundary',['../classdtNavMeshQuery.html#a66f3f4e7be8121e8abfc9dbed3e54d00',1,'dtNavMeshQuery']]],

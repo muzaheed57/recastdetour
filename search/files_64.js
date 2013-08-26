@@ -38,8 +38,6 @@ var searchData=
   ['detourpathqueue_2eh',['DetourPathQueue.h',['../DetourPathQueue_8h.html',1,'']]],
   ['detourpipelinebehavior_2ecpp',['DetourPipelineBehavior.cpp',['../DetourPipelineBehavior_8cpp.html',1,'']]],
   ['detourpipelinebehavior_2eh',['DetourPipelineBehavior.h',['../DetourPipelineBehavior_8h.html',1,'']]],
-  ['detourproximitygrid_2ecpp',['DetourProximityGrid.cpp',['../DetourProximityGrid_8cpp.html',1,'']]],
-  ['detourproximitygrid_2eh',['DetourProximityGrid.h',['../DetourProximityGrid_8h.html',1,'']]],
   ['detourseekbehavior_2eh',['DetourSeekBehavior.h',['../DetourSeekBehavior_8h.html',1,'']]],
   ['detourseparationbehavior_2ecpp',['DetourSeparationBehavior.cpp',['../DetourSeparationBehavior_8cpp.html',1,'']]],
   ['detourseparationbehavior_2eh',['DetourSeparationBehavior.h',['../DetourSeparationBehavior_8h.html',1,'']]],

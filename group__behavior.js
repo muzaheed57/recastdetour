@@ -85,11 +85,6 @@ var group__behavior =
       [ "m_agentsParams", "classdtParametrizedBehavior.html#aa1f94f1a27d0f1d2240cfda88da9c0e6", null ],
       [ "m_size", "classdtParametrizedBehavior.html#a059608d640b7766f309c5f7a304de75e", null ]
     ] ],
-    [ "Node", "structdtParametrizedBehavior_1_1Node.html", [
-      [ "id", "structdtParametrizedBehavior_1_1Node.html#a197986fc0029fde87cfb130c8308217b", null ],
-      [ "next", "structdtParametrizedBehavior_1_1Node.html#a2fb7427070ec3707f0cf9447fb8fe099", null ],
-      [ "value", "structdtParametrizedBehavior_1_1Node.html#a6239138cfdbb73c9e59ad11067a75d30", null ]
-    ] ],
     [ "dtPathCorridor", "classdtPathCorridor.html", [
       [ "dtPathCorridor", "classdtPathCorridor.html#a2e7ceb397b60be4ff6e839206e6ef571", null ],
       [ "~dtPathCorridor", "classdtPathCorridor.html#a10dc98697fb9f6e60063ab49a41c391b", null ],
@@ -103,6 +98,7 @@ var group__behavior =
       [ "getPos", "classdtPathCorridor.html#a3c2eab7991f8921d2423b03c9d342b9e", null ],
       [ "getTarget", "classdtPathCorridor.html#a9da520d809ea8e1d201b25c7b9a8f50c", null ],
       [ "init", "classdtPathCorridor.html#a85b4c98157b68a57b9c3302f45d0ed7f", null ],
+      [ "isSet", "classdtPathCorridor.html#ac0d3ff483f8e73ceae5e322cbfc5b09c", null ],
       [ "isValid", "classdtPathCorridor.html#ab788c57a2092fc71ee682f6d2dfa1e86", null ],
       [ "moveOverOffmeshConnection", "classdtPathCorridor.html#ac27e4de69a7af8005fcb9c3271a4cbf7", null ],
       [ "movePosition", "classdtPathCorridor.html#a742045c35f5d8bae4d26d5f78457a0e2", null ],
@@ -117,7 +113,7 @@ var group__behavior =
     ] ],
     [ "dtPathFollowingParams", "structdtPathFollowingParams.html", [
       [ "dtPathFollowingParams", "structdtPathFollowingParams.html#aa29a0d2ba7e6fb348ea5005fc69a569e", null ],
-      [ "init", "structdtPathFollowingParams.html#a790f06c9a5b2cc6d6d9408871b9ad767", null ],
+      [ "init", "structdtPathFollowingParams.html#a541f2027cf640f3cf078670ae0365428", null ],
       [ "cornerFlags", "structdtPathFollowingParams.html#a5b41c52301294d1560d64438cca9444c", null ],
       [ "cornerPolys", "structdtPathFollowingParams.html#a37ac51fd8e35766811f64e66fec820c2", null ],
       [ "cornerVerts", "structdtPathFollowingParams.html#abf54e2a811465d542392c4685b32de75", null ],
@@ -152,7 +148,7 @@ var group__behavior =
       [ "~dtPipelineBehavior", "classdtPipelineBehavior.html#a0b3d49d220c1f41c5cf2f12688ae6daf", null ],
       [ "allocate", "classdtPipelineBehavior.html#abc8592d4d602f44736146b271a0a96fd", null ],
       [ "free", "classdtPipelineBehavior.html#ab41f34118f3c052cbd32f6343889b18f", null ],
-      [ "setBehaviors", "classdtPipelineBehavior.html#a0d574c50b36a7acde66bbb7f87f09062", null ],
+      [ "setBehaviors", "classdtPipelineBehavior.html#a15a2f803c8eaf51aa0ec62de8c4f4640", null ],
       [ "update", "classdtPipelineBehavior.html#a27d20d57f3d7b4691799cf0ee16f1a96", null ]
     ] ],
     [ "dtSeekBehaviorParams", "structdtSeekBehaviorParams.html", [
